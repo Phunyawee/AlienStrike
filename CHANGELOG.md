@@ -1,3 +1,26 @@
+## [2.0.0] - 2025-01-29
+A classic vertical space shooter game refactored into a modular **Object-Oriented Game Engine** using PowerShell and System.Windows.Forms.
+
+**Version 2.0 Focus:**
+This update moves away from a monolithic script to a clean, maintainable architecture. The game logic, rendering, collision, and score systems are now separated into dedicated managers.
+
+## 🛠️ v2.0 Refactor Highlights
+*   **Modular Design:** Code split into `Entities` (Player, Enemy, Bullet) and `Managers` (Render, Collision, GameLogic).
+*   **Robust Save System:** Fixed JSON serialization issues for local high scores.
+*   **Optimized Loop:** Improved game loop performance with cleaner state management.
+
+## 📂 Project Structure
+```text
+AlienStrike/
+├── src/
+│   ├── Entities/       # Game Objects
+│   ├── Managers/       # Logic, Render, Collision, Score
+├── AlienStrike.ps1     # Main Controller
+└── scores.json         # High Scores Data
+```
+
+
+
 ## [1.0.0] - 2025-01-29
 
 ### Added

@@ -10,96 +10,45 @@ Add-Type -AssemblyName System.Drawing
 . "$PSScriptRoot\src\Entities\EnemyBullet.ps1" 
 . "$PSScriptRoot\src\Entities\Enemy.ps1"
 
+# --- 1.1 Load Managers (New) ---
+. "$PSScriptRoot\src\HighScoreManager.ps1"
+. "$PSScriptRoot\src\GameLogic.ps1" 
+. "$PSScriptRoot\src\CollisionManager.ps1" 
+. "$PSScriptRoot\src\RenderManager.ps1"
 
 # --- Helper Functions: Score System ---
 $scoreFile = "$PSScriptRoot\scores.json"
 
-function Get-HighScores {
-    if (Test-Path $scoreFile) {
-        return Get-Content $scoreFile | ConvertFrom-Json | Sort-Object Score -Descending | Select-Object -First 10
-    }
-    return @()
-}
-
-function Save-Score ($name, $score, $lvl) {
-    $scores = @(Get-HighScores)
-    $scores += @{ Name = $name; Score = $score; Level = $lvl; Date = (Get-Date).ToString("yyyy-MM-dd HH:mm") }
-    $scores | Sort-Object Score -Descending | Select-Object -First 10 | ConvertTo-Json | Out-File $scoreFile
-}
-
 function Do-GameOver {
-    $timer.Stop()
+    $timer.Stop() # หยุดเกม
     
-    # ถามชื่อและเซฟ (ตามเดิม)
+    # เซฟคะแนน
     $name = Show-NameInputBox $Script:score
     Save-Score $name $Script:score $Script:level
 
+    # รีเซ็ตสถานะเพื่อไปหน้า Leaderboard
     $Script:gameOver = $false
     $Script:gameStarted = $false
     $Script:showLeaderboard = $true
 
-    # Reset Player
+    # --- RESET GAME OBJECTS ---
+    # สร้าง Player ใหม่ที่จุดเริ่มต้น
     $Script:player = [Player]::new(225, 500)
     
-    # Safe Clear: เช็คก่อนว่าไม่เป็น $null ค่อย Clear
+    # ล้างศัตรูและกระสุนให้เกลี้ยง
     if ($null -ne $Script:bullets) { $Script:bullets.Clear() }
     if ($null -ne $Script:enemies) { $Script:enemies.Clear() }
     
-    # จุดที่น่าจะพังคือตรงนี้ ให้แก้เป็นแบบนี้ครับ
-    if ($null -ne $Script:enemyBullets) { 
-        $Script:enemyBullets.Clear() 
-    } else {
-        # ถ้ามันยังไม่มี ก็สร้างใหม่เลย
-        $Script:enemyBullets = [System.Collections.ArrayList]::new()
-    }
+    # ล้างกระสุนศัตรู (สร้างใหม่เลยกันเหนียว)
+    $Script:enemyBullets = [System.Collections.ArrayList]::new()
     
+    # รีเซ็ตค่าคะแนนและเลเวล
     $Script:score = 0
     $Script:level = 1
 
+    # สั่งวาดหน้าจอใหม่ (จะไปโผล่ที่หน้า Leaderboard)
     $form.Invalidate()
 }
-
-function Show-NameInputBox ($score) {
-    # สร้าง Form เล็กๆ สำหรับกรอกชื่อ (Pop-up)
-    $inputForm = New-Object System.Windows.Forms.Form
-    $inputForm.Text = "NEW HIGH SCORE!"
-    $inputForm.Size = New-Object System.Drawing.Size(300, 180)
-    $inputForm.StartPosition = "CenterScreen"
-    $inputForm.BackColor = "Black"
-    $inputForm.FormBorderStyle = "FixedToolWindow"
-
-    $lbl = New-Object System.Windows.Forms.Label
-    $lbl.Text = "SCORE: $score`nEnter Your Name:"
-    $lbl.ForeColor = "Yellow"
-    $lbl.Font = New-Object System.Drawing.Font("Consolas", 12, [System.Drawing.FontStyle]::Bold)
-    $lbl.AutoSize = $true
-    $lbl.Location = New-Object System.Drawing.Point(20, 20)
-    $inputForm.Controls.Add($lbl)
-
-    $txt = New-Object System.Windows.Forms.TextBox
-    $txt.Location = New-Object System.Drawing.Point(20, 70)
-    $txt.Size = New-Object System.Drawing.Size(240, 30)
-    $txt.Font = New-Object System.Drawing.Font("Arial", 12)
-    $inputForm.Controls.Add($txt)
-
-    $btn = New-Object System.Windows.Forms.Button
-    $btn.Text = "SAVE"
-    $btn.DialogResult = "OK"
-    $btn.BackColor = "Green"
-    $btn.ForeColor = "White"
-    $btn.FlatStyle = "Flat"
-    $btn.Location = New-Object System.Drawing.Point(180, 110)
-    $inputForm.Controls.Add($btn)
-    
-    $inputForm.AcceptButton = $btn
-    
-    $result = $inputForm.ShowDialog()
-    if ($result -eq "OK" -and $txt.Text.Trim() -ne "") {
-        return $txt.Text.Trim()
-    }
-    return "Unknown"
-}
-
 
 # --- 2. Setup Window ---
 $form = New-Object System.Windows.Forms.Form
@@ -150,16 +99,22 @@ $form.Add_KeyDown({
         else { $timer.Start() }
     }
 
+     # กด Enter
     if ($_.KeyCode -eq "Enter") {
+        # กรณี 1: ถ้าดู Leaderboard อยู่ -> ให้กลับไปหน้า Start Screen
         if ($Script:showLeaderboard) {
-            # ออกจากหน้า Leaderboard กลับไปหน้า Start
             $Script:showLeaderboard = $false
             $Script:gameStarted = $false
             $Script:gameOver = $false
-        } elseif (-not $Script:gameStarted) { 
+            $form.Invalidate() # บังคับวาดหน้าจอใหม่ทันที
+        } 
+        # กรณี 2: ถ้าอยู่ที่หน้า Start Screen -> ให้เริ่มเกม
+        elseif (-not $Script:gameStarted) { 
             $Script:gameStarted = $true 
+            $timer.Start()  # <--- [สำคัญมาก] ต้องสั่ง Start ไม่งั้นเกมไม่เดิน!
         }
     }
+
 
     # กด L ที่หน้า Start Screen เพื่อดู Leaderboard
     if ($_.KeyCode -eq "L" -and -not $Script:gameStarted -and -not $Script:showLeaderboard) {
@@ -167,11 +122,6 @@ $form.Add_KeyDown({
         $form.Invalidate()
     }
 
-    # Press Enter to start or restart on game over
-    if ($_.KeyCode -eq "Enter") {
-        if (-not $Script:gameStarted) { $Script:gameStarted = $true }
-        elseif ($Script:gameOver) { $form.Close() }
-    }
 
 
 })
@@ -186,19 +136,10 @@ $timer.Interval = 16 # ~60 FPS
 $timer.Add_Tick({
     if (-not $Script:gameStarted -or $Script:gameOver) { return }
 
-    # >> เพิ่มตรงนี้: ถ้าคะแนนเกิน 5000 ให้เป็น Level 4 <<
-    if ($Script:score -ge 5000) {
-        $Script:level = 4
-        $Script:spawnRate = 10 # มาถี่ขึ้นอีก!
-    } 
-    elseif ($Script:score -ge 3000) {
-        $Script:level = 3
-        $Script:spawnRate = 8
-    } 
-    elseif ($Script:score -ge 1000) {
-        $Script:level = 2
-        $Script:spawnRate = 5
-    }
+    # --- A. Update Difficulty (เรียกจาก GameLogic.ps1) ---
+    $diff = Get-GameDifficulty $Script:score
+    $Script:level = $diff.Level
+    $Script:spawnRate = $diff.SpawnRate
 
 
     if ($Script:keysPressed["A"] -or $Script:keysPressed["Left"]) { 
@@ -220,20 +161,8 @@ $timer.Add_Tick({
 
     # --- B. Spawn Enemies ---
     if ($Script:rnd.Next(0, 100) -lt $Script:spawnRate) {
-        $ex = $Script:rnd.Next(0, ($form.ClientSize.Width - 30))
-        
-        if ($Script:level -eq 1) {
-            $newEnemy = [Enemy]::new($ex, -40, $Script:rnd.Next(3, 6), [System.Drawing.Color]::Red)
-        } elseif ($Script:level -eq 2) {
-            $newEnemy = [Enemy]::new($ex, -40, $Script:rnd.Next(5, 9), [System.Drawing.Color]::Orange)
-        } elseif ($Script:level -eq 3) {
-            $newEnemy = [Enemy]::new($ex, -40, $Script:rnd.Next(8, 12), [System.Drawing.Color]::Purple)
-        } else {
-            # >> Level 4+: สีเงิน (Silver) เร็วและยิงสวนได้! <<
-            # (Logic ยิงสวนอยู่ใน Class Enemy แล้ว มันจะทำงานเองเมื่อ Level >= 4)
-            $newEnemy = [Enemy]::new($ex, -40, $Script:rnd.Next(9, 13), [System.Drawing.Color]::Silver)
-        }
-        
+        # เรียกฟังก์ชันสร้าง Enemy แทน Code ก้อนใหญ่
+        $newEnemy = New-EnemySpawn $form.ClientSize.Width $Script:level $Script:rnd
         [void]$Script:enemies.Add($newEnemy)
     }
 
@@ -244,59 +173,29 @@ $timer.Add_Tick({
         if ($b.Y -lt -20) { $Script:bullets.RemoveAt($i) }
     }
 
-    # --- D. Update Enemies & Collisions ---
-    for ($i = $Script:enemies.Count - 1; $i -ge 0; $i--) {
-        $e = $Script:enemies[$i]
-        $e.Update()
-
+    # --- D. Update Entities Movement (เคลื่อนที่ศัตรู & กระสุนศัตรู) ---
+    # เราแยกแค่การเคลื่อนที่ไว้ตรงนี้ ส่วนการชนไปให้ Manager จัดการ
+    foreach ($e in $Script:enemies) { 
+        $e.Update() 
+        # ศัตรูยิงสวน
         $bullet = $e.TryShoot($Script:level)
-        if ($null -ne $bullet) {
-            [void]$Script:enemyBullets.Add($bullet)
-        }
+        if ($null -ne $bullet) { [void]$Script:enemyBullets.Add($bullet) }
+    }
+    foreach ($eb in $Script:enemyBullets) { $eb.Update() }
 
-        # 1. Check Collision with Player (Game Over)
-        if ($e.GetBounds().IntersectsWith($Script:player.GetBounds())) {
-            Do-GameOver  # <--- แก้เหลือแค่นี้พอ
-        return
+    # --- E. Handle Collisions (เรียกใช้ CollisionManager) ---
+    # ส่ง List ทั้งหมดเข้าไปเช็คทีเดียว
+    $collisionResult = Invoke-GameCollisions $Script:player $Script:bullets $Script:enemies $Script:enemyBullets $form.ClientSize.Height
+
+    # 1. อัปเดตคะแนน
+    if ($collisionResult.ScoreAdded -gt 0) {
+        $Script:score += $collisionResult.ScoreAdded
     }
 
-        # 2. Check Collision with Bullets
-        $isHit = $false
-        for ($j = $Script:bullets.Count - 1; $j -ge 0; $j--) {
-            if ($e.GetBounds().IntersectsWith($Script:bullets[$j].GetBounds())) {
-                $Script:bullets.RemoveAt($j)
-                $isHit = $true
-                $Script:score += 100
-                break
-            }
-        }
-
-        if ($isHit) {
-            $Script:enemies.RemoveAt($i)
-        } elseif ($e.Y -gt $form.ClientSize.Height) {
-            $Script:enemies.RemoveAt($i)
-        }
-    }
-
-    # --- E. Update Enemy Bullets ---
-    for ($i = $Script:enemyBullets.Count - 1; $i -ge 0; $i--) {
-        $eb = $Script:enemyBullets[$i]
-        $eb.Update()
-
-        # 1. เช็คชนผู้เล่น (Game Over)
-        # ปรับ Hitbox เล็กนิดนึงจะได้ไม่หัวร้อน (Inflate -5)
-        $bulletHitbox = $eb.GetBounds()
-        $bulletHitbox.Inflate(-5, -5) 
-
-        if ($bulletHitbox.IntersectsWith($Script:player.GetBounds())) {
-            Do-GameOver  # <--- เรียกฟังก์ชันเดียวกันเลย
-            return
-        }
-
-        # 2. ลบทิ้งเมื่อหลุดขอบจอ
-        if ($eb.Y -gt $form.ClientSize.Height) {
-            $Script:enemyBullets.RemoveAt($i)
-        }
+    # 2. เช็ค Game Over
+    if ($collisionResult.IsGameOver) {
+        Do-GameOver
+        return # ออกจาก Loop ทันที
     }
 
     $form.Invalidate()
@@ -306,115 +205,31 @@ $timer.Add_Tick({
 $form.Add_Paint({
     try {
         $g = $_.Graphics
+        # ตั้งค่ากราฟิกให้เนียน
         $g.SmoothingMode = "AntiAlias"
         $g.TextRenderingHint = "AntiAlias"
         $g.Clear([System.Drawing.Color]::Black)
 
-        # --- 1. LEADERBOARD SCREEN ---
+        # --- CASE 1: LEADERBOARD ---
         if ($Script:showLeaderboard) {
-            $titleFont = New-Object System.Drawing.Font("Impact", 36)
-            $headFont  = New-Object System.Drawing.Font("Consolas", 14, [System.Drawing.FontStyle]::Bold)
-            $rowFont   = New-Object System.Drawing.Font("Consolas", 12)
-            $center    = New-Object System.Drawing.StringFormat; $center.Alignment = "Center"
-            
-            # วาดหัวข้อ
-            $g.DrawString("HALL OF FAME", $titleFont, [System.Drawing.Brushes]::Gold, ($form.Width/2), 30, $center)
-            $g.DrawLine([System.Drawing.Pens]::DimGray, 50, 100, 450, 100)
-
-            # หัวตาราง
-            $y = 120
-            $g.DrawString("RANK", $headFont, [System.Drawing.Brushes]::Gray, 60, $y)
-            $g.DrawString("NAME", $headFont, [System.Drawing.Brushes]::Gray, 150, $y)
-            $g.DrawString("LEVEL", $headFont, [System.Drawing.Brushes]::Gray, 280, $y)
-            $g.DrawString("SCORE", $headFont, [System.Drawing.Brushes]::Gray, 380, $y)
-            
-            $y += 30
-            $rank = 1
-            
-            # โหลดคะแนน (ถ้าพังให้คืนค่าว่าง)
-            $scores = @()
-            try { $scores = Get-HighScores } catch { }
-
-            if ($null -ne $scores) {
-                foreach ($s in $scores) {
-                    if ($null -eq $s) { continue } # ข้ามถ้าข้อมูลเสีย
-
-                    # เลือกสี
-                    if ($rank -eq 1) { $brush = [System.Drawing.Brushes]::Gold }
-                    elseif ($rank -eq 2) { $brush = [System.Drawing.Brushes]::Silver }
-                    elseif ($rank -eq 3) { $brush = [System.Drawing.Brushes]::SandyBrown }
-                    else { $brush = [System.Drawing.Brushes]::White }
-
-                    $sfRight = New-Object System.Drawing.StringFormat; $sfRight.Alignment = "Far"
-                    $sfCenter = New-Object System.Drawing.StringFormat; $sfCenter.Alignment = "Center"
-
-                    # --- จุดแก้บั๊ก: แปลงค่าให้ชัวร์ก่อนวาด ---
-                    $pName = if ($s.Name) { $s.Name } else { "Unknown" }
-                    $pLevel = if ($s.Level) { "$($s.Level)" } else { "1" }
-                    
-                    # เช็ค Score ว่ามีค่าไหม ถ้าไม่มีให้เป็น 0
-                    $rawScore = 0
-                    if ($s.Score -and $s.Score -is [ValueType]) { $rawScore = $s.Score }
-                    $pScore = "{0:N0}" -f $rawScore
-
-                    $g.DrawString("#$rank", $rowFont, [System.Drawing.Brushes]::DimGray, 60, $y)
-                    $g.DrawString($pName, $rowFont, $brush, 150, $y)
-                    $g.DrawString($pLevel, $rowFont, [System.Drawing.Brushes]::Cyan, 305, $y, $sfCenter)
-                    $g.DrawString($pScore, $rowFont, $brush, 430, $y, $sfRight)
-
-                    $y += 25
-                    $rank++
-                }
-            }
-            
-            $g.DrawString("Press ENTER to Return", $rowFont, [System.Drawing.Brushes]::DarkGray, ($form.Width/2), 520, $center)
-            
-            return # <--- สำคัญมาก! ต้อง Return เพื่อไม่ให้วาดเกมต่อ
-        }
-
-        # --- 2. START SCREEN ---
-        if (-not $Script:gameStarted) {
-            $font1 = New-Object System.Drawing.Font("Arial", 28, [System.Drawing.FontStyle]::Bold)
-            $font2 = New-Object System.Drawing.Font("Arial", 14)
-            $fontS = New-Object System.Drawing.Font("Arial", 10)
-            $format = New-Object System.Drawing.StringFormat
-            $format.Alignment = "Center"
-            
-            $g.DrawString("ALIEN STRIKE", $font1, [System.Drawing.Brushes]::Cyan, ($form.ClientSize.Width/2), 180, $format)
-            $g.DrawString("Press ENTER to Start", $font2, [System.Drawing.Brushes]::Yellow, ($form.ClientSize.Width/2), 280, $format)
-            $g.DrawString("[ L ] View Leaderboard", $fontS, [System.Drawing.Brushes]::LightGray, ($form.ClientSize.Width/2), 320, $format)
+            Draw-Leaderboard $g $form.Width $form.Height
             return
         }
 
-        # --- 3. GAMEPLAY ---
-        # วาด Player (เช็คก่อนว่าไม่ null)
-        if ($null -ne $Script:player) { $Script:player.Draw($g) }
-        
-        # วาด Bullets
-        if ($null -ne $Script:bullets) {
-            foreach ($b in $Script:bullets) { if ($b) { $b.Draw($g) } }
-        }
-        
-        # วาด Enemies
-        if ($null -ne $Script:enemies) {
-            foreach ($e in $Script:enemies) { if ($e) { $e.Draw($g) } }
+        # --- CASE 2: START SCREEN ---
+        if (-not $Script:gameStarted) {
+            Draw-StartScreen $g $form.Width $form.Height
+            return
         }
 
-        # วาด Enemy Bullets (อันใหม่)
-        if ($null -ne $Script:enemyBullets) {
-            foreach ($eb in $Script:enemyBullets) { if ($eb) { $eb.Draw($g) } }
-        }
-
-        # Draw UI
-        $scoreFont = New-Object System.Drawing.Font("Consolas", 16, [System.Drawing.FontStyle]::Bold)
-        $g.DrawString("Score: $($Script:score)", $scoreFont, [System.Drawing.Brushes]::White, 10, 10)
-        $g.DrawString("Level: $($Script:level)", $scoreFont, [System.Drawing.Brushes]::Yellow, 10, 35)
+        # --- CASE 3: GAMEPLAY ---
+        Draw-Gameplay $g $Script:player $Script:bullets $Script:enemies $Script:enemyBullets $Script:score $Script:level
 
     } catch {
-        # ถ้ายัง Error ให้พิมพ์บอกใน Console แทนการเด้ง Popup
         Write-Host "Paint Error: $_"
     }
 })
+
 
 $form.Add_Shown({ $form.Activate(); $form.Focus() })
 
