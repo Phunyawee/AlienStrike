@@ -7,7 +7,7 @@ class Wrath : BaseEnemy {
     # Constructor
     Wrath([float]$x, [float]$y, [int]$sinLevel) 
         # สังเกตตรง Speed: เอาไปหาร 2 เพื่อลดความเร็วลงครึ่งนึง และบังคับไม่ให้ต่ำกว่า 1
-        : base($x, $y, 40, 40,[math]::Max([math]::Floor(($sinLevel * 2 + 5) / 2), 1), 10, [System.Drawing.Color]::Red) {
+        : base($x, $y, 40, 40,[math]::Max([math]::Floor(($sinLevel * 2 + 5) / 2), 1), 7, [System.Drawing.Color]::Red) {
         
         $this.SinLevel = $sinLevel
         $this.ScoreValue = 1000 

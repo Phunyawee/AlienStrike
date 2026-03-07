@@ -13,6 +13,8 @@ Add-Type -AssemblyName System.Drawing
 # --- 1.0 Load New Enemy Types (ต้องเพิ่มตรงนี้ครับ!) ---
 . "$PSScriptRoot\src\Entities\Enemies\BaseEnemy.ps1"
 . "$PSScriptRoot\src\Entities\Enemies\Sins\Wrath.ps1"
+. "$PSScriptRoot\src\Entities\Projectiles\SilenceBullet.ps1" 
+. "$PSScriptRoot\src\Entities\Enemies\Sins\Envy.ps1"
 
 # --- 1.1 Load Managers (New) ---
 . "$PSScriptRoot\src\Managers\HighScoreManager.ps1"
@@ -35,6 +37,8 @@ function Do-GameOver {
     $Script:gameStarted = $false
     $Script:showLeaderboard = $true
     $Script:lives = 3
+    $Script:wrathKills = 0     # สำหรับนับจำนวนโกรธ
+    $Script:silenceTimer = 0   # ตัวนับเวลาติดใบ้
 
     # --- RESET GAME OBJECTS ---
     # สร้าง Player ใหม่ที่จุดเริ่มต้น
@@ -86,6 +90,8 @@ $Script:enemyBullets = [System.Collections.ArrayList]::new()
 $Script:score = 0
 $Script:level = 1
 $Script:lives = 3   
+$Script:wrathKills = 0     # สำหรับนับจำนวนโกรธ
+$Script:silenceTimer = 0   # ตัวนับเวลาติดใบ้
 $Script:spawnRate = 3  
 $Script:gameStarted = $false
 $Script:gameOver = $false
@@ -159,7 +165,8 @@ $timer.Add_Tick({
     
     # Shooting
     if ($Script:keysPressed["W"] -or $Script:keysPressed["Space"] -or $Script:keysPressed["Up"]) {
-        if ($Script:player.CanShoot()) {
+        # [แก้ตรงนี้] ถ้าระยะเวลาใบ้เป็น 0 หรือติดลบ ถึงจะยิงได้!
+        if ($Script:silenceTimer -le 0 -and $Script:player.CanShoot()) {
             $newBullet = [Bullet]::new($Script:player.X + 12, $Script:player.Y)
             [void]$Script:bullets.Add($newBullet)
             $Script:player.ResetCooldown()
@@ -204,6 +211,15 @@ $timer.Add_Tick({
     # --- E. Handle Collisions ---
     $collisionResult = Invoke-GameCollisions $Script:player $Script:bullets $Script:enemies $Script:enemyBullets $form.ClientSize.Height
 
+    # ลดเวลาสถานะใบ้ลงเรื่อยๆ ทุกเฟรม
+    if ($Script:silenceTimer -gt 0) { 
+        $Script:silenceTimer -= 1 
+    }
+
+    # ถ้าโดนกระสุนใบ้ ให้ตั้งเวลาเป็น 180 เฟรม (3 วินาที)
+    if ($collisionResult.ApplySilence) {
+        $Script:silenceTimer = 180 
+    }
     # 1. อัปเดตคะแนน
     if ($collisionResult.ScoreAdded -gt 0) {
         $Script:score += $collisionResult.ScoreAdded
@@ -236,26 +252,44 @@ $timer.Add_Tick({
 $form.Add_Paint({
     try {
         $g = $_.Graphics
-        # ตั้งค่ากราฟิกให้เนียน
         $g.SmoothingMode = "AntiAlias"
         $g.TextRenderingHint = "AntiAlias"
         $g.Clear([System.Drawing.Color]::Black)
 
-        # --- CASE 1: LEADERBOARD ---
         if ($Script:showLeaderboard) {
             Draw-Leaderboard $g $form.Width $form.Height
             return
         }
 
-        # --- CASE 2: START SCREEN ---
         if (-not $Script:gameStarted) {
             Draw-StartScreen $g $form.Width $form.Height
             return
         }
 
-        # --- CASE 3: GAMEPLAY ---
-        Draw-Gameplay $g $Script:player $Script:bullets $Script:enemies $Script:enemyBullets $Script:score $Script:level $Script:lives $Script:targetScore
+       # ==========================================
+        #[NEW] คำนวณ Buff และ Debuff ของจริงเพื่อส่งไป UI
+        # ==========================================
+        $activeBuffs = @()
+        $activeDebuffs = @()
 
+        # 2. เช็คว่าติดสถานะ "ใบ้" (Silence) อยู่ไหม
+        if ($Script:silenceTimer -gt 0) {
+            $secondsLeft = [math]::Round(($Script:silenceTimer / 60.0), 1)
+            $formattedTime = "{0:N1}" -f $secondsLeft
+
+            $newItem = [PSCustomObject]@{
+                Icon  = "Z" 
+                Value = $formattedTime
+                Color = [System.Drawing.Brushes]::Magenta 
+            }
+            $activeDebuffs += $newItem
+
+            # [DEBUG ต้นทาง] ปริ้นค่าดูว่าสร้างออบเจกต์สำเร็จไหม และเวลานับลดลงจริงไหม
+            Write-Host "PAINT EVENT -> Timer: $($Script:silenceTimer), Formatted: $formattedTime, Debuffs Count: $($activeDebuffs.Count)"
+        }
+
+        # --- CASE 3: GAMEPLAY ---
+        Draw-Gameplay $g $Script:player $Script:bullets $Script:enemies $Script:enemyBullets $Script:score $Script:level $Script:lives $Script:targetScore $activeBuffs $activeDebuffs
     } catch {
         Write-Host "Paint Error: $_"
     }

@@ -4,64 +4,88 @@ function Invoke-GameCollisions ($player, $bullets, $enemies, $enemyBullets, $for
     $result = @{
         ScoreAdded = 0
         IsPlayerHit = $false
+        ApplySilence = $false # <--- เพิ่มสถานะใบ้ (ส่งกลับไปให้ Game Loop ทราบ)
     }
 
     # --- 1. Enemy Collisions ---
     for ($i = $enemies.Count - 1; $i -ge 0; $i--) {
         $e = $enemies[$i]
 
-        # A. ชนผู้เล่น 
         if ($e.GetBounds().IntersectsWith($player.GetBounds())) {
             $result.IsPlayerHit = $true
             return $result
         }
 
-        # B. โดนกระสุนผู้เล่น
         $isDead = $false
         for ($j = $bullets.Count - 1; $j -ge 0; $j--) {
             if ($e.GetBounds().IntersectsWith($bullets[$j].GetBounds())) {
+                $bullets.RemoveAt($j)
                 
-                $bullets.RemoveAt($j) # ลบกระสุนทิ้ง 1 นัด
-                
-                # เช็คว่ามีฟังก์ชัน TakeDamage ไหม (เผื่อเป็นศัตรูระบบเก่า)
                 if ($e.PsObject.Methods.Match("TakeDamage").Count -gt 0) {
-                    # เรียกใช้ TakeDamage(1) ถ้าเลือดหมดมันจะคืนค่า $true
                     $isDead = $e.TakeDamage(1) 
                 } else {
-                    $isDead = $true # ถ้าเป็นศัตรูแบบเก่าที่ไม่มี HP ให้ตายเลย
+                    $isDead = $true
                 }
 
                 if ($isDead) {
-                    # เช็คว่าศัตรูตัวนี้มีระบบค่าหัว ($ScoreValue) ไหม
                     if ($null -ne $e.ScoreValue) {
-                        $result.ScoreAdded += $e.ScoreValue # บวกตามค่าหัว (Wrath จะได้ 1000)
+                        $result.ScoreAdded += $e.ScoreValue
                     } else {
-                        $result.ScoreAdded += 100 # ศัตรูธรรมดาระบบเก่า ได้ 100
+                        $result.ScoreAdded += 100
+                    }
+
+                    # ==========================================
+                    # [NEW] ระบบนับ Kill Wrath และเรียก Envy (บอสลับ)
+                    # ==========================================
+                    if ($e.GetType().Name -eq "Wrath") {
+                        # ตัวแปรนี้อยู่ใน Script Scope ของไฟล์ AlienStrike.ps1
+                        $Script:wrathKills += 1
+                        
+                        # ถ้าฆ่าครบ 7 ตัว ให้เกิด Envy ทันที!
+                        if ($Script:wrathKills % 1 -eq 0) {
+                            # ให้เกิดตรงกลางจอ (X=225) และลอยลงมาจากขอบจอบน
+                            $envy = [Envy]::new(225, -50, $player)
+                            [void]$enemies.Add($envy)
+                        }
                     }
                 }
-                
-                break # กระสุน 1 นัดทำดาเมจได้ทีเดียว แล้วโดดออก
+                break 
             }
         }
 
         if ($isDead) {
-            $enemies.RemoveAt($i) # เลือดหมด ลบศัตรูทิ้ง
+            $enemies.RemoveAt($i)
         } elseif ($e.Y -gt $formHeight) {
-            # C. หลุดขอบจอ
             $enemies.RemoveAt($i)
         }
     }
 
+    # --- 2. Enemy Bullet Collisions ---
     # --- 2. Enemy Bullet Collisions (กระสุนศัตรูชนเรา) ---
     for ($i = $enemyBullets.Count - 1; $i -ge 0; $i--) {
         $eb = $enemyBullets[$i]
         
         $bulletHitbox = $eb.GetBounds()
-        $bulletHitbox.Inflate(-5, -5)
+        
+        # [แก้ตรงนี้] ลดขนาด Hitbox แค่ -1 พอครับ (กระสุนเราเล็กอยู่แล้ว)
+        # หรือถ้าเป็น SilenceBullet ไม่ต้องลดขนาดเลย เพราะเป้าเล็กมาก
+        if ($eb.GetType().Name -eq "SilenceBullet") {
+            $bulletHitbox.Inflate(0, 0) 
+        } else {
+            $bulletHitbox.Inflate(-1, -1)
+        }
 
         if ($bulletHitbox.IntersectsWith($player.GetBounds())) {
-            $result.IsPlayerHit = $true
-            return $result
+            
+            # เช็คว่าเป็นกระสุนใบ้ไหม
+            if ($eb.GetType().Name -eq "SilenceBullet") {
+                $result.ApplySilence = $true 
+                $enemyBullets.RemoveAt($i)   
+                continue                     
+            } else {
+                $result.IsPlayerHit = $true
+                return $result
+            }
         }
 
         if ($eb.Y -gt $formHeight) {

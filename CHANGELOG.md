@@ -1,3 +1,56 @@
+## [2.3.0] - 2026-03-08
+### "The Green-Eyed Curse Update"
+
+Building upon the aggressive framework of version **2.2.0**, this update introduces **Envy**, the second elite sin, shifting the challenge from pure speed to **tactical survival**.
+
+Version **2.3.0** marks the debut of the **Status Effect System**, introducing gameplay-altering debuffs that force players to adapt their strategies mid-combat. The HUD has also been overhauled with a **dynamic rendering engine** to track active buffs and debuffs in real-time.
+
+**Version 2.3 Focus:**
+- Status Effect Architecture  
+- Dynamic UI/HUD Rendering  
+- Tactical Combat Disruption  
+
+---
+
+### ➕ Added
+
+- **New Elite Enemy: Envy (`Envy.ps1`)**  
+  The second Sin-class entity. Envy features elusive, erratic movement patterns and focuses on tactical disruption rather than brute force.
+
+- **Status Effect Framework (Debuffs)**  
+  Implemented the foundational system for temporary player modifications.  
+  Introduces the **Silence** status effect, which temporarily disables player weaponry.
+
+- **Dynamic Status HUD**  
+  Integrated a real-time status tracker into the sidebar.  
+  The system dynamically renders active icons and countdown timers only when effects are active, keeping the interface clean and uncluttered.
+
+- **New Projectile: Silence Bullet (`SilenceBullet.ps1`)**  
+  A specialized **Magenta-colored projectile** fired by Envy that triggers the **Silence** status effect upon collision.
+
+---
+
+### 🔄 Changed
+
+- **Optimized Rendering Engine**  
+  Overhauled `RenderManager.ps1` to use dynamic `foreach` iteration for HUD elements.  
+  This removes fixed-array constraints and allows flexible UI scaling with more reliable object rendering across different PowerShell environments.
+
+- **Player Combat Logic**  
+  Updated `Player.ps1` to include state-checking for status effects, enabling the **Silence mechanic** to override the player's primary fire capability.
+
+- **Advanced Collision Handling**  
+  Enhanced `CollisionManager.ps1` to support **Effect Payloads** on projectiles, allowing bullets to pass complex status data to the player upon impact.
+
+- **Visual UI Feedback**  
+  Added specialized **color-coded icons** (e.g., the **"Z" icon** for Silence) and **high-precision timers** to improve player awareness of active debuffs.
+
+---
+
+> *"Wrath tests your reflexes; Envy tests your restraint."*
+
+
+
 ## [2.2.0] - 2026-03-07
 "The Wrath Unleashed Update"
 Building upon the infinite arcade loop introduced in 2.1.0, this update brings a massive spike in challenge with the introduction of our first major elite enemy from the "Seven Deadly Sins" roster. 
