@@ -1,20 +1,18 @@
-# AlienStrike\src\CollisionManager.ps1
-
 function Invoke-GameCollisions ($player, $bullets, $enemies, $enemyBullets, $formHeight) {
-    # ตัวแปรสำหรับส่งค่ากลับ
+    # 1. เปลี่ยนตัวแปรส่งกลับ ให้มี IsPlayerHit แทน IsGameOver
     $result = @{
         ScoreAdded = 0
-        IsGameOver = $false
+        IsPlayerHit = $false
     }
 
     # --- 1. Enemy Collisions (ชนผู้เล่น / โดนยิง / หลุดจอ) ---
     for ($i = $enemies.Count - 1; $i -ge 0; $i--) {
         $e = $enemies[$i]
 
-        # A. ชนผู้เล่น (Game Over)
+        # A. ชนผู้เล่น 
         if ($e.GetBounds().IntersectsWith($player.GetBounds())) {
-            $result.IsGameOver = $true
-            return $result # จบการทำงานทันที
+            $result.IsPlayerHit = $true  # <--- แจ้งว่าโดนชน
+            return $result # คืนค่ากลับไปให้ Main Logic จัดการต่อ
         }
 
         # B. โดนกระสุนผู้เล่น (ได้คะแนน)
@@ -42,10 +40,10 @@ function Invoke-GameCollisions ($player, $bullets, $enemies, $enemyBullets, $for
         
         # A. ชนผู้เล่น
         $bulletHitbox = $eb.GetBounds()
-        $bulletHitbox.Inflate(-5, -5) # Hitbox เล็กลงหน่อย
+        $bulletHitbox.Inflate(-5, -5) # Hitbox เล็กลงหน่อย (หลบง่ายขึ้นนิดนึง)
 
         if ($bulletHitbox.IntersectsWith($player.GetBounds())) {
-            $result.IsGameOver = $true
+            $result.IsPlayerHit = $true # <--- แจ้งว่าโดนกระสุน
             return $result
         }
 

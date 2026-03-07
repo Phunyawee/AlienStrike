@@ -30,6 +30,7 @@ function Do-GameOver {
     $Script:gameOver = $false
     $Script:gameStarted = $false
     $Script:showLeaderboard = $true
+    $Script:lives = 3
 
     # --- RESET GAME OBJECTS ---
     # สร้าง Player ใหม่ที่จุดเริ่มต้น
@@ -53,7 +54,7 @@ function Do-GameOver {
 # --- 2. Setup Window ---
 $form = New-Object System.Windows.Forms.Form
 $form.Text = "Alien Strike: OOP Engine"
-$form.ClientSize = New-Object System.Drawing.Size(500, 600)
+$form.ClientSize = New-Object System.Drawing.Size(700, 600)
 $form.StartPosition = "CenterScreen"
 $form.BackColor = "Black"
 $form.MaximizeBox = $false
@@ -80,7 +81,8 @@ $Script:enemyBullets = [System.Collections.ArrayList]::new()
 
 $Script:score = 0
 $Script:level = 1
-$Script:spawnRate = 3  # โอกาสเกิด 3%
+$Script:lives = 3   
+$Script:spawnRate = 3  
 $Script:gameStarted = $false
 $Script:gameOver = $false
 $Script:showLeaderboard = $false
@@ -140,13 +142,15 @@ $timer.Add_Tick({
     $diff = Get-GameDifficulty $Script:score
     $Script:level = $diff.Level
     $Script:spawnRate = $diff.SpawnRate
+    $Script:targetScore = $diff.NextLevelScore
 
 
     if ($Script:keysPressed["A"] -or $Script:keysPressed["Left"]) { 
         $Script:player.MoveLeft() 
     }
     if ($Script:keysPressed["D"] -or $Script:keysPressed["Right"]) { 
-        $Script:player.MoveRight($form.ClientSize.Width) 
+        #$Script:player.MoveRight($form.ClientSize.Width) 
+        $Script:player.MoveRight(500) 
     }
     
     # Shooting
@@ -161,8 +165,9 @@ $timer.Add_Tick({
 
     # --- B. Spawn Enemies ---
     if ($Script:rnd.Next(0, 100) -lt $Script:spawnRate) {
-        # เรียกฟังก์ชันสร้าง Enemy แทน Code ก้อนใหญ่
-        $newEnemy = New-EnemySpawn $form.ClientSize.Width $Script:level $Script:rnd
+        # ของเดิมโยน $form.ClientSize.Width เข้าไป ทำให้ศัตรูไปเกิดตรง X=500-700 ได้
+        # ให้เปลี่ยนเป็นเลข 500 ถ้วนๆ ครับ
+        $newEnemy = New-EnemySpawn 500 $Script:level $Script:rnd
         [void]$Script:enemies.Add($newEnemy)
     }
 
@@ -183,8 +188,7 @@ $timer.Add_Tick({
     }
     foreach ($eb in $Script:enemyBullets) { $eb.Update() }
 
-    # --- E. Handle Collisions (เรียกใช้ CollisionManager) ---
-    # ส่ง List ทั้งหมดเข้าไปเช็คทีเดียว
+    # --- E. Handle Collisions ---
     $collisionResult = Invoke-GameCollisions $Script:player $Script:bullets $Script:enemies $Script:enemyBullets $form.ClientSize.Height
 
     # 1. อัปเดตคะแนน
@@ -192,10 +196,24 @@ $timer.Add_Tick({
         $Script:score += $collisionResult.ScoreAdded
     }
 
-    # 2. เช็ค Game Over
-    if ($collisionResult.IsGameOver) {
-        Do-GameOver
-        return # ออกจาก Loop ทันที
+    # 2. เช็คว่าผู้เล่นโดนดาเมจไหม
+    if ($collisionResult.IsPlayerHit) {
+        $Script:lives -= 1   # ลดชีวิต 1 ดวง
+        
+        if ($Script:lives -le 0) {
+            # ชีวิตหมดแล้ว ค่อยสั่งจบเกม
+            Do-GameOver
+            return 
+        } else {
+            # ถ้ายังมีชีวิตเหลืออยู่ ให้เคลียร์หน้าจอเพื่อให้เริ่มลุยใหม่แบบยุติธรรม (ไม่โดนรุมตายซ้ำ)
+            $Script:player.X = 225
+            $Script:player.Y = 500
+            
+            # เคลียร์ศัตรูและกระสุนทิ้งทั้งหมด ให้มันเกิดใหม่ (ป้องกันตายเกิดมาโดนกระสุนเดิมซ้ำ)
+            $Script:enemies.Clear()
+            $Script:enemyBullets.Clear()
+            $Script:bullets.Clear()
+        }
     }
 
     $form.Invalidate()
@@ -223,7 +241,7 @@ $form.Add_Paint({
         }
 
         # --- CASE 3: GAMEPLAY ---
-        Draw-Gameplay $g $Script:player $Script:bullets $Script:enemies $Script:enemyBullets $Script:score $Script:level
+        Draw-Gameplay $g $Script:player $Script:bullets $Script:enemies $Script:enemyBullets $Script:score $Script:level $Script:lives $Script:targetScore
 
     } catch {
         Write-Host "Paint Error: $_"

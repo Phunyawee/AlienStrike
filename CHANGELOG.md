@@ -1,3 +1,53 @@
+## [2.1.0] - 2025-01-29
+### "The Infinite Arcade Update"
+
+This update transforms the game into a true classic arcade experience.  
+We replaced hardcoded limits with dynamic math-based scaling, introduced a player lives system, and overhauled the user interface with a dedicated sidebar.
+
+**Version 2.1 Focus:**  
+Infinite gameplay loop, better player feedback via HUD, and fairer collision mechanics.
+
+---
+
+### ✨ Added
+
+**Arcade Lives System**  
+Players now start with **3 lives (❤)**. Taking damage subtracts a life and resets the board instead of causing an instant Game Over.
+
+**Dedicated UI Sidebar**  
+Expanded the window width from **500px to 700px** to accommodate a clean, right-aligned HUD panel displaying:
+- Level
+- Score
+- Next Level Target
+- Lives
+
+**Next Level Target**  
+Added a dynamic calculation to show players exactly how many points are needed to reach the next level.
+
+---
+
+### 🔄 Changed & Improved
+
+**Infinite Math-Based Scaling**  
+Completely rewrote `GameLogic.ps1`.  
+Replaced static `if/else` conditions with mathematical formulas (`[math]::Sqrt` and Modulo), allowing the game to smoothly scale up to **Level 999** with dynamically looping enemy colors and capped speed limits.
+
+**Fairer Dodging**  
+Reduced the hitbox size of enemy bullets (`Inflate(-5, -5)`) in `CollisionManager.ps1` to prevent frustrating **"cheap deaths"** and make dodging feel more accurate.
+
+**Collision Handling Refactor**  
+Modified collision logic to return an `IsPlayerHit` state instead of an immediate `IsGameOver` to support the new lives system.
+
+---
+
+### 🐛 Fixed
+
+**Entity Boundary Limits**  
+Fixed an issue where the expanded window size allowed the Player ship and Enemy spawn points to overlap into the new UI Sidebar.  
+Gameplay area is now strictly restricted to **0–500px**.
+
+
+
 ## [2.0.0] - 2025-01-29
 A classic vertical space shooter game refactored into a modular **Object-Oriented Game Engine** using PowerShell and System.Windows.Forms.
 

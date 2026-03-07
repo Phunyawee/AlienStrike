@@ -1,44 +1,61 @@
 # AlienStrike\src\GameLogic.ps1
 
-# --- Function 1: คำนวณ Level และ SpawnRate จาก Score ---
+# --- Function 1: คำนวณ Level และ SpawnRate จาก Score แบบสมการ ---
 function Get-GameDifficulty ($currentScore) {
-    # ค่า Default
-    $lvl = 1
-    $rate = 3
+    # 1. คำนวณ Level ปัจจุบัน
+    $calculatedLevel = [math]::Floor([math]::Sqrt($currentScore / 750)) + 1
+    $lvl = [math]::Min($calculatedLevel, 999)
+    $rate = [math]::Min((3 + [math]::Floor($lvl * 1.5)), 100)
     
-    if ($currentScore -ge 5000) {
-        $lvl = 4
-        $rate = 10
-    } 
-    elseif ($currentScore -ge 3000) {
-        $lvl = 3
-        $rate = 8
-    } 
-    elseif ($currentScore -ge 1000) {
-        $lvl = 2
-        $rate = 5
+    # 2. คำนวณคะแนนที่ต้องการสำหรับ "เลเวลถัดไป" (Target Score)
+    # สมการย้อนกลับ: (Level)^2 * 750
+    $nextLevelScore = [math]::Pow($lvl, 2) * 750
+
+    # ส่งค่าเป้าหมายคะแนนกลับไปด้วย!
+    return @{ 
+        Level = $lvl; 
+        SpawnRate = $rate; 
+        NextLevelScore = $nextLevelScore 
     }
-    
-    # ส่งค่ากลับเป็น Hashtable (จะได้ดึงใช้ง่ายๆ)
-    return @{ Level = $lvl; SpawnRate = $rate }
 }
 
-# --- Function 2: สร้างศัตรูตามระดับ Level ---
+# --- Function 2: สร้างศัตรูที่รับรอง Level 1 - 999 ---
 function New-EnemySpawn ($width, $level, $rnd) {
     $ex = $rnd.Next(0, ($width - 30))
     $ey = -40
     
-    if ($level -eq 1) {
-        return [Enemy]::new($ex, $ey, $rnd.Next(3, 6), [System.Drawing.Color]::Red)
-    } 
-    elseif ($level -eq 2) {
-        return [Enemy]::new($ex, $ey, $rnd.Next(5, 9), [System.Drawing.Color]::Orange)
-    } 
-    elseif ($level -eq 3) {
-        return [Enemy]::new($ex, $ey, $rnd.Next(8, 12), [System.Drawing.Color]::Purple)
-    } 
-    else {
-        # Level 4+: สีเงิน เร็วและโหด
-        return [Enemy]::new($ex, $ey, $rnd.Next(9, 13), [System.Drawing.Color]::Silver)
+    # 1. สมการความเร็ว (Speed)
+    # เลเวลยิ่งสูง ความเร็วขั้นต่ำและขั้นสูงจะขยับขึ้นไปเรื่อยๆ
+    $minSpeed = 2 + [math]::Floor($level / 2)
+    $maxSpeed = $minSpeed + 3 + [math]::Floor($level / 10)
+    
+    # บังคับความเร็วสูงสุด ป้องกันบั๊ก "ศัตรูบินทะลุจอในเฟรมเดียว"
+    $minSpeed = [math]::Min($minSpeed, 20)
+    $maxSpeed = [math]::Min($maxSpeed, 25)
+    
+    $speed = $rnd.Next($minSpeed, $maxSpeed)
+    
+    # 2. ระบบสีวนลูป (Color Looping)
+    # เก็บชุดสีไว้ใน Array
+    $colorList = @(
+        [System.Drawing.Color]::Red,     # สีตั้งต้น
+        [System.Drawing.Color]::Orange,
+        [System.Drawing.Color]::Purple,
+        [System.Drawing.Color]::Cyan,
+        [System.Drawing.Color]::Lime,
+        [System.Drawing.Color]::Gold,
+        [System.Drawing.Color]::Silver   # สีระดับสูง
+    )
+    
+    # ใช้เครื่องหมาย % (Modulo - หารเอาเศษ) เพื่อให้สีวนลูปกลับมาเริ่มใหม่แบบ Infinity
+    # ($level - 1) เพราะ Level เริ่มที่ 1 แต่ Array เริ่มที่ 0
+    $colorIndex = ($level - 1) % $colorList.Count
+    $enemyColor = $colorList[$colorIndex]
+    
+    # กิมมิคพิเศษ: ถ้าถึง Level 999 ให้ศัตรูเป็นสีดำ/สีพิเศษไปเลย
+    if ($level -eq 999) {
+        $enemyColor = [System.Drawing.Color]::DarkRed 
     }
+    
+    return [Enemy]::new($ex, $ey, $speed, $enemyColor)
 }

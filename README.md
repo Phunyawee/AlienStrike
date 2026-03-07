@@ -4,14 +4,30 @@ A classic vertical space shooter game built entirely using **PowerShell** and **
 
 This project demonstrates how Object-Oriented Programming (OOP) principles can be applied in PowerShell scripting to create a functional real-time game loop with collision detection, entity management, and state handling.
 
-## 📸 Screenshots
+
+<details open>
+<summary><b>Version 2.0.0</b></summary>
+<br>
 
 | Start Screen | Gameplay | Leaderboard |
 |:---:|:---:|:---:|
-| <img src="./Images/start_screen.png" width="250" alt="Start Screen"> | <img src="./Images/gameplay.png" width="250" alt="Gameplay Action"> | <img src="./Images/leaderboard.png" width="250" alt="High Scores"> |
+| <img src="./Images/v2/start_screen.png" width="250" alt="Start Screen"> | <img src="./Images/v2/gameplay.png" width="250" alt="Gameplay Action"> | <img src="./Images/v2/leaderboard.png" width="250" alt="High Scores"> |
+
+</details>
+
+<!-- เวอร์ชันเก่าสุด -->
+<details>
+<summary><b>Version 1.0.0</b></summary>
+<br>
+
+| Start Screen | Gameplay | Leaderboard |
+|:---:|:---:|:---:|
+| <img src="./Images/v1/start_screen.png" width="250" alt="Start Screen"> | <img src="./Images/v1/gameplay.png" width="250" alt="Gameplay Action"> | <img src="./Images/v1/leaderboard.png" width="250" alt="High Scores"> |
+
+</details>
 
 ## ⚠️ Note on Graphics
-**Current Version (v1.0.0):**
+**Current Version (v2.0.0):** 
 The game currently utilizes primitive GDI+ shapes (rectangles/squares) for all game entities. This is a deliberate design choice to focus on the core engine logic, physics, and OOP structure first.
 
 Enhanced sprites, textures, and visual effects are planned for future updates. For now, enjoy the retro "developer art" aesthetic!
