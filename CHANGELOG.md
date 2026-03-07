@@ -1,4 +1,24 @@
-## [2.1.0] - 2025-01-29
+## [2.2.0] - 2026-03-07
+"The Wrath Unleashed Update"
+Building upon the infinite arcade loop introduced in 2.1.0, this update brings a massive spike in challenge with the introduction of our first major elite enemy from the "Seven Deadly Sins" roster. 
+We have successfully completed and integrated **Wrath**, establishing a new framework for advanced enemy behaviors, unique attack patterns, and boss-level encounters.
+Version 2.2 Focus: 
+Advanced enemy AI, new boss mechanics, and the expansion of the entity framework.
+
+### Added
+- **New Elite Enemy: Wrath** (`Wrath.ps1`): The first completed Sin. Wrath features highly aggressive movement, tracking capabilities, and high-speed projectile attacks to test player reflexes.
+- **Seven Deadly Sins Framework**: Implemented the directory and foundational files for the remaining sins (`Lust`, `Gluttony`, `Greed`, `Sloth`, `Envy`, `Pride`) in preparation for future updates.
+- **Advanced Enemy Architecture**: Added `BaseEnemy.ps1` to standardize complex logic, health scaling, and behaviors for elite enemies and bosses.
+
+### Changed
+- **Game Logic Update**: Updated `GameLogic.ps1` to handle elite wave spawning, ensuring Wrath appears seamlessly within the dynamic math-based scaling system.
+- **Combat Adjustments**: Enhanced `EnemyBullet.ps1` to support Wrath's specialized multi-shot and burst fire patterns.
+- **Collision Enhancements**: Tweaked `CollisionManager.ps1` to support the larger hitboxes and unique interactions required for Sin-class enemies.
+- **Rendering**: Updated `RenderManager.ps1` to handle special visual cues and UI elements when Wrath is spawned on the screen.
+
+
+
+## [2.1.0] - 2026-03-07
 ### "The Infinite Arcade Update"
 
 This update transforms the game into a true classic arcade experience.  
@@ -12,7 +32,7 @@ Infinite gameplay loop, better player feedback via HUD, and fairer collision mec
 ### ✨ Added
 
 **Arcade Lives System**  
-Players now start with **3 lives (❤)**. Taking damage subtracts a life and resets the board instead of causing an instant Game Over.
+Players now start with **3 lives (A)**. Taking damage subtracts a life and resets the board instead of causing an instant Game Over.
 
 **Dedicated UI Sidebar**  
 Expanded the window width from **500px to 700px** to accommodate a clean, right-aligned HUD panel displaying:
@@ -48,7 +68,7 @@ Gameplay area is now strictly restricted to **0–500px**.
 
 
 
-## [2.0.0] - 2025-01-29
+## [2.0.0] - 2026-03-07
 A classic vertical space shooter game refactored into a modular **Object-Oriented Game Engine** using PowerShell and System.Windows.Forms.
 
 **Version 2.0 Focus:**
@@ -71,7 +91,7 @@ AlienStrike/
 
 
 
-## [1.0.0] - 2025-01-29
+## [1.0.0] - 2026-03-07
 
 ### Added
 - **Core Engine:** Implemented the main game loop using `System.Windows.Forms.Timer` (~60 FPS).

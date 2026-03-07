@@ -6,15 +6,19 @@ Add-Type -AssemblyName System.Drawing
 # --- 1. Load Classes ---
 . "$PSScriptRoot\src\Entities\GameObject.ps1"
 . "$PSScriptRoot\src\Entities\Player.ps1"
-. "$PSScriptRoot\src\Entities\Bullet.ps1"
-. "$PSScriptRoot\src\Entities\EnemyBullet.ps1" 
+. "$PSScriptRoot\src\Entities\Projectiles\Bullet.ps1"
+. "$PSScriptRoot\src\Entities\Projectiles\EnemyBullet.ps1" 
 . "$PSScriptRoot\src\Entities\Enemy.ps1"
 
+# --- 1.0 Load New Enemy Types (ต้องเพิ่มตรงนี้ครับ!) ---
+. "$PSScriptRoot\src\Entities\Enemies\BaseEnemy.ps1"
+. "$PSScriptRoot\src\Entities\Enemies\Sins\Wrath.ps1"
+
 # --- 1.1 Load Managers (New) ---
-. "$PSScriptRoot\src\HighScoreManager.ps1"
-. "$PSScriptRoot\src\GameLogic.ps1" 
-. "$PSScriptRoot\src\CollisionManager.ps1" 
-. "$PSScriptRoot\src\RenderManager.ps1"
+. "$PSScriptRoot\src\Managers\HighScoreManager.ps1"
+. "$PSScriptRoot\src\Managers\GameLogic.ps1" 
+. "$PSScriptRoot\src\Managers\CollisionManager.ps1" 
+. "$PSScriptRoot\src\Managers\RenderManager.ps1"
 
 # --- Helper Functions: Score System ---
 $scoreFile = "$PSScriptRoot\scores.json"
@@ -182,10 +186,19 @@ $timer.Add_Tick({
     # เราแยกแค่การเคลื่อนที่ไว้ตรงนี้ ส่วนการชนไปให้ Manager จัดการ
     foreach ($e in $Script:enemies) { 
         $e.Update() 
-        # ศัตรูยิงสวน
-        $bullet = $e.TryShoot($Script:level)
-        if ($null -ne $bullet) { [void]$Script:enemyBullets.Add($bullet) }
+        $shotResult = $e.TryShoot($Script:level)
+        
+        if ($null -ne $shotResult) { 
+            # เช็คว่าส่งกระสุนมาเป็นกลุ่ม (Array) หรือส่งมานัดเดียว
+            if ($shotResult -is [System.Collections.IEnumerable]) {
+                foreach ($b in $shotResult) {[void]$Script:enemyBullets.Add($b) 
+                }
+            } else {
+                [void]$Script:enemyBullets.Add($shotResult)
+            }
+        }
     }
+
     foreach ($eb in $Script:enemyBullets) { $eb.Update() }
 
     # --- E. Handle Collisions ---
