@@ -16,6 +16,13 @@ Add-Type -AssemblyName System.Drawing
 . "$PSScriptRoot\src\Entities\Enemies\Sins\Wrath.ps1"
 . "$PSScriptRoot\src\Entities\Projectiles\SilenceBullet.ps1" 
 . "$PSScriptRoot\src\Entities\Enemies\Sins\Envy.ps1"
+. "$PSScriptRoot\src\Entities\Projectiles\PrideLaser.ps1" 
+. "$PSScriptRoot\src\Entities\Enemies\Sins\Pride.ps1"
+. "$PSScriptRoot\src\Entities\Projectiles\Missile.ps1"
+. "$PSScriptRoot\src\Entities\Projectiles\SirenBullet.ps1" 
+. "$PSScriptRoot\src\Entities\Enemies\Sins\Lust.ps1"
+
+
 
 # --- 1.1 Load Managers (New) ---
 . "$PSScriptRoot\src\Managers\HighScoreManager.ps1"
@@ -42,6 +49,8 @@ function Do-GameOver {
     $Script:silenceTimer = 0   # ตัวนับเวลาติดใบ้
     $Script:wrathBuffTimer = 0  # ตัวจับเวลา Buff 7 วินาที (420 เฟรม)
     $Script:wrathBuffLevel = 0  # 0=ปกติ, 1=ยิง 2 นัด(Blue), 2=ยิง 4 นัด(Red)
+    $Script:sirenTimer = 0   # ตัวนับเวลาติดสถานะ Siren (เดินสลับทิศ)
+    $Script:currentTrackedLevel = 1 # ใส่ไว้ตอนเริ่มเกม / ในฟังก์ชัน Do-GameOver
 
     # --- RESET GAME OBJECTS ---
     # สร้าง Player ใหม่ที่จุดเริ่มต้น
@@ -53,14 +62,20 @@ function Do-GameOver {
     
     # ล้างกระสุนศัตรู (สร้างใหม่เลยกันเหนียว)
     $Script:enemyBullets = [System.Collections.ArrayList]::new()
+
+    $Script:inventory = [System.Collections.ArrayList]::new()
+    # ตอนเริ่มเกม แจกให้ก่อนเลย 5 อัน
+    1..5 | ForEach-Object { [void]$Script:inventory.Add("Missile") }
     
     # รีเซ็ตค่าคะแนนและเลเวล
     $Script:score = 0
+    $Script:nextPrideScoreTarget = 5000 # เป้าหมายคะแนนแรกที่ Pride จะเกิด
     $Script:level = 1
 
     # สั่งวาดหน้าจอใหม่ (จะไปโผล่ที่หน้า Leaderboard)
     $form.Invalidate()
 }
+
 
 # --- 2. Setup Window ---
 $form = New-Object System.Windows.Forms.Form
@@ -90,13 +105,20 @@ $Script:enemies = [System.Collections.ArrayList]::new()
 $Script:rnd = New-Object System.Random
 $Script:enemyBullets = [System.Collections.ArrayList]::new()
 
+$Script:inventory = [System.Collections.ArrayList]::new()
+# ตอนเริ่มเกม แจกให้ก่อนเลย 5 อัน
+1..5 | ForEach-Object { [void]$Script:inventory.Add("Missile") }
+
 $Script:score = 0
+$Script:nextPrideScoreTarget = 5000 # เป้าหมายคะแนนแรกที่ Pride จะเกิด
 $Script:level = 1
 $Script:lives = 3   
 $Script:wrathKills = 0     # สำหรับนับจำนวนโกรธ
 $Script:silenceTimer = 0   # ตัวนับเวลาติดใบ้
 $Script:wrathBuffTimer = 0  # ตัวจับเวลา Buff 7 วินาที (420 เฟรม)
 $Script:wrathBuffLevel = 0  # 0=ปกติ, 1=ยิง 2 นัด(Blue), 2=ยิง 4 นัด(Red)
+$Script:sirenTimer = 0   # ตัวนับเวลาติดสถานะ Siren (เดินสลับทิศ)
+$Script:currentTrackedLevel = 1 # ใส่ไว้ตอนเริ่มเกม / ในฟังก์ชัน Do-GameOver
 $Script:spawnRate = 3  
 $Script:gameStarted = $false
 $Script:gameOver = $false
@@ -153,57 +175,20 @@ $timer.Interval = 16 # ~60 FPS
 $timer.Add_Tick({
     if (-not $Script:gameStarted -or $Script:gameOver) { return }
 
-    # --- A. Update Difficulty (เรียกจาก GameLogic.ps1) ---
+    # --- A. Update Difficulty ---
     $diff = Get-GameDifficulty $Script:score
     $Script:level = $diff.Level
     $Script:spawnRate = $diff.SpawnRate
     $Script:targetScore = $diff.NextLevelScore
 
+    # --- เช็คการเกิดของบอสพิเศษ (Lust / Pride) ---
+    Check-BossSpawns
 
-    if ($Script:keysPressed["A"] -or $Script:keysPressed["Left"]) { 
-        $Script:player.MoveLeft() 
-    }
-    if ($Script:keysPressed["D"] -or $Script:keysPressed["Right"]) { 
-        #$Script:player.MoveRight($form.ClientSize.Width) 
-        $Script:player.MoveRight(500) 
-    }
-    
-    # Shooting
-    if ($Script:keysPressed["W"] -or $Script:keysPressed["Space"] -or $Script:keysPressed["Up"]) {
-        if ($Script:silenceTimer -le 0 -and $Script:player.CanShoot()) {
-            
-            $px = $Script:player.X
-            $py = $Script:player.Y
+    # --- ควบคุมผู้เล่น ---
+    Handle-PlayerInput
 
-            if ($Script:wrathBuffLevel -eq 2) {
-                # [บัฟแดง - ยิง 4 นัด]
-                # 2 นัดคู่ตรงกลาง (SpeedX = 0)
-                [void]$Script:bullets.Add([Bullet]::new($px + 4, $py, 0))    
-                [void]$Script:bullets.Add([Bullet]::new($px + 20, $py, 0))   
-                # 2 นัดเฉียงออกซ้าย-ขวา (SpeedX = -4 และ 4)
-                [void]$Script:bullets.Add([Bullet]::new($px - 4, $py, -4))   
-                [void]$Script:bullets.Add([Bullet]::new($px + 28, $py, 4))   
-            } 
-            elseif ($Script:wrathBuffLevel -eq 1) {
-                # [บัฟฟ้า - ยิง 2 นัดคู่] (SpeedX = 0 ยิงตรง)
-                [void]$Script:bullets.Add([Bullet]::new($px + 4, $py, 0))
-                [void]$Script:bullets.Add([Bullet]::new($px + 20, $py, 0))
-            } 
-            else {
-                # [ปกติ - ยิง 1 นัด] 
-                # เรียก Constructor เดิมแบบไม่ใส่ SpeedX เลย
-                [void]$Script:bullets.Add([Bullet]::new($px + 12, $py))
-            }
-
-            $Script:player.ResetCooldown()
-        }
-    }
-    $Script:player.Update()
-
-    # --- B. Spawn Enemies ---
+    # --- B. Spawn Enemies (ศัตรูธรรมดา) ---
     if ($Script:rnd.Next(0, 100) -lt $Script:spawnRate) {
-        # ของเดิมโยน $form.ClientSize.Width เข้าไป ทำให้ศัตรูไปเกิดตรง X=500-700 ได้
-        # ให้เปลี่ยนเป็นเลข 500 ถ้วนๆ ครับ
         $newEnemy = New-EnemySpawn 500 $Script:level $Script:rnd
         [void]$Script:enemies.Add($newEnemy)
     }
@@ -216,16 +201,23 @@ $timer.Add_Tick({
     }
 
     # --- D. Update Entities Movement (เคลื่อนที่ศัตรู & กระสุนศัตรู) ---
-    # เราแยกแค่การเคลื่อนที่ไว้ตรงนี้ ส่วนการชนไปให้ Manager จัดการ
     foreach ($e in $Script:enemies) { 
-        $e.Update() 
+        
+        # [แก้ไขตรงนี้] แยกประเภทศัตรูก่อนอัปเดตการเดิน
+        if ($e -is [BaseEnemy]) {
+            # ถ้าเป็นกลุ่ม 7 บาป (มีระบบมองเห็น Player)
+            $e.UpdateWithPlayer($Script:player) 
+        } else {
+            # ถ้าเป็นศัตรูธรรมดา [Enemy]
+            $e.Update() 
+        }
+        
+        # ส่วนการยิงเหมือนเดิม
         $shotResult = $e.TryShoot($Script:level)
         
         if ($null -ne $shotResult) { 
-            # เช็คว่าส่งกระสุนมาเป็นกลุ่ม (Array) หรือส่งมานัดเดียว
             if ($shotResult -is [System.Collections.IEnumerable]) {
-                foreach ($b in $shotResult) {[void]$Script:enemyBullets.Add($b) 
-                }
+                foreach ($b in $shotResult) {[void]$Script:enemyBullets.Add($b)}
             } else {
                 [void]$Script:enemyBullets.Add($shotResult)
             }
@@ -237,69 +229,10 @@ $timer.Add_Tick({
     # --- E. Handle Collisions ---
     $collisionResult = Invoke-GameCollisions $Script:player $Script:bullets $Script:enemies $Script:enemyBullets $form.ClientSize.Height
 
-    # -----------------------------------
-    # [NEW] ระบบสุ่ม Buff จากการฆ่า Wrath
-    # -----------------------------------
-    if ($collisionResult.WrathKills -gt 0) {
-        for ($k = 0; $k -lt $collisionResult.WrathKills; $k++) {
-            $roll = $Script:rnd.Next(1, 101) # สุ่ม 1-100
-            
-            if ($roll -le 5) {
-                # โอกาส 5% ได้บัฟระดับ 2 (Red - ยิง 4 นัด)
-                $Script:wrathBuffLevel = 2
-                $Script:wrathBuffTimer = 420 
-            } else {
-                # โอกาส 95% ได้บัฟระดับ 1 (Blue - ยิง 2 นัด)
-                if ($Script:wrathBuffLevel -lt 2) {
-                    $Script:wrathBuffLevel = 1
-                }
-                $Script:wrathBuffTimer = 420 
-            }
-        }
-    }
-
-    # ลดเวลา Buff 
-    if ($Script:wrathBuffTimer -gt 0) { 
-        $Script:wrathBuffTimer -= 1 
-        if ($Script:wrathBuffTimer -le 0) {
-            $Script:wrathBuffLevel = 0 
-        }
-    }
-
-
-    # ลดเวลาสถานะใบ้ลงเรื่อยๆ ทุกเฟรม
-    if ($Script:silenceTimer -gt 0) { 
-        $Script:silenceTimer -= 1 
-    }
-
-    # ถ้าโดนกระสุนใบ้ ให้ตั้งเวลาเป็น 180 เฟรม (3 วินาที)
-    if ($collisionResult.ApplySilence) {
-        $Script:silenceTimer = 180 
-    }
-    # 1. อัปเดตคะแนน
-    if ($collisionResult.ScoreAdded -gt 0) {
-        $Script:score += $collisionResult.ScoreAdded
-    }
-
-    # 2. เช็คว่าผู้เล่นโดนดาเมจไหม
-    if ($collisionResult.IsPlayerHit) {
-        $Script:lives -= 1   # ลดชีวิต 1 ดวง
-        
-        if ($Script:lives -le 0) {
-            # ชีวิตหมดแล้ว ค่อยสั่งจบเกม
-            Do-GameOver
-            return 
-        } else {
-            # ถ้ายังมีชีวิตเหลืออยู่ ให้เคลียร์หน้าจอเพื่อให้เริ่มลุยใหม่แบบยุติธรรม (ไม่โดนรุมตายซ้ำ)
-            $Script:player.X = 225
-            $Script:player.Y = 500
-            
-            # เคลียร์ศัตรูและกระสุนทิ้งทั้งหมด ให้มันเกิดใหม่ (ป้องกันตายเกิดมาโดนกระสุนเดิมซ้ำ)
-            $Script:enemies.Clear()
-            $Script:enemyBullets.Clear()
-            $Script:bullets.Clear()
-        }
-    }
+    # --- F. จัดการสถานะหลังการชน ---
+    # ถ้าฟังก์ชันคืนค่า $true แปลว่าเลือดหมด ให้หยุดทำ Loop นี้ทันที (เหมือนคำสั่ง return เดิมของคุณ)
+    $isDead = Handle-PostCollision $collisionResult
+    if ($isDead) { return }
 
     $form.Invalidate()
 })
@@ -322,54 +255,15 @@ $form.Add_Paint({
             return
         }
 
-       # ==========================================
-        #[NEW] คำนวณ Buff และ Debuff ของจริงเพื่อส่งไป UI
-        # ==========================================
-        $activeBuffs = @()
-        $activeDebuffs = @()
+        # --- เรียกใช้ฟังก์ชันดึงค่า UI แทนโค้ดยาวๆ ---
+        $uiStatus = Get-UIStatus
 
-        # --- 1. เช็ค BUFF: Wrath (ปืนคู่ / ปืนกระจาย) ---
-        if ($Script:wrathBuffTimer -gt 0) {
-            $bSecondsLeft = [math]::Round(($Script:wrathBuffTimer / 60.0), 1)
-            $bFormattedTime = "{0:N1}" -f $bSecondsLeft
-
-            # กำหนดสี: Level 2 = แดง (ยิง 4), Level 1 = ฟ้า (ยิง 2)
-            $bColor = if ($Script:wrathBuffLevel -eq 2) { [System.Drawing.Brushes]::Red } else { [System.Drawing.Brushes]::DeepSkyBlue }
-
-            $newBuff = [PSCustomObject]@{
-                Icon  = "W" 
-                Value = $bFormattedTime
-                Color = $bColor 
-            }
-            $activeBuffs += $newBuff
-
-            # [DEBUG ต้นทาง Buff] 
-            # Write-Host "PAINT EVENT (BUFF) -> Level: $($Script:wrathBuffLevel), Formatted: $bFormattedTime, Buffs Count: $($activeBuffs.Count)"
-        }
-
-        # --- 2. เช็ค DEBUFF: Silence (สถานะใบ้) ---
-        if ($Script:silenceTimer -gt 0) {
-            $dSecondsLeft = [math]::Round(($Script:silenceTimer / 60.0), 1)
-            $dFormattedTime = "{0:N1}" -f $dSecondsLeft
-
-            $newDebuff = [PSCustomObject]@{
-                Icon  = "Z" 
-                Value = $dFormattedTime
-                Color = [System.Drawing.Brushes]::Magenta 
-            }
-            $activeDebuffs += $newDebuff
-
-            # [DEBUG ต้นทาง Debuff]
-            # Write-Host "PAINT EVENT (DEBUFF) -> Timer: $($Script:silenceTimer), Formatted: $dFormattedTime, Debuffs Count: $($activeDebuffs.Count)"
-        }
-
-        # --- CASE 3: GAMEPLAY ---
-        Draw-Gameplay $g $Script:player $Script:bullets $Script:enemies $Script:enemyBullets $Script:score $Script:level $Script:lives $Script:targetScore $activeBuffs $activeDebuffs
+        # --- วาดเกมเพลย์ ---
+        Draw-Gameplay $g $Script:player $Script:bullets $Script:enemies $Script:enemyBullets $Script:score $Script:level $Script:lives $Script:targetScore $uiStatus.Buffs $uiStatus.Debuffs
     } catch {
         Write-Host "Paint Error: $_"
     }
 })
-
 
 $form.Add_Shown({ $form.Activate(); $form.Focus() })
 

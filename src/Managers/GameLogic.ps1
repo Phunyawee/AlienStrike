@@ -83,3 +83,193 @@ function New-EnemySpawn ($width, $level, $rnd) {
     
     return [Enemy]::new($ex, $ey, $speed, $enemyColor)
 }
+
+
+# ==========================================
+# --- ฟังก์ชันจัดการควบคุมผู้เล่น (ย้ายมาจากหน้าหลัก) ---
+# ==========================================
+function Handle-PlayerInput {
+    if ($Script:sirenTimer -gt 0) { $Script:sirenTimer-- }
+
+    $moveLeft = ($Script:keysPressed["A"] -or $Script:keysPressed["Left"])
+    $moveRight = ($Script:keysPressed["D"] -or $Script:keysPressed["Right"])
+
+    if ($Script:sirenTimer -gt 0) {
+        if ($moveLeft) { $Script:player.MoveRight(500) }
+        if ($moveRight) { $Script:player.MoveLeft() }
+    } else {
+        if ($moveLeft) { $Script:player.MoveLeft() }
+        if ($moveRight) { $Script:player.MoveRight(500) }
+    }
+    
+    if ($Script:keysPressed["W"] -or $Script:keysPressed["Space"] -or $Script:keysPressed["Up"]) {
+        if ($Script:silenceTimer -le 0 -and $Script:player.CanShoot()) {
+            $px = $Script:player.X
+            $py = $Script:player.Y
+
+            if ($Script:wrathBuffLevel -eq 2) {
+                [void]$Script:bullets.Add([Bullet]::new($px + 4, $py, 0))    
+                [void]$Script:bullets.Add([Bullet]::new($px + 20, $py, 0))   
+                [void]$Script:bullets.Add([Bullet]::new($px - 4, $py, -4))   
+                [void]$Script:bullets.Add([Bullet]::new($px + 28, $py, 4))   
+            } elseif ($Script:wrathBuffLevel -eq 1) {
+                [void]$Script:bullets.Add([Bullet]::new($px + 4, $py, 0))
+                [void]$Script:bullets.Add([Bullet]::new($px + 20, $py, 0))
+            } else {
+                [void]$Script:bullets.Add([Bullet]::new($px + 12, $py))
+            }
+            $Script:player.ResetCooldown()
+        }
+    }
+
+    if ($Script:keysPressed["E"] -and $Script:inventory.Count -gt 0 -and $Script:silenceTimer -le 0) {
+        $Script:keysPressed["E"] = $false 
+        $activeItem = $Script:inventory[0]
+        $Script:inventory.RemoveAt(0)
+        
+        if ($activeItem -eq "Missile") {
+            [void]$Script:bullets.Add([Missile]::new($Script:player.X + 15, $Script:player.Y))
+        }
+    }
+    
+    $Script:player.Update()
+}
+
+# ==========================================
+# --- ฟังก์ชันจัดการ UI (ย้ายมาจากหน้าหลัก) ---
+# ==========================================
+function Get-UIStatus {
+    $activeBuffs = @()
+    $activeDebuffs = @()
+
+    if ($Script:wrathBuffTimer -gt 0) {
+        $bSecondsLeft = [math]::Round(($Script:wrathBuffTimer / 60.0), 1)
+        $bColor = if ($Script:wrathBuffLevel -eq 2) { [System.Drawing.Brushes]::Red } else { [System.Drawing.Brushes]::DeepSkyBlue }
+        $activeBuffs += [PSCustomObject]@{ Icon = "W"; Value = "{0:N1}" -f $bSecondsLeft; Color = $bColor }
+    }
+
+    if ($Script:inventory.Count -gt 0) {
+        if ($Script:inventory[0] -eq "Missile") {
+            $activeBuffs += [PSCustomObject]@{ Icon = "M"; Value = "x$($Script:inventory.Count)"; Color = [System.Drawing.Brushes]::Cyan }
+        }
+    }
+
+    if ($Script:silenceTimer -gt 0) {
+        $dSecondsLeft = [math]::Round(($Script:silenceTimer / 60.0), 1)
+        $activeDebuffs += [PSCustomObject]@{ Icon = "Z"; Value = "{0:N1}" -f $dSecondsLeft; Color = [System.Drawing.Brushes]::Magenta }
+    }
+
+    if ($Script:sirenTimer -gt 0) {
+        $sSecondsLeft = [math]::Round(($Script:sirenTimer / 60.0), 1)
+        $activeDebuffs += [PSCustomObject]@{ Icon = "S"; Value = "{0:N1}" -f $sSecondsLeft; Color = [System.Drawing.Brushes]::DeepPink }
+    }
+
+    return @{ Buffs = $activeBuffs; Debuffs = $activeDebuffs }
+}
+
+# ==========================================
+# --- ฟังก์ชันเช็คการเกิดของบอสพิเศษ (แยกออกมาเพื่อความคลีน) ---
+# ==========================================
+function Check-BossSpawns {
+    # 1. เช็คปล่อยฝูง Lust ตอน Level Up
+    if ($Script:level -gt $Script:currentTrackedLevel) {
+        $Script:currentTrackedLevel = $Script:level
+        
+        for ($i = 0; $i -lt 5; $i++) {
+            if ($i % 2 -eq 0) {
+                $l = [Lust]::new(-50 - ($i * 40), 50 + ($i * 20), 1) 
+            } else {
+                $l = [Lust]::new(550 + ($i * 40), 50 + ($i * 20), -1) 
+            }
+            [void]$Script:enemies.Add($l)
+        }
+    }
+
+    # 2. เช็คปล่อย Pride ทุกๆ 5000 คะแนน
+    if ($Script:score -ge $Script:nextPrideScoreTarget) {
+        $pride = [Pride]::new(230, -50)
+        [void]$Script:enemies.Add($pride)
+        $Script:nextPrideScoreTarget += 5000 
+    }
+}
+
+
+
+# ==========================================
+# --- ฟังก์ชันจัดการผลลัพธ์หลังการชน (ย้ายมาจาก Main) ---
+# ==========================================
+function Handle-PostCollision ($collisionResult) {
+    
+    # -----------------------------------
+    # 1. ระบบสุ่ม Buff จากการฆ่า Wrath
+    # -----------------------------------
+    if ($collisionResult.WrathKills -gt 0) {
+        for ($k = 0; $k -lt $collisionResult.WrathKills; $k++) {
+            $roll = $Script:rnd.Next(1, 101) # สุ่ม 1-100
+            
+            if ($roll -le 5) {
+                $Script:wrathBuffLevel = 2
+                $Script:wrathBuffTimer = 420 
+            } else {
+                if ($Script:wrathBuffLevel -lt 2) {
+                    $Script:wrathBuffLevel = 1
+                }
+                $Script:wrathBuffTimer = 420 
+            }
+        }
+    }
+
+    # ระบบแจกไอเทมจาก Lust
+    if ($collisionResult.LustKills -gt 0) {
+        for ($i = 0; $i -lt $collisionResult.LustKills; $i++) {
+            # ฆ่า Lust 1 ตัว ได้มิสไซล์ 5 อัน
+            1..5 | ForEach-Object { [void]$Script:inventory.Add("Missile") }
+        }
+    }
+
+    # 2. ลดเวลา Buff 
+    if ($Script:wrathBuffTimer -gt 0) { 
+        $Script:wrathBuffTimer -= 1 
+        if ($Script:wrathBuffTimer -le 0) {
+            $Script:wrathBuffLevel = 0 
+        }
+    }
+
+    # 3. ลดเวลาสถานะใบ้ และ เช็คการติดสถานะใบ้
+    if ($Script:silenceTimer -gt 0) { 
+        $Script:silenceTimer -= 1 
+    }
+    if ($collisionResult.ApplySilence) {
+        $Script:silenceTimer = 180 
+    }
+
+    # 4. เช็คติดสถานะเดินหลอน (Siren)
+    # (เราไม่ใส่ลดเวลาตรงนี้ เพราะมันไปลดอยู่ใน Handle-PlayerInput แล้วครับ)
+    if ($collisionResult.ApplySiren) {
+        $Script:sirenTimer = 180 
+    }
+
+    # 5. อัปเดตคะแนน
+    if ($collisionResult.ScoreAdded -gt 0) {
+        $Script:score += $collisionResult.ScoreAdded
+    }
+
+    # 6. เช็คว่าผู้เล่นโดนดาเมจไหม
+    if ($collisionResult.IsPlayerHit) {
+        $Script:lives -= 1   # ลดชีวิต 1 ดวง
+        
+        if ($Script:lives -le 0) {
+            Do-GameOver
+            return $true # <--- รีเทิร์น True เพื่อบอก Game Loop ว่าให้หยุดทำงาน (ตายแล้ว)
+        } else {
+            $Script:player.X = 225
+            $Script:player.Y = 500
+            
+            $Script:enemies.Clear()
+            $Script:enemyBullets.Clear()
+            $Script:bullets.Clear()
+        }
+    }
+
+    return $false # <--- รีเทิร์น False แปลว่ายังมีชีวิตอยู่ เล่นเฟรมต่อไปได้
+}

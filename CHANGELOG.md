@@ -1,3 +1,68 @@
+## [2.4.0] - 2026-03-08
+### "The Pride & Vanity Update"
+
+Version 2.4.0 introduces the most significant architectural shift since the project's inception. By implementing a **Decoupled Engine Logic**, the core game loop has been streamlined for future scalability. This update also completes the **"Sins of Disruption" trilogy** with the arrival of **Pride** and **Lust**, alongside the first iteration of the **Active Inventory System**.
+
+**Version 2.4 Focus:**
+- Architectural Refactoring (Logic Decoupling)
+- Active Item Economy (Missile Systems)
+- Complex Sin-Class AI (State-driven & Traversal AI)
+- Movement-altering Status Effects (Siren Debuff)
+
+---
+
+## ➕ Added
+
+### New Elite Enemy: Pride (`Pride.ps1`)
+A high-durability Sin entity (**4 HP**) featuring a **State-Driven AI**. Pride uses a predictive **Lock-on Laser (Hitscan)** that targets the player's X-axis and fires after a **1-second charging phase**, followed by a **high-speed descent**.
+
+### New Elite Enemy: Lust (`Lust.ps1`)
+A tactical **triangle-class interceptor**. Lust utilizes **Sine-wave traversal** to swoop across the screen while firing **Siren projectiles**. Spawns in **coordinated 5-ship swarms** upon Level Up milestones.
+
+### Active Inventory System (**MISSILE**)
+Introduces the first **usable item type**. Players can now **store and deploy Long-range Missiles** *(Key: `E`)*. Features an **Area-of-Effect (AOE) Explosion** mechanic that deals damage within a localized radius *(Orange burst effect)*.
+
+### New Status Effect: Siren (**Confusion**)
+A high-tier debuff that triggers **Directional Inversion**. While active, **player horizontal controls are flipped** *(Left becomes Right, Right becomes Left)* for **3 seconds**, testing mental adaptability.
+
+---
+
+## 🔄 Changed
+
+### Engine Refactoring (God-Object Mitigation)
+Migrated massive logic blocks from `AlienStrike.ps1` into specialized functions within `GameLogic.ps1`.  
+This includes the decoupling of:
+- Input Handling
+- Boss Spawn Logic
+- Post-Collision Status Processing
+
+### Dynamic Spawn Calibration
+Recalibrated the **SpawnRate algorithm** to prevent entity overcrowding. Difficulty now scales more gracefully, focusing on **enemy quality over quantity** while capping maximum spawn frequency for improved performance.
+
+### Enhanced Sin-Class Visuals
+Implemented unique **geometry rendering** for Lust *(polygonal triangles)* and added **persistent HUD health bars** for all Sin-class entities to improve combat feedback.
+
+### Advanced HUD Integration
+The status renderer now supports:
+- **Inventory Tracking (Missile counts)**
+- **Siren Status Indicator (S-Icon)**
+
+The Siren status is color-coded in **Deep Pink** for immediate player recognition.
+
+---
+
+## 🧹 Refactoring Notes
+
+- **Main Loop Cleanup:** `AlienStrike.ps1` reduced by ~60% in line count  
+- **State Management:** Delegated status timer management to specialized manager functions  
+- **Input Abstraction:** Standardized control handling to support future status effect modifiers
+
+---
+
+> **"Pride locks your movement; Lust twists your direction. Survival is no longer just about aiming."**
+
+
+
 ## [2.3.0] - 2026-03-08
 ### "The Green-Eyed Curse Update"
 

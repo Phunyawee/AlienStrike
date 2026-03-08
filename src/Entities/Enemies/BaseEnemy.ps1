@@ -70,4 +70,9 @@ class BaseEnemy : GameObject {
             $g.FillRectangle($hpBrush, $this.X, ($this.Y - 6), $barWidth, 3)
         }
     }
+
+    [void] UpdateWithPlayer([Object]$player) {
+        # ค่าเริ่มต้นคือแค่เรียกการเดินปกติ ถ้า Sins ตัวไหนอยากใช้ ค่อย Override
+        $this.Update()
+    }
 }
