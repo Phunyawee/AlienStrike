@@ -17,7 +17,7 @@ class Enemy : GameObject {
     # ฟังก์ชันลองยิงกระสุน (คืนค่าเป็น EnemyBullet หรือ $null)
     [Object] TryShoot([int]$currentLevel) {
         # เงื่อนไข: Level >= 4 และ กระสุนยังไม่หมด
-        if ($currentLevel -ge 4 -and $this.Ammo -gt 0) {
+        if ($currentLevel -ge 7 -and $this.Ammo -gt 0) {
             
             # สุ่มโอกาส (แนะนำ 2% คือเลข 0-1 จาก 100)
             if ($this.Rnd.Next(0, 100) -lt 2) { 

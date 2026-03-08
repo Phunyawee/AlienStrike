@@ -21,7 +21,8 @@ Add-Type -AssemblyName System.Drawing
 . "$PSScriptRoot\src\Entities\Projectiles\Missile.ps1"
 . "$PSScriptRoot\src\Entities\Projectiles\SirenBullet.ps1" 
 . "$PSScriptRoot\src\Entities\Enemies\Sins\Lust.ps1"
-
+. "$PSScriptRoot\src\Entities\Projectiles\SlothBomb.ps1" 
+. "$PSScriptRoot\src\Entities\Enemies\Sins\Sloth.ps1"
 
 
 # --- 1.1 Load Managers (New) ---
@@ -50,7 +51,12 @@ function Do-GameOver {
     $Script:wrathBuffTimer = 0  # ตัวจับเวลา Buff 7 วินาที (420 เฟรม)
     $Script:wrathBuffLevel = 0  # 0=ปกติ, 1=ยิง 2 นัด(Blue), 2=ยิง 4 นัด(Red)
     $Script:sirenTimer = 0   # ตัวนับเวลาติดสถานะ Siren (เดินสลับทิศ)
+    $Script:wrathStackCount = 0  # ตัวนับ Stack (0-5)
     $Script:currentTrackedLevel = 1 # ใส่ไว้ตอนเริ่มเกม / ในฟังก์ชัน Do-GameOver
+    $Script:jammerTimer = 0    # ตัวนับเวลาติดสถานะ Jammer (ห้ามใช้ Item)
+    $Script:prideKills = 0     # ตัวนับจำนวนการฆ่า Pride (สะสมเพื่อเรียก Sloth)
+
+    $Script:speedTimer = 0  # ตัวนับเวลา Buff Speed
 
     # --- RESET GAME OBJECTS ---
     # สร้าง Player ใหม่ที่จุดเริ่มต้น
@@ -118,11 +124,15 @@ $Script:silenceTimer = 0   # ตัวนับเวลาติดใบ้
 $Script:wrathBuffTimer = 0  # ตัวจับเวลา Buff 7 วินาที (420 เฟรม)
 $Script:wrathBuffLevel = 0  # 0=ปกติ, 1=ยิง 2 นัด(Blue), 2=ยิง 4 นัด(Red)
 $Script:sirenTimer = 0   # ตัวนับเวลาติดสถานะ Siren (เดินสลับทิศ)
+$Script:wrathStackCount = 0  # ตัวนับ Stack (0-5)
 $Script:currentTrackedLevel = 1 # ใส่ไว้ตอนเริ่มเกม / ในฟังก์ชัน Do-GameOver
+$Script:jammerTimer = 0    # ตัวนับเวลาติดสถานะ Jammer (ห้ามใช้ Item)
+$Script:prideKills = 0     # ตัวนับจำนวนการฆ่า Pride (สะสมเพื่อเรียก Sloth)
 $Script:spawnRate = 3  
 $Script:gameStarted = $false
 $Script:gameOver = $false
 $Script:showLeaderboard = $false
+$Script:speedTimer = 0  # ตัวนับเวลา Buff Speed
 $Script:keysPressed = @{}
 
 # --- 4. Input Handling ---
@@ -258,8 +268,9 @@ $form.Add_Paint({
         # --- เรียกใช้ฟังก์ชันดึงค่า UI แทนโค้ดยาวๆ ---
         $uiStatus = Get-UIStatus
 
-        # --- วาดเกมเพลย์ ---
-        Draw-Gameplay $g $Script:player $Script:bullets $Script:enemies $Script:enemyBullets $Script:score $Script:level $Script:lives $Script:targetScore $uiStatus.Buffs $uiStatus.Debuffs
+        # --- CASE 4: GAMEPLAY ---
+        # เพิ่ม $Script:inventory ต่อท้ายเข้าไป
+        Draw-Gameplay $g $Script:player $Script:bullets $Script:enemies $Script:enemyBullets $Script:score $Script:level $Script:lives $Script:targetScore $uiStatus.Buffs $uiStatus.Debuffs $Script:inventory
     } catch {
         Write-Host "Paint Error: $_"
     }

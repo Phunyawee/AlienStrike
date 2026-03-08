@@ -69,96 +69,101 @@ function Draw-Leaderboard ($g, $width, $height) {
     $g.DrawString("Press ENTER to Return", $Global:GameFonts.Text, [System.Drawing.Brushes]::DarkGray, ($width/2), 520, $center)
 }
 
-# สังเกตว่าผมเพิ่มพารามิเตอร์ $buffs และ $debuffs ไว้ท้ายสุด (เผื่ออนาคตส่งข้อมูลจริงมาได้)
-function Draw-Gameplay ($g, $player, $bullets, $enemies, $enemyBullets, $score, $level, $lives, $targetScore, $buffs, $debuffs) {
+# ฟังก์ชันวาด HUD แบบใหม่ (Inventory + Health + Status)
+function Draw-HUD ($g, $score, $level, $lives, $inventory, $buffs, $debuffs, $targetScore) {
+    $fontSmall = New-Object System.Drawing.Font("Consolas", 10, [System.Drawing.FontStyle]::Bold)
+    $fontLarge = New-Object System.Drawing.Font("Consolas", 18, [System.Drawing.FontStyle]::Bold)
+    $sidebarX = 500
+    $sidebarWidth = 200
+
+    # --- 1. วาดกรอบ Sidebar ด้านขวา (Semi-Transparent) ---
+    $sideBg = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(180, 20, 20, 25))
+    $g.FillRectangle($sideBg, $sidebarX, 0, $sidebarWidth, 600)
+    $g.DrawLine([System.Drawing.Pen]::new([System.Drawing.Color]::Cyan, 2), $sidebarX, 0, $sidebarX, 600)
+
+    # --- 2. ข้อมูลผู้เล่น (ใน Sidebar) ---
+    $g.DrawString("SCORE", $fontSmall, [System.Drawing.Brushes]::Gray, ($sidebarX + 15), 20)
+    $g.DrawString("$score", $fontLarge, [System.Drawing.Brushes]::Yellow, ($sidebarX + 15), 35)
+
+    $g.DrawString("LEVEL $level", $fontSmall, [System.Drawing.Brushes]::White, ($sidebarX + 15), 75)
+    # Progress Bar (เลเวลอัป)
+    $g.FillRectangle([System.Drawing.Brushes]::DarkSlateGray, ($sidebarX + 15), 95, 170, 6)
+    $progress = [math]::Min(($score / $targetScore), 1.0)
+    $g.FillRectangle([System.Drawing.Brushes]::Lime, ($sidebarX + 15), 95, (170 * $progress), 6)
+
+    # วาดดวงใจ (Health)
+    $g.DrawString("LIVES", $fontSmall, [System.Drawing.Brushes]::Gray, ($sidebarX + 15), 120)
+    for ($l = 0; $l -lt $lives; $l++) {
+        $g.FillEllipse([System.Drawing.Brushes]::Red, ($sidebarX + 15 + ($l * 25)), 140, 18, 18)
+    }
+
+    # --- 3. ระบบ Inventory แบบนับเลข (ใน Sidebar ล่าง) ---
+    $invY = 450
+    $g.DrawString("INVENTORY [E]", $fontSmall, [System.Drawing.Brushes]::Gray, ($sidebarX + 15), $invY)
     
-    # --- 1. Draw Entities ---
-    if ($null -ne $player) { $player.Draw($g) }
-    if ($null -ne $bullets) { foreach ($b in $bullets) { if($b){$b.Draw($g)} } }
-    if ($null -ne $enemies) { foreach ($e in $enemies) { if($e){$e.Draw($g)} } }
-    if ($null -ne $enemyBullets) { foreach ($eb in $enemyBullets) { if($eb){$eb.Draw($g)} } }
+    if ($inventory.Count -gt 0) {
+        # จัดกลุ่มไอเทมเพื่อรวบรวมชิ้นที่เหมือนกัน (เช่น Missile x100)
+        $firstItemType = $inventory[0]
+        $count = ($inventory | Where-Object { $_ -eq $firstItemType }).Count
+        
+        # วาด Slot ชิ้นแรกแบบเด่นๆ
+        $rect = New-Object System.Drawing.Rectangle(($sidebarX + 15), ($invY + 20), 50, 50)
+        $g.FillRectangle([System.Drawing.Brushes]::DarkCyan, $rect)
+        $g.DrawRectangle([System.Drawing.Pen]::new([System.Drawing.Color]::Cyan, 2), $rect)
+        
+        # ตัวย่อไอเทม (เช่น M)
+        $itemTxt = if ($firstItemType -eq "Missile") { "M" } else { "?" }
+        $g.DrawString($itemTxt, $fontLarge, [System.Drawing.Brushes]::White, ($sidebarX + 28), ($invY + 32))
+        
+        # วาดเลขจำนวน (x100)
+        $g.DrawString("x$count", $fontLarge, [System.Drawing.Brushes]::Orange, ($sidebarX + 70), ($invY + 32))
 
-    # --- 2. Draw Sidebar Background ---
-    $sidebarBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(30, 30, 40))
-    $g.FillRectangle($sidebarBrush, 500, 0, 200, 600)
-    $pen = New-Object System.Drawing.Pen([System.Drawing.Color]::White, 2)
-    $g.DrawLine($pen, 500, 0, 500, 600)
+        # ถ้ายยังมีไอเทมชนิดอื่นในคิว (แสดงชิ้นถัดไปเล็กๆ)
+        $otherItems = $inventory | Where-Object { $_ -ne $firstItemType } | Select-Object -First 1
+        if ($null -ne $otherItems) {
+            $g.DrawString("NEXT: $otherItems", $fontSmall, [System.Drawing.Brushes]::Gray, ($sidebarX + 15), ($invY + 75))
+        }
+    } else {
+        $g.DrawString("- EMPTY -", $fontSmall, [System.Drawing.Brushes]::DarkGray, ($sidebarX + 15), ($invY + 35))
+    }
 
-    # --- 3. Draw HUD Data ---
-    $font = $Global:GameFonts.HUD
-    
-    $g.DrawString("LEVEL", $font, [System.Drawing.Brushes]::Cyan, 520, 20)
-    $g.DrawString([string]$level, $font,[System.Drawing.Brushes]::White, 520, 45)
-
-    $g.DrawString("SCORE", $font, [System.Drawing.Brushes]::Yellow, 520, 90)
-    $g.DrawString([string]$score, $font,[System.Drawing.Brushes]::White, 520, 115)
-
-    $g.DrawString("NEXT LVL", $font, [System.Drawing.Brushes]::Orange, 520, 160)
-    $g.DrawString([string]$targetScore, $font, [System.Drawing.Brushes]::White, 520, 185)
-
-    $g.DrawString("LIVES", $font, [System.Drawing.Brushes]::LightGreen, 520, 230)
-    $livesText = "A " * $lives 
-    $g.DrawString($livesText, $font, [System.Drawing.Brushes]::Red, 520, 255)
-
-    # =========================================================
-    # --- 4. Draw Buffs & Debuffs (Max 5 Each) ---
-    # =========================================================
-    $startX = 520
-    $boxSize = 28
-    $spacing = 34
-
-    # [DEBUG] โชว์ให้เห็นจะๆ ว่าของส่งมาถึงหน้าวาดรูปจริงๆ
-    # Write-Host "DRAW FUNC -> Buffs: $buffs | Debuffs: $debuffs"
-
-    # --- BUFFS SECTION ---
-    $g.DrawString("BUFFS", $Global:GameFonts.Small,[System.Drawing.Brushes]::LimeGreen, 520, 310)
-    $startY = 330
-    
-    $bCount = 0
-    if ($buffs) {
-        foreach ($b in $buffs) {
-            $x = $startX + ($bCount * $spacing)
-            
-            $boxRect = New-Object System.Drawing.Rectangle($x, $startY, $boxSize, $boxSize)
-            $g.FillRectangle((New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(20, 60, 20))), $boxRect)
-            $g.DrawRectangle([System.Drawing.Pens]::LimeGreen, $boxRect)
-
-            $g.DrawString($b.Icon, $Global:GameFonts.Icon, $b.Color, ($x + 4), ($startY + 4))
-            $g.DrawString($b.Value, $Global:GameFonts.Tiny, [System.Drawing.Brushes]::White, ($x + 12), ($startY + 16))
-            
-            $bCount++
-            if ($bCount -ge 5) { break } # วาดสูงสุดแค่ 5 อัน
+    # --- 4. สถานะ Buffs (ใน Sidebar กลาง) ---
+    $bfY = 200
+    $g.DrawString("ACTIVE BUFFS", $fontSmall, [System.Drawing.Brushes]::Gray, ($sidebarX + 15), $bfY)
+    $bfY += 20
+    foreach ($bf in $buffs) {
+        if ($bf.Icon -ne "M") { # ไม่วาด Missile ซ้ำ
+            $bgBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(100, 0, 255, 255))
+            $g.FillRectangle($bgBrush, ($sidebarX + 15), $bfY, 170, 30)
+            $g.DrawString("$($bf.Icon) $($bf.Value)", $fontSmall, [System.Drawing.Brushes]::White, ($sidebarX + 25), ($bfY + 7))
+            $bfY += 35
         }
     }
 
-    # --- DEBUFFS SECTION ---
-    $g.DrawString("DEBUFFS", $Global:GameFonts.Small,[System.Drawing.Brushes]::OrangeRed, 520, 380)
-    $startY = 400
-    
-    $dCount = 0
-    if ($debuffs) {
-        foreach ($d in $debuffs) {
-            $x = $startX + ($dCount * $spacing)
-            
-            $boxRect = New-Object System.Drawing.Rectangle($x, $startY, $boxSize, $boxSize)
-            $g.FillRectangle((New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(60, 20, 20))), $boxRect)
-            $g.DrawRectangle([System.Drawing.Pens]::Red, $boxRect)
-
-            # แกะค่ามาวาดตรงๆ ไม่ต้องสนเรื่อง .Count
-            $g.DrawString($d.Icon, $Global:GameFonts.Icon, $d.Color, ($x + 4), ($startY + 4))
-            $g.DrawString($d.Value, $Global:GameFonts.Tiny, [System.Drawing.Brushes]::White, ($x + 6), ($startY + 16))
-            
-            $dCount++
-            if ($dCount -eq 5) { 
-                $startY += 35 # ปัดลงมาบรรทัดล่าง
-                $dCount = 0   # เริ่มวาดกล่องใหม่ชิดซ้าย
-            }
-        }
+    # --- 5. สถานะ Debuffs (บนจอ Play Area - เพื่อให้ผู้เล่นตกใจ!) ---
+    $dbY = 20 # เริ่มวาดจากด้านบนสุด
+    foreach ($db in $debuffs) {
+        # พื้นหลังสีแดงเข้มกึ่งโปร่งแสงเพื่อให้ตัวอักษรสีเหลือง/ขาวอ่านง่าย
+        $bgBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(200, 60, 0, 0))
+        $g.FillRectangle($bgBrush, 10, $dbY, 100, 45)
+        $g.DrawRectangle([System.Drawing.Pen]::new([System.Drawing.Color]::Red, 2), 10, $dbY, 100, 45)
+        
+        # วาดไอคอน (ตัวใหญ่) และ เวลาถอยหลัง (สีเหลือง)
+        $g.DrawString($db.Icon, $fontLarge, [System.Drawing.Brushes]::White, 15, ($dbY + 8))
+        $g.DrawString($db.Value, $fontSmall, [System.Drawing.Brushes]::Yellow, 50, ($dbY + 15))
+        
+        $dbY += 50 # เว้นระยะห่างลงมาสำหรับ Debuff ตัวถัดไป
     }
-    # --- 5. Controls Hint ---
-    $g.DrawString("CONTROLS:", $Global:GameFonts.Small, [System.Drawing.Brushes]::Gray, 520, 480)
-    $g.DrawString("A D / Arrow = Move", $Global:GameFonts.Small,[System.Drawing.Brushes]::Gray, 520, 500)
-    $g.DrawString("W/Space/Up  = Shoot", $Global:GameFonts.Small,[System.Drawing.Brushes]::Gray, 520, 520)
-    $g.DrawString("ESC         = Pause", $Global:GameFonts.Small, [System.Drawing.Brushes]::Gray, 520, 540)
+}
 
+# แก้ไขฟังก์ชันหลักให้เรียกใช้ HUD
+function Draw-Gameplay ($g, $player, $bullets, $enemies, $enemyBullets, $score, $level, $lives, $targetScore, $buffs, $debuffs, $inventory) {
+    # 1. วาดวัตถุในเกม
+    $player.Draw($g)
+    foreach ($b in $bullets) { $b.Draw($g) }
+    foreach ($e in $enemies) { $e.Draw($g) }
+    foreach ($eb in $enemyBullets) { $eb.Draw($g) }
+
+    # 2. วาด HUD ทับด้านบน
+    Draw-HUD $g $score $level $lives $inventory $buffs $debuffs $targetScore
 }

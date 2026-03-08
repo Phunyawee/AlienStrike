@@ -1,3 +1,95 @@
+## [3.0.0] - 2026-03-08
+### "The Arcade Evolution & Sloth's Domain"
+
+Version 3.0.0 represents the **largest system overhaul in the project so far**.  
+This update focuses on the full implementation of **HUD 2.0** and a deep **architecture refactor**, preparing the engine to support more complex **item and status systems** moving forward.
+
+**Version 3.0 Focus:**
+- **Engine Purity:** Cleaned the core file by migrating nearly all gameplay logic into specialized Managers
+- **HUD 2.0 (Arcade Style):** The Sidebar interface returns with modernized visual feedback
+- **Advanced Status System:** Introduces **Jammer**, **Speed Buff**, and a refined **Wrath stacking system**
+
+---
+
+## ➕ Added
+
+### New Elite Enemy: Sloth (`Sloth.ps1`)
+The **fourth Sin-class boss**, featuring **Sequence-based AI** behavior.
+
+Attack sequence:
+- Slowly approaches the target  
+- Stops mid-air  
+- Deploys bombs  
+- Fires counter shots  
+- Retreats from the battlefield  
+
+Sloth has **6 HP**.
+
+### New Projectile: SlothBomb & Shockwave
+A **three-stage explosive orb** *(Green → Yellow → Red)* that detonates into a massive **semi-circular Shockwave**, sweeping the lower combat area.
+
+### New Status: Jammer (Debuff)
+A disruptive signal effect *(J icon)* that prevents the player from **using items (Key: E)** for **5 seconds**.
+
+### New Status: Speed Boost (Buff)
+Reward for defeating Sloth.  
+The player receives **2× movement speed** *(S icon)* for **7 seconds**.
+
+### Inventory Stack System
+A redesigned **HUD inventory system** capable of displaying **large item counts (x100+)**.
+
+Includes a **Next-Item Preview** indicator to help players plan their combat strategy.
+
+---
+
+## 🔄 Changed
+
+### God-Object Erasure (Final Phase)
+`AlienStrike.ps1` has been completely stripped of gameplay calculations.
+
+All logic has been migrated to:
+- `Handle-PostCollision`
+- `Update-PlayerStatus`
+
+inside `GameLogic.ps1`.
+
+The main file now acts purely as a **controller layer**.
+
+### Wrath Buff Refactor (The 3-Stack Rule)
+Rebalanced the **Wrath system**:
+
+- Collect **3 stacks** to unlock **Red Mode**
+- Red Mode lasts **14 seconds**
+- Stack timers **no longer reset** until the buff expires, improving gameplay balance.
+
+### Visual Health Icons
+Player lives are now displayed as **red heart icons** instead of numeric values, reinforcing the **classic arcade aesthetic**.
+
+### New HUD Layout
+The HUD has been reorganized for clarity:
+
+- **Sidebar (Right):** General information and active Buffs  
+- **Play Area (Top-Left):** Critical Debuffs that require immediate player attention
+
+---
+
+## 🐞 Fixed
+
+### Missile Drift Fix
+Improved the **explosion position calculation** for missiles, making the detonation both **more accurate and twice as wide**.
+
+### Movement Double-Step Bug
+Fixed a velocity stacking issue that caused the player ship to **move faster than intended** when the **Speed Buff** was active.
+
+### Post-Collision Loop Integrity
+Corrected the **post-collision status evaluation order**, preventing rare cases of **status effects becoming stuck**.
+
+---
+
+> **"The sidebar is back. The math is moved. The sins are stronger.  
+> Welcome to the final evolution of PowerShell combat."**
+
+
 ## [2.4.1] - 2026-03-08
 ### "The Ordnance Calibration"
 

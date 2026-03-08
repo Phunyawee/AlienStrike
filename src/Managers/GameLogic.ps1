@@ -90,23 +90,31 @@ function New-EnemySpawn ($width, $level, $rnd) {
 # ==========================================
 function Handle-PlayerInput {
     if ($Script:sirenTimer -gt 0) { $Script:sirenTimer-- }
+    if ($Script:speedTimer -gt 0) { $Script:speedTimer-- } # ลดเวลาบัฟ Speed ตรงนี้ด้วย
 
     $moveLeft = ($Script:keysPressed["A"] -or $Script:keysPressed["Left"])
     $moveRight = ($Script:keysPressed["D"] -or $Script:keysPressed["Right"])
 
-    if ($Script:sirenTimer -gt 0) {
-        if ($moveLeft) { $Script:player.MoveRight(500) }
-        if ($moveRight) { $Script:player.MoveLeft() }
-    } else {
-        if ($moveLeft) { $Script:player.MoveLeft() }
-        if ($moveRight) { $Script:player.MoveRight(500) }
+    # 1. คำนวณความเร็ว (ปกติ 8, บัฟ 16)
+    $currentSpeed = 8
+    if ($Script:speedTimer -gt 0) { $currentSpeed = 16 }
+
+    # 2. คำนวณทิศทาง (ปกติ หรือ Siren)
+    $direction = 0
+    if ($moveLeft) { $direction = -1 }
+    if ($moveRight) { $direction = 1 }
+
+    if ($Script:sirenTimer -gt 0) { $direction *= -1 } # สลับทิศถ้าติด Siren
+
+    # 3. สั่งเคลื่อนที่ครั้งเดียวจบ!
+    if ($direction -ne 0) {
+        $Script:player.Move($direction * $currentSpeed)
     }
-    
+
+    # --- ส่วนยิงปืนและไอเทมเหมือนเดิม ---
     if ($Script:keysPressed["W"] -or $Script:keysPressed["Space"] -or $Script:keysPressed["Up"]) {
         if ($Script:silenceTimer -le 0 -and $Script:player.CanShoot()) {
-            $px = $Script:player.X
-            $py = $Script:player.Y
-
+            $px = $Script:player.X; $py = $Script:player.Y
             if ($Script:wrathBuffLevel -eq 2) {
                 [void]$Script:bullets.Add([Bullet]::new($px + 4, $py, 0))    
                 [void]$Script:bullets.Add([Bullet]::new($px + 20, $py, 0))   
@@ -122,11 +130,10 @@ function Handle-PlayerInput {
         }
     }
 
-    if ($Script:keysPressed["E"] -and $Script:inventory.Count -gt 0) {
+    if ($Script:keysPressed["E"] -and $Script:inventory.Count -gt 0 -and $Script:jammerTimer -le 0) {
         $Script:keysPressed["E"] = $false 
         $activeItem = $Script:inventory[0]
         $Script:inventory.RemoveAt(0)
-        
         if ($activeItem -eq "Missile") {
             [void]$Script:bullets.Add([Missile]::new($Script:player.X + 15, $Script:player.Y))
         }
@@ -144,8 +151,23 @@ function Get-UIStatus {
 
     if ($Script:wrathBuffTimer -gt 0) {
         $bSecondsLeft = [math]::Round(($Script:wrathBuffTimer / 60.0), 1)
-        $bColor = if ($Script:wrathBuffLevel -eq 2) { [System.Drawing.Brushes]::Red } else { [System.Drawing.Brushes]::DeepSkyBlue }
-        $activeBuffs += [PSCustomObject]@{ Icon = "W"; Value = "{0:N1}" -f $bSecondsLeft; Color = $bColor }
+        
+        # ถ้าเป็นขั้น 2 โชว์เวลาถอยหลัง (สีแดง)
+        if ($Script:wrathBuffLevel -eq 2) {
+            $activeBuffs += [PSCustomObject]@{ 
+                Icon = "W"; 
+                Value = "{0:N1}s" -f $bSecondsLeft; 
+                Color = [System.Drawing.Brushes]::Red 
+            }
+        } 
+        # ถ้าเป็นขั้น 1 โชว์จำนวน Stack (สีฟ้า) เช่น W 3/5
+        else {
+            $activeBuffs += [PSCustomObject]@{ 
+                Icon = "W"; 
+                Value = "$($Script:wrathStackCount)/3"; 
+                Color = [System.Drawing.Brushes]::DeepSkyBlue 
+            }
+        }
     }
 
     if ($Script:inventory.Count -gt 0) {
@@ -164,6 +186,18 @@ function Get-UIStatus {
         $activeDebuffs += [PSCustomObject]@{ Icon = "S"; Value = "{0:N1}" -f $sSecondsLeft; Color = [System.Drawing.Brushes]::DeepPink }
     }
 
+    if ($Script:jammerTimer -gt 0) {
+        $activeDebuffs += [PSCustomObject]@{ Icon = "J"; Value = "{0:N1}s" -f ($Script:jammerTimer/60.0); Color = [System.Drawing.Brushes]::Yellow }
+    }
+
+    if ($Script:speedTimer -gt 0) {
+        $sSecondsLeft = [math]::Round(($Script:speedTimer / 60.0), 1)
+        $activeBuffs += [PSCustomObject]@{ 
+            Icon = "S"; 
+            Value = "{0:N1}s" -f $sSecondsLeft; 
+            Color = [System.Drawing.Brushes]::SkyBlue 
+        }
+    }
     return @{ Buffs = $activeBuffs; Debuffs = $activeDebuffs }
 }
 
@@ -189,8 +223,28 @@ function Check-BossSpawns {
     if ($Script:score -ge $Script:nextPrideScoreTarget) {
         $pride = [Pride]::new(230, -50)
         [void]$Script:enemies.Add($pride)
-        $Script:nextPrideScoreTarget += 5000 
+        $Script:nextPrideScoreTarget += 10000 
     }
+
+    # # เช็คปล่อย Sloth
+    # if ($Script:prideKills -ge 5 -and $Script:rnd.Next(0, 100) -lt 50) {
+    #     $Script:prideKills = 0 # รีเซ็ต
+    #     # ปล่อย 2 ลำ ซ้ายและขวา
+    #     [void]$Script:enemies.Add([Sloth]::new(-100, 150, 100, 150, 0))   # ลำซ้าย ทิ้งทันที
+    #     [void]$Script:enemies.Add([Sloth]::new(700, 150, 450, 150, 90))  # ลำขวา ทิ้งหลังผ่านไป 1.5 วิ
+    # }
+
+    if ($true) { 
+    # หมายเหตุ: ถ้าใส่ $true เฉยๆ มันจะปล่อย Sloth ออกมาทุก Frame จนเครื่องค้างได้
+    # แนะนำให้เช็คจาก $Script:prideKills -ge 1 แทน เพื่อให้ปล่อยเป็นรอบๆ
+    if ($Script:prideKills -ge 1) {
+        $Script:prideKills = 0 # รีเซ็ตทันที
+
+        # ปล่อย 2 ลำ ซ้ายและขวา
+        [void]$Script:enemies.Add([Sloth]::new(-100, 150, 100, 150, 0))   # ลำซ้าย: ออกทันที
+        [void]$Script:enemies.Add([Sloth]::new(700, 150, 450, 150, 300)) # ลำขวา: ออกหลังผ่านไป 5 วิ (300 เฟรม)
+    }
+}
 }
 
 
@@ -199,23 +253,41 @@ function Check-BossSpawns {
 # --- ฟังก์ชันจัดการผลลัพธ์หลังการชน (ย้ายมาจาก Main) ---
 # ==========================================
 function Handle-PostCollision ($collisionResult) {
+    #kill pride
+    if ($collisionResult.PrideKilled) { $Script:prideKills++ }
+    
+    if ($Script:jammerTimer -gt 0) { $Script:jammerTimer-- }
+    if ($collisionResult.ApplyJammer) { $Script:jammerTimer = 300 } # 5 วินาที
     
     # -----------------------------------
-    # 1. ระบบสุ่ม Buff จากการฆ่า Wrath
+    # 1. ระบบสะสม Buff จากการฆ่า Wrath (New Stack System)
     # -----------------------------------
     if ($collisionResult.WrathKills -gt 0) {
-        for ($k = 0; $k -lt $collisionResult.WrathKills; $k++) {
-            $roll = $Script:rnd.Next(1, 101) # สุ่ม 1-100
-            
-            if ($roll -le 5) {
-                $Script:wrathBuffLevel = 2
-                $Script:wrathBuffTimer = 420 
-            } else {
-                if ($Script:wrathBuffLevel -lt 2) {
+        # ถ้ายังไม่เป็นขั้น 2 (Red) ถึงจะยอมให้เก็บ Stack หรือรีเวลา
+        if ($Script:wrathBuffLevel -lt 2) {
+            for ($k = 0; $k -lt $collisionResult.WrathKills; $k++) {
+                $Script:wrathStackCount += 1
+                
+                # ถ้าสะสมครบ 3 อัน -> อัปเกรดเป็นขั้น 2 ทันที
+                if ($Script:wrathStackCount -ge 3) {
+                    $Script:wrathBuffLevel = 2
+                    $Script:wrathBuffTimer = 840  # 14 วินาที (840 เฟรม)
+                    $Script:wrathStackCount = 0   # รีเซ็ต stack
+                } else {
+                    # ถ้ายังไม่ครบ 5 -> เป็นขั้น 1 และรีเวลาเป็น 7 วินาที
                     $Script:wrathBuffLevel = 1
+                    $Script:wrathBuffTimer = 420  # 7 วินาที (420 เฟรม)
                 }
-                $Script:wrathBuffTimer = 420 
             }
+        }
+    }
+
+    # 2. ลดเวลา Buff
+    if ($Script:wrathBuffTimer -gt 0) { 
+        $Script:wrathBuffTimer -= 1 
+        if ($Script:wrathBuffTimer -le 0) {
+            $Script:wrathBuffLevel = 0 
+            $Script:wrathStackCount = 0 # เวลาหมด ล้าง stack ทิ้งด้วย
         }
     }
 
@@ -224,14 +296,6 @@ function Handle-PostCollision ($collisionResult) {
         for ($i = 0; $i -lt $collisionResult.LustKills; $i++) {
             # ฆ่า Lust 1 ตัว ได้มิสไซล์ 5 อัน
             1..5 | ForEach-Object { [void]$Script:inventory.Add("Missile") }
-        }
-    }
-
-    # 2. ลดเวลา Buff 
-    if ($Script:wrathBuffTimer -gt 0) { 
-        $Script:wrathBuffTimer -= 1 
-        if ($Script:wrathBuffTimer -le 0) {
-            $Script:wrathBuffLevel = 0 
         }
     }
 
@@ -270,6 +334,14 @@ function Handle-PostCollision ($collisionResult) {
             $Script:bullets.Clear()
         }
     }
+
+    # --- [NEW] ระบบ Buff Speed จากการฆ่า Sloth ---
+    if ($collisionResult.SlothKills -gt 0) {
+        $Script:speedTimer = 420 # 7 วินาที
+    }
+
+    # ลดเวลา Buff Speed
+    if ($Script:speedTimer -gt 0) { $Script:speedTimer-- }
 
     return $false # <--- รีเทิร์น False แปลว่ายังมีชีวิตอยู่ เล่นเฟรมต่อไปได้
 }

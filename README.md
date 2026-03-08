@@ -6,6 +6,16 @@ This project demonstrates how Object-Oriented Programming (OOP) principles can b
 
 
 <details open>
+<summary><b>Version 3.0.0</b></summary>
+<br>
+
+| Start Screen | Gameplay | Leaderboard |
+|:---:|:---:|:---:|
+| <img src="./Images/v3/start_screen.png" width="250" alt="Start Screen"> | <img src="./Images/v3/gameplay.png" width="250" alt="Gameplay Action"> | <img src="./Images/v3/leaderboard.png" width="250" alt="High Scores"> |
+
+</details>
+
+<details>
 <summary><b>Version 2.0.0</b></summary>
 <br>
 
@@ -27,7 +37,7 @@ This project demonstrates how Object-Oriented Programming (OOP) principles can b
 </details>
 
 ## ⚠️ Note on Graphics
-**Current Version (v2.0.0):** 
+**Current Version (v3.0.0):** 
 The game currently utilizes primitive GDI+ shapes (rectangles/squares) for all game entities. This is a deliberate design choice to focus on the core engine logic, physics, and OOP structure first.
 
 Enhanced sprites, textures, and visual effects are planned for future updates. For now, enjoy the retro "developer art" aesthetic!
