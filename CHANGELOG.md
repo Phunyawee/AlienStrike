@@ -1,3 +1,50 @@
+## [2.4.1] - 2026-03-08
+### "The Ordnance Calibration"
+
+A small but important update focused on refining the **heavy weapon system (Missiles)** and rebalancing the **Debuff mechanics** to give players more tactical options when fighting back.
+
+---
+
+## ➕ Added
+
+### Lust Loot Table
+Implemented a **drop system for Lust-class enemies**.  
+Destroying a Lust ship now immediately grants **5 Missiles** to the player's Inventory per ship.
+
+---
+
+## 🔄 Changed
+
+### Missile Overhaul
+- Increased **AOE explosion radius** to **300px (approximately 2× larger)**.
+- Missile explosions now **remain stationary at the detonation point**.
+- Added **Piercing capability**: explosions now deal damage to **all enemies within the radius** instead of disappearing after the first hit.
+
+### Debuff Balancing
+- The **Silence status effect** now affects **Primary Fire only**.
+- Players can still **deploy Missiles (Items)** even while silenced, allowing them to use emergency counterattacks.
+
+### Lust Buff
+- Increased **Lust HP to 3**.
+- Added a **visible Health Bar** for clearer damage feedback during combat.
+
+---
+
+## 🐞 Fixed
+
+### Score Calculation Bug
+Fixed a **Runtime Error in `CollisionManager.ps1`** caused by an `if` statement nested inside the score addition parentheses.
+
+### Missile Drifting
+Fixed a bug where **missile explosions drifted off-screen**.  
+The system now **locks the X-Y position immediately when the state changes to `IsExploding`**.
+
+---
+
+> **"Silence their guns, but you can't silence their vengeance."**
+
+
+
 ## [2.4.0] - 2026-03-08
 ### "The Pride & Vanity Update"
 

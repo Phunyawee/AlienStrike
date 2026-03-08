@@ -60,7 +60,8 @@ function Invoke-GameCollisions ($player, $bullets, $enemies, $enemyBullets, $for
                     if ($e.GetType().Name -eq "Wrath") {
                         $Script:wrathKills += 1
                         $result.WrathKills += 1 
-                        if ($Script:wrathKills % 5 -eq 0) {
+                        #ฆ่า Wrath 5
+                        if ($Script:wrathKills % 1 -eq 0) {
                             $envy = [Envy]::new(225, -50, $player)
                             [void]$enemies.Add($envy)
                         }

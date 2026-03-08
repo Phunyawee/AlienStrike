@@ -122,7 +122,7 @@ function Handle-PlayerInput {
         }
     }
 
-    if ($Script:keysPressed["E"] -and $Script:inventory.Count -gt 0 -and $Script:silenceTimer -le 0) {
+    if ($Script:keysPressed["E"] -and $Script:inventory.Count -gt 0) {
         $Script:keysPressed["E"] = $false 
         $activeItem = $Script:inventory[0]
         $Script:inventory.RemoveAt(0)
