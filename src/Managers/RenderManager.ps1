@@ -164,6 +164,13 @@ function Draw-Gameplay ($g, $player, $bullets, $enemies, $enemyBullets, $score, 
     foreach ($e in $enemies) { $e.Draw($g) }
     foreach ($eb in $enemyBullets) { $eb.Draw($g) }
 
+     # วาดวงกลมโล่ (ถ้ามีแต้มป้องกัน)
+    if ($Script:defenseHits -gt 0) {
+        $shieldPen = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(150, 0, 255, 255), 2)
+        # วาดวงกลมครอบยาน (ยานขนาด 21 เราวาดวงกลมขนาด 40)
+        $g.DrawEllipse($shieldPen, ($player.X - 10), ($player.Y - 10), 41, 41)
+    }
+
     # 2. วาด HUD ทับด้านบน
     Draw-HUD $g $score $level $lives $inventory $buffs $debuffs $targetScore
 }

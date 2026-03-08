@@ -8,8 +8,19 @@ function Invoke-GameCollisions ($player, $bullets, $enemies, $enemyBullets, $for
         WrathKills   = 0 
         LustKills    = 0
         SlothKills   = 0
+        GreedKills = 0 
         PrideKilled  = $false # <--- [NEW] เพิ่มตัวเช็ค Pride ตาย
     }
+
+     # ฟังก์ชันช่วยเช็ค: ถ้ามีโล่ ให้หักโล่แล้วคืนค่า True (คือกันสำเร็จ)
+    $Script:blockHit = {
+        if ($Script:defenseHits -gt 0) {
+            $Script:defenseHits -= 1
+            return $true
+        }
+        return $false
+    }
+
 
     # --- 1. Enemy Collisions (เช็คศัตรู) ---
     for ($i = $enemies.Count - 1; $i -ge 0; $i--) {
@@ -17,8 +28,9 @@ function Invoke-GameCollisions ($player, $bullets, $enemies, $enemyBullets, $for
         
         # [เช็คชนตัวผู้เล่น]
         if ($e.GetBounds().IntersectsWith($player.GetBounds())) {
-            $result.IsPlayerHit = $true
-            return $result
+            # เช็คโล่ก่อนตาย
+            if (& $Script:blockHit) { $enemies.RemoveAt($i); continue }
+            $result.IsPlayerHit = $true; return $result
         }
 
         # [เช็คโดนกระสุนผู้เล่นยิง]
@@ -45,6 +57,7 @@ function Invoke-GameCollisions ($player, $bullets, $enemies, $enemyBullets, $for
                     if ($typeName -eq "Sloth") {
                             $result.SlothKills += 1 # เช็คให้ชัวร์ว่าสะกด Sloth ถูกต้อง
                         }
+                    if ($typeName -eq "Greed") { $result.GreedKills += 1 }
                     if ($typeName -eq "Pride") { $result.PrideKilled = $true } # บอก Manager ว่า Pride ตายแล้ว
                     
                     if ($typeName -eq "Wrath") {
@@ -88,7 +101,10 @@ function Invoke-GameCollisions ($player, $bullets, $enemies, $enemyBullets, $for
 
         # --- ส่วนการเช็คชนผู้เล่น (ใช้ $bulletName เช็คให้หมดเพื่อความชัวร์) ---
         if ($eb.GetBounds().IntersectsWith($player.GetBounds())) {
-            
+
+            # ถ้ามีโล่ กันได้ทุกอย่าง (Damage & Debuffs)
+            if (& $Script:blockHit) { $enemyBullets.RemoveAt($i); continue }
+
             if ($bulletName -eq "SilenceBullet") {
                 $result.ApplySilence = $true 
                 $enemyBullets.RemoveAt($i)
@@ -96,6 +112,11 @@ function Invoke-GameCollisions ($player, $bullets, $enemies, $enemyBullets, $for
             elseif ($bulletName -eq "SirenBullet") {
                 $result.ApplySiren = $true 
                 $enemyBullets.RemoveAt($i)
+            }
+            elseif ($bulletName -eq "GreedArrow") {
+                $result.ApplyGreed = $true 
+                $enemyBullets.RemoveAt($i)
+                continue
             }
             elseif ($bulletName -eq "SlothShockwave") {
                 $result.ApplyJammer = $true 

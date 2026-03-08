@@ -1,14 +1,12 @@
 class Player : GameObject {
     [int]$Cooldown = 0
+    # ปรับขนาดยานให้เล็กลงเพื่อความพริ้ว
+    Player([float]$x, [float]$y) : base($x, $y, 21, 21, [System.Drawing.Color]::Cyan) {}
 
-    Player([float]$x, [float]$y) : base($x, $y, 30, 30, [System.Drawing.Color]::Cyan) {}
-
-    # แก้ให้รับค่า speed เข้ามาโดยตรง
     [void] Move([float]$step) {
         $this.X += $step
-        # กันหลุดขอบจอ
         if ($this.X -lt 0) { $this.X = 0 }
-        if ($this.X -gt 470) { $this.X = 470 }
+        if ($this.X -gt 479) { $this.X = 479 } # ปรับขอบจอตามขนาดยานใหม่
     }
 
     [void] Update() {

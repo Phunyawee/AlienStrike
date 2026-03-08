@@ -198,6 +198,16 @@ function Get-UIStatus {
             Color = [System.Drawing.Brushes]::SkyBlue 
         }
     }
+    
+    # Buff: Defense Shield (ไอคอน D สีเหลืองทอง)
+    if ($Script:defenseHits -gt 0) {
+        $activeBuffs += [PSCustomObject]@{ 
+            Icon = "D"; 
+            Value = "x$Script:defenseHits"; 
+            Color = [System.Drawing.Brushes]::Gold 
+        }
+    }
+
     return @{ Buffs = $activeBuffs; Debuffs = $activeDebuffs }
 }
 
@@ -224,6 +234,22 @@ function Check-BossSpawns {
         $pride = [Pride]::new(230, -50)
         [void]$Script:enemies.Add($pride)
         $Script:nextPrideScoreTarget += 10000 
+    }
+
+    # เช็คปล่อย Greed
+    if ($Script:score -gt 0 -and $Script:score -ge $Script:nextGreedTarget) {
+        
+        # --- [NEW] Clear Screen: ลบศัตรูตัวอื่นทิ้งให้หมดเพื่อเปิด Arena ---
+        # (เก็บไว้เฉพาะ Greed ตัวใหม่ที่เรากำลังจะสร้าง)
+        for ($i = $Script:enemies.Count - 1; $i -ge 0; $i--) {
+            $Script:enemies.RemoveAt($i)
+        }
+
+        $gx = $Script:rnd.Next(100, 400)
+        $gy = $Script:rnd.Next(100, 200)
+        [void]$Script:enemies.Add([Greed]::new($gx, $gy, $Script:player))
+        
+        $Script:nextGreedTarget += 20000 
     }
 
     # # เช็คปล่อย Sloth
@@ -280,6 +306,17 @@ function Handle-PostCollision ($collisionResult) {
                 }
             }
         }
+    }
+
+    # ระบบแจกโล่จาก Greed
+    if ($collisionResult.GreedKills -gt 0) {
+        $Script:defenseHits += (10 * $collisionResult.GreedKills)
+        Write-Host ">>> DEFENSE SHIELD ACTIVATED: $Script:defenseHits HITS <<<" -ForegroundColor Cyan
+    }
+
+    if ($collisionResult.ApplyGreed) {
+        $Script:inventory.Clear()
+        Write-Host ">>> INVENTORY WIPED BY GREED! <<<" -ForegroundColor Yellow
     }
 
     # 2. ลดเวลา Buff

@@ -36,11 +36,12 @@ class Lust : BaseEnemy {
     [void] Draw([System.Drawing.Graphics]$g) {
         # 1. วาดตัวยานสามเหลี่ยม
         $brush = New-Object System.Drawing.SolidBrush($this.Color)
-        $p1 = New-Object System.Drawing.PointF($this.X, $this.Y)
-        $p2 = New-Object System.Drawing.PointF(($this.X + $this.Width), $this.Y)
-        $p3 = New-Object System.Drawing.PointF(($this.X + ($this.Width / 2)), ($this.Y + $this.Height))
         
-        $points = [System.Drawing.PointF[]]@($p1, $p2, $p3)
+        $points = [System.Drawing.PointF[]]::new(3)
+        $points[0] = New-Object System.Drawing.PointF([float]$this.X, [float]$this.Y)
+        $points[1] = New-Object System.Drawing.PointF(([float]$this.X + [float]$this.Width), [float]$this.Y)
+        $points[2] = New-Object System.Drawing.PointF(([float]$this.X + ([float]$this.Width / 2.0)), ([float]$this.Y + [float]$this.Height))
+        
         $g.FillPolygon($brush, $points)
 
         # 2. [NEW] วาดหลอดเลือดบนหัว

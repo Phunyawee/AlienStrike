@@ -1,3 +1,68 @@
+## [3.1.0] - 2026-03-09
+### "The Greed Duel & Shield Reinforcement"
+
+Version 3.1.0 introduces a **high-risk, high-reward gameplay mechanic** with the arrival of the Sin of **Greed**, alongside player size adjustments for more precise movement and evasive control.
+
+---
+
+## ➕ Added
+
+### New Elite Enemy: Greed (`Greed.ps1`)
+A **golden star-shaped boss** featuring **Circular Orbit AI**.  
+Greed moves in rapid orbital patterns and has a **2-second lifespan** before triggering **self-destruction**.
+
+### New Projectile: Greed Arrow
+A **golden arrow projectile** with an initial **homing vector**, traveling at **speed 16**.  
+If the player is hit, the **entire Inventory is instantly wiped**.
+
+### New Buff: Defense Shield (Stackable)
+A special reward obtained by defeating Greed.
+
+Grants a **protective shield** that can **automatically block any incoming damage or debuff**.  
+The shield is **stackable**, granting **10 charges per Greed defeated**.
+
+---
+
+## 🔄 Changed
+
+### Player Miniaturization
+The player ship size has been **reduced by 30%** *(now 21×21 px)* to improve maneuverability in tight combat spaces.
+
+The **weapon hitbox remains unchanged**, preserving shooting accuracy.
+
+### The Greed Duel Arena
+When Greed appears, the system will:
+
+- **Clear all standard enemies from the screen**
+- **Temporarily halt enemy spawning**
+
+This creates a **1-on-1 duel scenario** between the player and Greed.
+
+### Visual Shield Aura
+Added a **Cyan circular aura effect** around the player ship while **Defense Shield** is active.
+
+A **remaining shield counter (D icon)** is now displayed on the Sidebar.
+
+---
+
+## 🐞 Fixed
+
+### Polygon Casting Fix
+Fixed an `op_Addition` error when rendering **polygonal shapes** (Lust / Greed).
+
+The system now strictly enforces **`[PointF[]]` and `[float]` type casting** for stable geometry rendering.
+
+### Spawn Logic Correction
+Resolved an issue where **Greed could appear immediately at game start**.
+
+Adjusted the **Score Threshold validation** to ensure correct spawn timing.
+
+---
+
+> **"Greed will take everything you have, or give you the power to keep it all."**
+
+
+
 ## [3.0.0] - 2026-03-08
 ### "The Arcade Evolution & Sloth's Domain"
 

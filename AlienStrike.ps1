@@ -23,6 +23,8 @@ Add-Type -AssemblyName System.Drawing
 . "$PSScriptRoot\src\Entities\Enemies\Sins\Lust.ps1"
 . "$PSScriptRoot\src\Entities\Projectiles\SlothBomb.ps1" 
 . "$PSScriptRoot\src\Entities\Enemies\Sins\Sloth.ps1"
+. "$PSScriptRoot\src\Entities\Projectiles\GreedArrow.ps1" 
+. "$PSScriptRoot\src\Entities\Enemies\Sins\Greed.ps1"
 
 
 # --- 1.1 Load Managers (New) ---
@@ -55,6 +57,8 @@ function Do-GameOver {
     $Script:currentTrackedLevel = 1 # ใส่ไว้ตอนเริ่มเกม / ในฟังก์ชัน Do-GameOver
     $Script:jammerTimer = 0    # ตัวนับเวลาติดสถานะ Jammer (ห้ามใช้ Item)
     $Script:prideKills = 0     # ตัวนับจำนวนการฆ่า Pride (สะสมเพื่อเรียก Sloth)
+    $Script:defenseHits = 0
+    $Script:nextGreedTarget = 20000
 
     $Script:speedTimer = 0  # ตัวนับเวลา Buff Speed
 
@@ -117,6 +121,7 @@ $Script:inventory = [System.Collections.ArrayList]::new()
 
 $Script:score = 0
 $Script:nextPrideScoreTarget = 5000 # เป้าหมายคะแนนแรกที่ Pride จะเกิด
+$Script:nextGreedTarget = 20000
 $Script:level = 1
 $Script:lives = 3   
 $Script:wrathKills = 0     # สำหรับนับจำนวนโกรธ
@@ -133,6 +138,7 @@ $Script:gameStarted = $false
 $Script:gameOver = $false
 $Script:showLeaderboard = $false
 $Script:speedTimer = 0  # ตัวนับเวลา Buff Speed
+$Script:defenseHits = 0
 $Script:keysPressed = @{}
 
 # --- 4. Input Handling ---
@@ -198,7 +204,9 @@ $timer.Add_Tick({
     Handle-PlayerInput
 
     # --- B. Spawn Enemies (ศัตรูธรรมดา) ---
-    if ($Script:rnd.Next(0, 100) -lt $Script:spawnRate) {
+    $hasGreed = ($Script:enemies | Where-Object { $_.GetType().Name -eq "Greed" }).Count -gt 0
+
+    if (-not $hasGreed -and $Script:rnd.Next(0, 100) -lt $Script:spawnRate) {
         $newEnemy = New-EnemySpawn 500 $Script:level $Script:rnd
         [void]$Script:enemies.Add($newEnemy)
     }
