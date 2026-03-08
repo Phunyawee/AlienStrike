@@ -1,3 +1,4 @@
+#AlienStrike.ps1
 $ErrorActionPreference = "Stop"
 
 Add-Type -AssemblyName System.Windows.Forms
@@ -39,6 +40,8 @@ function Do-GameOver {
     $Script:lives = 3
     $Script:wrathKills = 0     # สำหรับนับจำนวนโกรธ
     $Script:silenceTimer = 0   # ตัวนับเวลาติดใบ้
+    $Script:wrathBuffTimer = 0  # ตัวจับเวลา Buff 7 วินาที (420 เฟรม)
+    $Script:wrathBuffLevel = 0  # 0=ปกติ, 1=ยิง 2 นัด(Blue), 2=ยิง 4 นัด(Red)
 
     # --- RESET GAME OBJECTS ---
     # สร้าง Player ใหม่ที่จุดเริ่มต้น
@@ -92,6 +95,8 @@ $Script:level = 1
 $Script:lives = 3   
 $Script:wrathKills = 0     # สำหรับนับจำนวนโกรธ
 $Script:silenceTimer = 0   # ตัวนับเวลาติดใบ้
+$Script:wrathBuffTimer = 0  # ตัวจับเวลา Buff 7 วินาที (420 เฟรม)
+$Script:wrathBuffLevel = 0  # 0=ปกติ, 1=ยิง 2 นัด(Blue), 2=ยิง 4 นัด(Red)
 $Script:spawnRate = 3  
 $Script:gameStarted = $false
 $Script:gameOver = $false
@@ -165,10 +170,31 @@ $timer.Add_Tick({
     
     # Shooting
     if ($Script:keysPressed["W"] -or $Script:keysPressed["Space"] -or $Script:keysPressed["Up"]) {
-        # [แก้ตรงนี้] ถ้าระยะเวลาใบ้เป็น 0 หรือติดลบ ถึงจะยิงได้!
         if ($Script:silenceTimer -le 0 -and $Script:player.CanShoot()) {
-            $newBullet = [Bullet]::new($Script:player.X + 12, $Script:player.Y)
-            [void]$Script:bullets.Add($newBullet)
+            
+            $px = $Script:player.X
+            $py = $Script:player.Y
+
+            if ($Script:wrathBuffLevel -eq 2) {
+                # [บัฟแดง - ยิง 4 นัด]
+                # 2 นัดคู่ตรงกลาง (SpeedX = 0)
+                [void]$Script:bullets.Add([Bullet]::new($px + 4, $py, 0))    
+                [void]$Script:bullets.Add([Bullet]::new($px + 20, $py, 0))   
+                # 2 นัดเฉียงออกซ้าย-ขวา (SpeedX = -4 และ 4)
+                [void]$Script:bullets.Add([Bullet]::new($px - 4, $py, -4))   
+                [void]$Script:bullets.Add([Bullet]::new($px + 28, $py, 4))   
+            } 
+            elseif ($Script:wrathBuffLevel -eq 1) {
+                # [บัฟฟ้า - ยิง 2 นัดคู่] (SpeedX = 0 ยิงตรง)
+                [void]$Script:bullets.Add([Bullet]::new($px + 4, $py, 0))
+                [void]$Script:bullets.Add([Bullet]::new($px + 20, $py, 0))
+            } 
+            else {
+                # [ปกติ - ยิง 1 นัด] 
+                # เรียก Constructor เดิมแบบไม่ใส่ SpeedX เลย
+                [void]$Script:bullets.Add([Bullet]::new($px + 12, $py))
+            }
+
             $Script:player.ResetCooldown()
         }
     }
@@ -210,6 +236,36 @@ $timer.Add_Tick({
 
     # --- E. Handle Collisions ---
     $collisionResult = Invoke-GameCollisions $Script:player $Script:bullets $Script:enemies $Script:enemyBullets $form.ClientSize.Height
+
+    # -----------------------------------
+    # [NEW] ระบบสุ่ม Buff จากการฆ่า Wrath
+    # -----------------------------------
+    if ($collisionResult.WrathKills -gt 0) {
+        for ($k = 0; $k -lt $collisionResult.WrathKills; $k++) {
+            $roll = $Script:rnd.Next(1, 101) # สุ่ม 1-100
+            
+            if ($roll -le 5) {
+                # โอกาส 5% ได้บัฟระดับ 2 (Red - ยิง 4 นัด)
+                $Script:wrathBuffLevel = 2
+                $Script:wrathBuffTimer = 420 
+            } else {
+                # โอกาส 95% ได้บัฟระดับ 1 (Blue - ยิง 2 นัด)
+                if ($Script:wrathBuffLevel -lt 2) {
+                    $Script:wrathBuffLevel = 1
+                }
+                $Script:wrathBuffTimer = 420 
+            }
+        }
+    }
+
+    # ลดเวลา Buff 
+    if ($Script:wrathBuffTimer -gt 0) { 
+        $Script:wrathBuffTimer -= 1 
+        if ($Script:wrathBuffTimer -le 0) {
+            $Script:wrathBuffLevel = 0 
+        }
+    }
+
 
     # ลดเวลาสถานะใบ้ลงเรื่อยๆ ทุกเฟรม
     if ($Script:silenceTimer -gt 0) { 
@@ -272,20 +328,39 @@ $form.Add_Paint({
         $activeBuffs = @()
         $activeDebuffs = @()
 
-        # 2. เช็คว่าติดสถานะ "ใบ้" (Silence) อยู่ไหม
-        if ($Script:silenceTimer -gt 0) {
-            $secondsLeft = [math]::Round(($Script:silenceTimer / 60.0), 1)
-            $formattedTime = "{0:N1}" -f $secondsLeft
+        # --- 1. เช็ค BUFF: Wrath (ปืนคู่ / ปืนกระจาย) ---
+        if ($Script:wrathBuffTimer -gt 0) {
+            $bSecondsLeft = [math]::Round(($Script:wrathBuffTimer / 60.0), 1)
+            $bFormattedTime = "{0:N1}" -f $bSecondsLeft
 
-            $newItem = [PSCustomObject]@{
+            # กำหนดสี: Level 2 = แดง (ยิง 4), Level 1 = ฟ้า (ยิง 2)
+            $bColor = if ($Script:wrathBuffLevel -eq 2) { [System.Drawing.Brushes]::Red } else { [System.Drawing.Brushes]::DeepSkyBlue }
+
+            $newBuff = [PSCustomObject]@{
+                Icon  = "W" 
+                Value = $bFormattedTime
+                Color = $bColor 
+            }
+            $activeBuffs += $newBuff
+
+            # [DEBUG ต้นทาง Buff] 
+            # Write-Host "PAINT EVENT (BUFF) -> Level: $($Script:wrathBuffLevel), Formatted: $bFormattedTime, Buffs Count: $($activeBuffs.Count)"
+        }
+
+        # --- 2. เช็ค DEBUFF: Silence (สถานะใบ้) ---
+        if ($Script:silenceTimer -gt 0) {
+            $dSecondsLeft = [math]::Round(($Script:silenceTimer / 60.0), 1)
+            $dFormattedTime = "{0:N1}" -f $dSecondsLeft
+
+            $newDebuff = [PSCustomObject]@{
                 Icon  = "Z" 
-                Value = $formattedTime
+                Value = $dFormattedTime
                 Color = [System.Drawing.Brushes]::Magenta 
             }
-            $activeDebuffs += $newItem
+            $activeDebuffs += $newDebuff
 
-            # [DEBUG ต้นทาง] ปริ้นค่าดูว่าสร้างออบเจกต์สำเร็จไหม และเวลานับลดลงจริงไหม
-            Write-Host "PAINT EVENT -> Timer: $($Script:silenceTimer), Formatted: $formattedTime, Debuffs Count: $($activeDebuffs.Count)"
+            # [DEBUG ต้นทาง Debuff]
+            # Write-Host "PAINT EVENT (DEBUFF) -> Timer: $($Script:silenceTimer), Formatted: $dFormattedTime, Debuffs Count: $($activeDebuffs.Count)"
         }
 
         # --- CASE 3: GAMEPLAY ---

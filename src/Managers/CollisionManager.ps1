@@ -4,7 +4,8 @@ function Invoke-GameCollisions ($player, $bullets, $enemies, $enemyBullets, $for
     $result = @{
         ScoreAdded = 0
         IsPlayerHit = $false
-        ApplySilence = $false # <--- เพิ่มสถานะใบ้ (ส่งกลับไปให้ Game Loop ทราบ)
+        ApplySilence = $false 
+        WrathKills = 0 # <--- [เพิ่มตรงนี้] ตัวแปรส่งกลับไปบอกให้สุ่มบัฟ
     }
 
     # --- 1. Enemy Collisions ---
@@ -38,11 +39,12 @@ function Invoke-GameCollisions ($player, $bullets, $enemies, $enemyBullets, $for
                     # [NEW] ระบบนับ Kill Wrath และเรียก Envy (บอสลับ)
                     # ==========================================
                     if ($e.GetType().Name -eq "Wrath") {
-                        # ตัวแปรนี้อยู่ใน Script Scope ของไฟล์ AlienStrike.ps1
-                        $Script:wrathKills += 1
                         
-                        # ถ้าฆ่าครบ 7 ตัว ให้เกิด Envy ทันที!
-                        if ($Script:wrathKills % 1 -eq 0) {
+                        $Script:wrathKills += 1
+                        $result.WrathKills += 1 # <--- [เพิ่มตรงนี้] บอกไฟล์หลักว่า Wrath ตายแล้วนะ!
+
+                        # ถ้าฆ่าครบ 5 ตัว ให้เกิด Envy ทันที!
+                        if ($Script:wrathKills % 5 -eq 0) {
                             # ให้เกิดตรงกลางจอ (X=225) และลอยลงมาจากขอบจอบน
                             $envy = [Envy]::new(225, -50, $player)
                             [void]$enemies.Add($envy)
@@ -61,14 +63,11 @@ function Invoke-GameCollisions ($player, $bullets, $enemies, $enemyBullets, $for
     }
 
     # --- 2. Enemy Bullet Collisions ---
-    # --- 2. Enemy Bullet Collisions (กระสุนศัตรูชนเรา) ---
     for ($i = $enemyBullets.Count - 1; $i -ge 0; $i--) {
         $eb = $enemyBullets[$i]
         
         $bulletHitbox = $eb.GetBounds()
         
-        # [แก้ตรงนี้] ลดขนาด Hitbox แค่ -1 พอครับ (กระสุนเราเล็กอยู่แล้ว)
-        # หรือถ้าเป็น SilenceBullet ไม่ต้องลดขนาดเลย เพราะเป้าเล็กมาก
         if ($eb.GetType().Name -eq "SilenceBullet") {
             $bulletHitbox.Inflate(0, 0) 
         } else {
