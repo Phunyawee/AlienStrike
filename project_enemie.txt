@@ -1,8 +1,8 @@
-enemie class
-Lust
-Gluttony
-Greed
-Sloth
-Wrath
-Envy
-Pride
+Enemie class and Technical
+Lust - Directional Inversion
+Gluttony - N/A
+Greed - Inventory Erased
+Sloth - Disruption Pulse
+Wrath - Scatter Shot
+Envy - Weapon Jam
+Pride - Hitscan Beam
