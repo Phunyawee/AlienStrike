@@ -50,7 +50,7 @@ Each **Sin-class enemy** introduces a unique disruption mechanic that forces pla
 
 | Image | Description |
 |---|---|
-| <img src="./Images/wiki_v1/envy1.gif" width="200"> | **Ability:** Fires **Silence Bullets (Magenta)**. Triggers the **Silence status**, temporarily disabling the player's **primary fire**. |
+| <img src="./Images/wiki_v1/envy.gif" width="200"> | **Ability:** Fires **Silence Bullets (Magenta)**. Triggers the **Silence status**, temporarily disabling the player's **primary fire**. |
 
 ---
 
