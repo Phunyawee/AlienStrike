@@ -1,3 +1,71 @@
+## [3.3.0] - 2026-03-10
+### "The Gluttony & Tactical Nuke Update"
+
+Version 3.3.0 introduces a major update centered around **high-endurance miniboss combat** and **strategic shield resource management**, alongside the debut of a **battlefield-clearing super weapon**.
+
+---
+
+## ➕ Added
+
+### Boss: Gluttony (`Gluttony.ps1`) [HP: 200]
+A **devouring miniboss** that appears based on the player's **Defense Shield level**.
+
+Spawn conditions:
+- **Stage 1:** 100 Shield points  
+- **Stage 2:** 200 Shield points  
+
+Gluttony can **heal itself by stealing the player's shield energy**, turning defensive resources into a tactical risk.
+
+### Super Weapon: Nuke (Item `N`)
+The **highest-tier weapon** obtainable by defeating Gluttony.
+
+When detonated at **Y = 300**, the Nuke will:
+- **Clear all standard enemies from the screen**
+- Deal **massive damage to Sin-class bosses**
+
+### New Projectile: Purple Blast
+A **giant purple projectile** that follows a **curved trajectory toward the player**.
+
+On impact, it **steals 50% of the player's shield** and transfers the energy back to Gluttony.
+
+---
+
+## 🔄 Changed
+
+### Defense Shield Overhaul
+The **maximum shield capacity** has been increased to **400 points**.
+
+A new **Shield-Based Spawn Threshold system** has been implemented, using shield accumulation as the trigger for spawning the **Gluttony boss encounter**.
+
+### Engine Organization
+Refactored the `Handle-PostCollision` function into a more **modular structure**, allowing the engine to support **more complex Buff/Debuff calculations** without impacting performance.
+
+### Entity Interaction
+Improved **Greed's screen-clearing logic** so it will **no longer remove Gluttony from the battlefield** if the miniboss fight is still active.
+
+---
+
+## 🐞 Fixed
+
+### Nuke Collision Runtime Error
+Fixed an error occurring when the **Nuke explosion hit standard enemies lacking a `TakeDamage` function**.
+
+A **Class Type validation check** has been added to prevent the runtime exception.
+
+### Gluttony Blast Visibility
+Adjusted the **spawn point and speed** of the Purple Blast projectile so players can **visually detect and react in time**.
+
+### Shield Block Priority
+Updated the **collision priority order** in `CollisionManager`.
+
+Shield-stealing projectiles now **resolve before normal defensive blocking**, ensuring Gluttony's mechanics function as intended.
+
+---
+
+> **"Your shield is no longer just protection; it's a dinner bell for the hungry."**
+
+
+
 ## [3.2.0] - 2026-03-09
 ### "The Tactical Arsenal Update"
 

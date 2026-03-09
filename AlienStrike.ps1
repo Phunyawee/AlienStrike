@@ -26,6 +26,10 @@ Add-Type -AssemblyName System.Drawing
 . "$PSScriptRoot\src\Entities\Projectiles\GreedArrow.ps1" 
 . "$PSScriptRoot\src\Entities\Enemies\Sins\Greed.ps1"
 . "$PSScriptRoot\src\Entities\Projectiles\PlayerLaser.ps1" 
+. "$PSScriptRoot\src\Entities\Projectiles\GluttonyBlast.ps1"
+. "$PSScriptRoot\src\Entities\Projectiles\Nuke.ps1"
+. "$PSScriptRoot\src\Entities\Enemies\Sins\Gluttony.ps1"
+
 
 # --- 1.1 Load Managers (New) ---
 . "$PSScriptRoot\src\Managers\HighScoreManager.ps1"
@@ -178,24 +182,25 @@ $form.Add_KeyDown({
      # --- [NEW] ระบบใช้ไอเทม E (ย้ายมานี่เพื่อกันบั๊กรัว) ---
     if ($_.KeyCode.ToString() -eq "E" -and $Script:jammerTimer -le 0) {
         if ($Script:inventory.Count -gt 0) {
-            
-            # เช็คพิเศษ: ถ้าเป็นเลเซอร์ ห้ามยิงซ้ำถ้าของเก่าประเภทยังค้างอยู่ (ป้องกันบั๊กเลเซอร์ซ้อน)
-            $hasActiveLaser = ($Script:bullets | Where-Object { $_.GetType().Name -eq "PlayerLaser" }).Count -gt 0
-            
-            if ($Script:inventory[0] -eq "Laser" -and $hasActiveLaser) {
-                return # มีเลเซอร์อยู่แล้ว ไม่ให้ยิงเพิ่มจนกว่าจะหมด
-            }
-
-            # ดึงไอเทมออกมาใช้
             $activeItem = $Script:inventory[0]
-            $Script:inventory.RemoveAt(0)
             
             if ($activeItem -eq "Missile") {
                 [void]$Script:bullets.Add([Missile]::new($Script:player.X + 5, $Script:player.Y))
+                $Script:inventory.RemoveAt(0)
             }
             elseif ($activeItem -eq "Laser") {
-                [void]$Script:bullets.Add([PlayerLaser]::new($Script:player))
-                # เสียง Beep สั้นๆ ให้รู้ว่าเปิดอัลติเลเซอร์แล้ว
+                # เช็คไม่ให้ยิงเลเซอร์ซ้อน
+                $hasActiveLaser = ($Script:bullets | Where-Object { $_.GetType().Name -eq "PlayerLaser" }).Count -gt 0
+                if (-not $hasActiveLaser) {
+                    [void]$Script:bullets.Add([PlayerLaser]::new($Script:player))
+                    $Script:inventory.RemoveAt(0)
+                }
+            }
+            # [เพิ่มตรงนี้] ถ้าไอเทมที่ถือคือ Nuke
+            elseif ($activeItem -eq "Nuke") {
+                [void]$Script:bullets.Add([Nuke]::new($Script:player.X, $Script:player.Y))
+                $Script:inventory.RemoveAt(0)
+                # เสียงระเบิดเตือน
                 [System.Media.SystemSounds]::Hand.Play()
             }
         }
@@ -259,11 +264,14 @@ $timer.Add_Tick({
     Handle-PlayerInput
 
     # --- B. Spawn Enemies (ศัตรูธรรมดา) ---
+    $isGluttonyOut = ($Script:enemies | Where-Object { $_.GetType().Name -eq "Gluttony" }).Count -gt 0
     $hasGreed = ($Script:enemies | Where-Object { $_.GetType().Name -eq "Greed" }).Count -gt 0
 
-    if (-not $hasGreed -and $Script:rnd.Next(0, 100) -lt $Script:spawnRate) {
-        $newEnemy = New-EnemySpawn 500 $Script:level $Script:rnd
-        [void]$Script:enemies.Add($newEnemy)
+    # ถ้ามี Gluttony หรือ Greed อยู่ในสนาม ลูกกระจ๊อกจะไม่เกิด
+    if (-not $isGluttonyOut -and -not $hasGreed) {
+        if ($Script:rnd.Next(0, 100) -lt $Script:spawnRate) {
+            [void]$Script:enemies.Add((New-EnemySpawn 500 $Script:level $Script:rnd))
+        }
     }
 
     # --- C. Update Bullets ---

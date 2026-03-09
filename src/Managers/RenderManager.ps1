@@ -101,24 +101,34 @@ function Draw-HUD ($g, $score, $level, $lives, $inventory, $buffs, $debuffs, $ta
     $invY = 450
     $g.DrawString("WEAPON [Q:Swap]", $fontSmall, [System.Drawing.Brushes]::Gray, ($sidebarX + 15), $invY)
     
+    # --- ระบบ Inventory Slot (Sidebar) ---
     if ($inventory.Count -gt 0) {
         $activeType = $inventory[0]
         $count = ($inventory | Where-Object { $_ -eq $activeType }).Count
         
         # 1. วาด Slot
         $rect = New-Object System.Drawing.Rectangle(($sidebarX + 15), ($invY + 20), 50, 50)
-        $color = if ($activeType -eq "Laser") { [System.Drawing.Color]::LimeGreen } else { [System.Drawing.Color]::DarkCyan }
-        $g.FillRectangle([System.Drawing.SolidBrush]::new($color), $rect)
+        
+        # [แก้ไข] เพิ่มสีสำหรับ Nuke (OrangeRed)
+        $activeBrush = if ($activeType -eq "Laser") { 
+            [System.Drawing.Brushes]::LimeGreen 
+        } elseif ($activeType -eq "Nuke") { 
+            [System.Drawing.Brushes]::OrangeRed # สีสำหรับ Nuke
+        } else { 
+            [System.Drawing.Brushes]::DarkCyan 
+        }
+
+        $g.FillRectangle($activeBrush, $rect)
         $g.DrawRectangle([System.Drawing.Pen]::new([System.Drawing.Color]::White, 2), $rect)
         
-        # 2. วาดตัวอักษร
-        $txt = if ($activeType -eq "Laser") { "L" } else { "M" }
+        # 2. วาดตัวอักษร (เพิ่มเงื่อนไข N)
+        $txt = if ($activeType -eq "Laser") { "L" } elseif ($activeType -eq "Nuke") { "N" } else { "M" }
         $g.DrawString($txt, $fontLarge, [System.Drawing.Brushes]::White, ($sidebarX + 27), ($invY + 31))
         
-        # 3. วาดจำนวน (เช่น x10) ไว้ "ในหรือข้าง" Icon ให้เด่น
+        # 3. วาดจำนวน xCount
         $g.DrawString("x$count", $fontLarge, [System.Drawing.Brushes]::Yellow, ($sidebarX + 70), ($invY + 31))
 
-        # 4. แสดงประเภทถัดไป
+        # 4. แสดงประเภทถัดไป (Preview)
         $nextType = $null
         foreach($it in $inventory) { if($it -ne $activeType) { $nextType = $it; break } }
         if ($nextType) {

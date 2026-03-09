@@ -1,6 +1,6 @@
 Enemie class and Technical
 Lust - Directional Inversion
-Gluttony - N/A
+Gluttony - Shield Devour
 Greed - Inventory Erased
 Sloth - Disruption Pulse
 Wrath - Scatter Shot
@@ -15,3 +15,4 @@ Defense Hit
 Missile
 Wrath Buff (Scatter Shot)
 Laser
+Nuke

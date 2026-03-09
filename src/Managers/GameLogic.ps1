@@ -225,6 +225,9 @@ function Get-UIStatus {
 # --- ฟังก์ชันเช็คการเกิดของบอสพิเศษ (แยกออกมาเพื่อความคลีน) ---
 # ==========================================
 function Check-BossSpawns {
+     # เช็คว่ามี Gluttony อยู่ในสนามไหม
+    $isGluttonyOut = ($Script:enemies | Where-Object { $_.GetType().Name -eq "Gluttony" }).Count -gt 0
+
     # 1. เช็คปล่อยฝูง Lust ตอน Level Up
     if ($Script:level -gt $Script:currentTrackedLevel) {
         $Script:currentTrackedLevel = $Script:level
@@ -246,19 +249,18 @@ function Check-BossSpawns {
         $Script:nextPrideScoreTarget += 10000 
     }
 
-    # เช็คปล่อย Greed
+     # --- 1. ระบบ Greed (ตัวล้างสนาม) ---
     if ($Script:score -gt 0 -and $Script:score -ge $Script:nextGreedTarget) {
-        
-        # --- [NEW] Clear Screen: ลบศัตรูตัวอื่นทิ้งให้หมดเพื่อเปิด Arena ---
-        # (เก็บไว้เฉพาะ Greed ตัวใหม่ที่เรากำลังจะสร้าง)
+        # ลบศัตรูตัวอื่นทิ้งทั้งหมด "ยกเว้น Gluttony"
         for ($i = $Script:enemies.Count - 1; $i -ge 0; $i--) {
-            $Script:enemies.RemoveAt($i)
+            if ($Script:enemies[$i].GetType().Name -ne "Gluttony") {
+                $Script:enemies.RemoveAt($i)
+            }
         }
 
-        $gx = $Script:rnd.Next(100, 400)
-        $gy = $Script:rnd.Next(100, 200)
+        # เสก Greed
+        $gx = $Script:rnd.Next(100, 400); $gy = $Script:rnd.Next(100, 200)
         [void]$Script:enemies.Add([Greed]::new($gx, $gy, $Script:player))
-        
         $Script:nextGreedTarget += 20000 
     }
 
@@ -289,105 +291,125 @@ function Check-BossSpawns {
 # --- ฟังก์ชันจัดการผลลัพธ์หลังการชน (ย้ายมาจาก Main) ---
 # ==========================================
 function Handle-PostCollision ($collisionResult) {
-    #kill pride
-    if ($collisionResult.PrideKilled) { $Script:prideKills++ }
+    # ==========================================
+    # 1. ระบบคะแนน (Scoring)
+    # ==========================================
+    if ($collisionResult.ScoreAdded -gt 0) {
+        $Script:score += $collisionResult.ScoreAdded
+    }
+
+    # ==========================================
+    # 2. ระบบจัดการหลังศัตรูตาย (Loot & Buffs)
+    # ==========================================
     
-    if ($Script:jammerTimer -gt 0) { $Script:jammerTimer-- }
-    if ($collisionResult.ApplyJammer) { $Script:jammerTimer = 300 } # 5 วินาที
-    
-    # -----------------------------------
-    # 1. ระบบสะสม Buff จากการฆ่า Wrath (New Stack System)
-    # -----------------------------------
-    if ($collisionResult.WrathKills -gt 0) {
-        # ถ้ายังไม่เป็นขั้น 2 (Red) ถึงจะยอมให้เก็บ Stack หรือรีเวลา
-        if ($Script:wrathBuffLevel -lt 2) {
-            for ($k = 0; $k -lt $collisionResult.WrathKills; $k++) {
-                $Script:wrathStackCount += 1
-                
-                # ถ้าสะสมครบ 3 อัน -> อัปเกรดเป็นขั้น 2 ทันที
-                if ($Script:wrathStackCount -ge 3) {
-                    $Script:wrathBuffLevel = 2
-                    $Script:wrathBuffTimer = 840  # 14 วินาที (840 เฟรม)
-                    $Script:wrathStackCount = 0   # รีเซ็ต stack
-                } else {
-                    # ถ้ายังไม่ครบ 5 -> เป็นขั้น 1 และรีเวลาเป็น 7 วินาที
-                    $Script:wrathBuffLevel = 1
-                    $Script:wrathBuffTimer = 420  # 7 วินาที (420 เฟรม)
-                }
-            }
-        }
+    # --- ฆ่า Gluttony (ได้ Nuke) ---
+    if ($collisionResult.GluttonyKills -gt 0) {
+        Add-To-Inventory "Nuke"
+        Write-Host ">>> NUKE ACQUIRED! <<<" -ForegroundColor Red
     }
 
-    # ระบบแจกโล่จาก Greed
-    if ($collisionResult.GreedKills -gt 0) {
-        $Script:defenseHits += (10 * $collisionResult.GreedKills)
-        Write-Host ">>> DEFENSE SHIELD ACTIVATED: $Script:defenseHits HITS <<<" -ForegroundColor Cyan
-    }
-
-    if ($collisionResult.ApplyGreed) {
-        $Script:inventory.Clear()
-        Write-Host ">>> INVENTORY WIPED BY GREED! <<<" -ForegroundColor Yellow
-    }
-
-    # 2. ลดเวลา Buff
-    if ($Script:wrathBuffTimer -gt 0) { 
-        $Script:wrathBuffTimer -= 1 
-        if ($Script:wrathBuffTimer -le 0) {
-            $Script:wrathBuffLevel = 0 
-            $Script:wrathStackCount = 0 # เวลาหมด ล้าง stack ทิ้งด้วย
-        }
-    }
-
-    # ระบบแจกไอเทมจาก Lust (เปลี่ยนมาใช้ Add-To-Inventory)
+    # --- ฆ่า Lust (ได้ Missile 5 อัน) ---
     if ($collisionResult.LustKills -gt 0) {
         for ($i = 0; $i -lt $collisionResult.LustKills; $i++) {
             1..5 | ForEach-Object { Add-To-Inventory "Missile" }
         }
     }
 
-    # 3. ลดเวลาสถานะใบ้ และ เช็คการติดสถานะใบ้
-    if ($Script:silenceTimer -gt 0) { 
-        $Script:silenceTimer -= 1 
-    }
-    if ($collisionResult.ApplySilence) {
-        $Script:silenceTimer = 180 
+    # --- ฆ่า Sloth (ได้ Speed Buff 7 วิ) ---
+    if ($collisionResult.SlothKills -gt 0) {
+        $Script:speedTimer = 420 
     }
 
-    # 4. เช็คติดสถานะเดินหลอน (Siren)
-    # (เราไม่ใส่ลดเวลาตรงนี้ เพราะมันไปลดอยู่ใน Handle-PlayerInput แล้วครับ)
-    if ($collisionResult.ApplySiren) {
-        $Script:sirenTimer = 180 
+    # --- ฆ่า Greed (ได้โล่ 10 อัน) ---
+    if ($collisionResult.GreedKills -gt 0) {
+        $Script:defenseHits += (10 * $collisionResult.GreedKills)
+        Write-Host ">>> DEFENSE SHIELD REINFORCED! <<<" -ForegroundColor Cyan
     }
 
-    # 5. อัปเดตคะแนน
-    if ($collisionResult.ScoreAdded -gt 0) {
-        $Script:score += $collisionResult.ScoreAdded
+    # --- ฆ่า Pride (สะสมยอดเพื่อเรียก Sloth) ---
+    if ($collisionResult.PrideKilled) { 
+        $Script:prideKills++ 
     }
 
-    # 6. เช็คว่าผู้เล่นโดนดาเมจไหม
-    if ($collisionResult.IsPlayerHit) {
-        $Script:lives -= 1   # ลดชีวิต 1 ดวง
-        
-        if ($Script:lives -le 0) {
-            Do-GameOver
-            return $true # <--- รีเทิร์น True เพื่อบอก Game Loop ว่าให้หยุดทำงาน (ตายแล้ว)
-        } else {
-            $Script:player.X = 225
-            $Script:player.Y = 500
-            
-            $Script:enemies.Clear()
-            $Script:enemyBullets.Clear()
-            $Script:bullets.Clear()
+    # --- ฆ่า Wrath (สะสม Stack ร่างแดง) ---
+    if ($collisionResult.WrathKills -gt 0 -and $Script:wrathBuffLevel -lt 2) {
+        for ($k = 0; $k -lt $collisionResult.WrathKills; $k++) {
+            $Script:wrathStackCount++
+            if ($Script:wrathStackCount -ge 3) {
+                $Script:wrathBuffLevel = 2; $Script:wrathBuffTimer = 840; $Script:wrathStackCount = 0
+            } else {
+                $Script:wrathBuffLevel = 1; $Script:wrathBuffTimer = 420
+            }
         }
     }
 
-    # --- [NEW] ระบบ Buff Speed จากการฆ่า Sloth ---
-    if ($collisionResult.SlothKills -gt 0) {
-        $Script:speedTimer = 420 # 7 วินาที
+    # ==========================================
+    # 3. ระบบสถานะผิดปกติ (Debuffs)
+    # ==========================================
+    
+    # Silence (ใบ้ปืนหลัก)
+    if ($Script:silenceTimer -gt 0) { $Script:silenceTimer-- }
+    if ($collisionResult.ApplySilence) { $Script:silenceTimer = 180 }
+
+    # Siren (เดินสลับทิศ - ลดเวลาใน Handle-PlayerInput แล้ว)
+    if ($collisionResult.ApplySiren) { $Script:sirenTimer = 180 }
+
+    # Jammer (ใบ้ปุ่ม E)
+    if ($Script:jammerTimer -gt 0) { $Script:jammerTimer-- }
+    if ($collisionResult.ApplyJammer) { $Script:jammerTimer = 300 }
+
+    # Greed (ล้างคลัง)
+    if ($collisionResult.ApplyGreed) {
+        $Script:inventory.Clear()
+        Write-Host ">>> INVENTORY WIPED! <<<" -ForegroundColor Yellow
     }
 
-    # ลดเวลา Buff Speed
+    # ==========================================
+    # 4. ระบบการเกิดของ Gluttony (Stage System)
+    # ==========================================
+    
+    # จำกัดโล่สูงสุด 400
+    if ($Script:defenseHits -gt 400) { $Script:defenseHits = 400 }
+
+    # เช็คว่าบอสจอมตะกละอยู่ในสนามไหม
+    $isGluttonyOut = ($Script:enemies | Where-Object { $_.GetType().Name -eq "Gluttony" }).Count -gt 0
+
+    if (-not $isGluttonyOut) {
+        # Stage 0 -> 1 (ที่โล่ 100)
+        if ($Script:defenseHits -ge 100 -and $Script:gluttonyStage -eq 0) {
+            [void]$Script:enemies.Add([Gluttony]::new(210, -100, $Script:player))
+            $Script:gluttonyStage = 1
+        }
+        # Stage 1 -> 2 (ที่โล่ 200)
+        elseif ($Script:defenseHits -ge 200 -and $Script:gluttonyStage -eq 1) {
+            [void]$Script:enemies.Add([Gluttony]::new(210, -100, $Script:player))
+            $Script:gluttonyStage = 2
+        }
+    }
+
+    # ระบบ Reset Stage: ถ้าโล่ลดต่ำกว่า 100 ให้เริ่มนับหนึ่งใหม่ได้
+    if ($Script:defenseHits -lt 100) { $Script:gluttonyStage = 0 }
+
+    # ==========================================
+    # 5. การจัดการเวลา Buff (Timers)
+    # ==========================================
+    if ($Script:wrathBuffTimer -gt 0) { 
+        $Script:wrathBuffTimer--
+        if ($Script:wrathBuffTimer -le 0) { $Script:wrathBuffLevel = 0; $Script:wrathStackCount = 0 }
+    }
     if ($Script:speedTimer -gt 0) { $Script:speedTimer-- }
 
-    return $false # <--- รีเทิร์น False แปลว่ายังมีชีวิตอยู่ เล่นเฟรมต่อไปได้
+    # ==========================================
+    # 6. ตรวจสอบสถานะการตาย (GameOver Check)
+    # ==========================================
+    if ($collisionResult.IsPlayerHit) {
+        $Script:lives--
+        if ($Script:lives -le 0) { Do-GameOver; return $true }
+        else {
+            $Script:player.X = 225; $Script:player.Y = 500
+            $Script:enemies.Clear(); $Script:enemyBullets.Clear(); $Script:bullets.Clear()
+        }
+    }
+
+    return $false 
 }
