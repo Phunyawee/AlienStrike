@@ -18,7 +18,7 @@ Each **Sin-class enemy** introduces a unique disruption mechanic that forces pla
 
 | Image | Description |
 |---|---|
-| <img src="./Images/wiki_v1/gluttony.png" width="200"> | **Ability:** Fires a massive **Purple Blast**. If hit, it **consumes 50% of the player's Defense Shield** and converts the energy into **HP for the boss**. |
+| <img src="./Images/wiki_v1/gluttony.gif" width="200"> | **Ability:** Fires a massive **Purple Blast**. If hit, it **consumes 50% of the player's Defense Shield** and converts the energy into **HP for the boss**. |
 
 ---
 
@@ -26,7 +26,7 @@ Each **Sin-class enemy** introduces a unique disruption mechanic that forces pla
 
 | Image | Description |
 |---|---|
-| <img src="./Images/wiki_v1/greed.png" width="200"> | **Ability:** A fast-moving **gold star entity** that fires a **Gold Arrow**. Impact results in an **instant wipe of the player's entire inventory** *(Missiles, Lasers, Nukes)*. |
+| <img src="./Images/wiki_v1/greed.gif" width="200"> | **Ability:** A fast-moving **gold star entity** that fires a **Gold Arrow**. Impact results in an **instant wipe of the player's entire inventory** *(Missiles, Lasers, Nukes)*. |
 
 ---
 
@@ -34,7 +34,7 @@ Each **Sin-class enemy** introduces a unique disruption mechanic that forces pla
 
 | Image | Description |
 |---|---|
-| <img src="./Images/wiki_v1/sloth.png" width="200"> | **Ability:** Drops a **multi-stage bomb** that detonates into a **Shockwave**. Being caught in the pulse triggers the **Jammer effect**, disabling the **[E] item key**. |
+| <img src="./Images/wiki_v1/sloth.gif" width="200"> | **Ability:** Drops a **multi-stage bomb** that detonates into a **Shockwave**. Being caught in the pulse triggers the **Jammer effect**, disabling the **[E] item key**. |
 
 ---
 
@@ -42,7 +42,7 @@ Each **Sin-class enemy** introduces a unique disruption mechanic that forces pla
 
 | Image | Description |
 |---|---|
-| <img src="./Images/wiki_v1/wrath.png" width="200"> | **Ability:** Aggressive **erratic movement** combined with a **5-way shotgun spread**, designed to overwhelm player positioning. |
+| <img src="./Images/wiki_v1/wrath.gif" width="200"> | **Ability:** Aggressive **erratic movement** combined with a **5-way shotgun spread**, designed to overwhelm player positioning. |
 
 ---
 
@@ -50,7 +50,7 @@ Each **Sin-class enemy** introduces a unique disruption mechanic that forces pla
 
 | Image | Description |
 |---|---|
-| <img src="./Images/wiki_v1/envy.png" width="200"> | **Ability:** Fires **Silence Bullets (Magenta)**. Triggers the **Silence status**, temporarily disabling the player's **primary fire**. |
+| <img src="./Images/wiki_v1/envy.gif" width="200"> | **Ability:** Fires **Silence Bullets (Magenta)**. Triggers the **Silence status**, temporarily disabling the player's **primary fire**. |
 
 ---
 
@@ -58,7 +58,7 @@ Each **Sin-class enemy** introduces a unique disruption mechanic that forces pla
 
 | Image | Description |
 |---|---|
-| <img src="./Images/wiki_v1/pride.png" width="200"> | **Ability:** Charges a powerful **Vertical Laser**. Telegraphed by a **red dotted line**, followed by an **instant-hit beam** and a **high-speed charge attack**. |
+| <img src="./Images/wiki_v1/pride.gif" width="200"> | **Ability:** Charges a powerful **Vertical Laser**. Telegraphed by a **red dotted line**, followed by an **instant-hit beam** and a **high-speed charge attack**. |
 
 ---
 
@@ -68,7 +68,7 @@ Each **Sin-class enemy** introduces a unique disruption mechanic that forces pla
 
 | Image | Description |
 |---|---|
-| <img src="./Images/wiki_v1/shield.png" width="200"> | **System:** A stackable **energy shield** represented by a **Cyan Aura** around the ship. Automatically blocks **damage and debuffs**. **Maximum capacity: 400 hits.** |
+| <img src="./Images/wiki_v1/shield.gif" width="200"> | **System:** A stackable **energy shield** represented by a **Cyan Aura** around the ship. Automatically blocks **damage and debuffs**. **Maximum capacity: 400 hits.** |
 
 ---
 
@@ -76,7 +76,7 @@ Each **Sin-class enemy** introduces a unique disruption mechanic that forces pla
 
 | Image | Description |
 |---|---|
-| <img src="./Images/wiki_v1/missile.png" width="200"> | **Tactical:** A high-damage **AOE projectile**. Upon impact or range expiration, it triggers a **massive explosion** that **pierces multiple enemies**. |
+| <img src="./Images/wiki_v1/missile.gif" width="200"> | **Tactical:** A high-damage **AOE projectile**. Upon impact or range expiration, it triggers a **massive explosion** that **pierces multiple enemies**. |
 
 ---
 
@@ -84,7 +84,7 @@ Each **Sin-class enemy** introduces a unique disruption mechanic that forces pla
 
 | Image | Description |
 |---|---|
-| <img src="./Images/wiki_v1/laser.png" width="200"> | **Tactical:** A **Lime Hitscan Beam** that tracks the ship's horizontal position. Ideal for **lane clearing** and **high-HP targets** in a **1-second burst**. |
+| <img src="./Images/wiki_v1/laser.gif" width="200"> | **Tactical:** A **Lime Hitscan Beam** that tracks the ship's horizontal position. Ideal for **lane clearing** and **high-HP targets** in a **1-second burst**. |
 
 ---
 
@@ -92,7 +92,7 @@ Each **Sin-class enemy** introduces a unique disruption mechanic that forces pla
 
 | Image | Description |
 |---|---|
-| <img src="./Images/wiki_v1/nuke.png" width="200"> | **Ultimate:** Obtained from **Gluttony**. Clears **all common enemies on screen** and deals **heavy damage to Sin-class bosses**, triggering a **screen-wide wipe effect**. |
+| <img src="./Images/wiki_v1/nuke.gif" width="200"> | **Ultimate:** Obtained from **Gluttony**. Clears **all common enemies on screen** and deals **heavy damage to Sin-class bosses**, triggering a **screen-wide wipe effect**. |
 
 ---
 
@@ -100,7 +100,7 @@ Each **Sin-class enemy** introduces a unique disruption mechanic that forces pla
 
 | Image | Description |
 |---|---|
-| <img src="./Images/wiki_v1/buffs.png" width="200"> | **Wrath [W]:** Stack **3 kills** to unlock **4-way fire mode**.<br><br>**Speed [S]:** Reward from defeating **Sloth**. Grants **200% movement speed for 7 seconds**. |
+| <img src="./Images/wiki_v1/buffs.gif" width="200"> | **Wrath [W]:** Stack **3 kills** to unlock **4-way fire mode**.<br><br>**Speed [S]:** Reward from defeating **Sloth**. Grants **200% movement speed for 7 seconds**. |
 
 ---
 
