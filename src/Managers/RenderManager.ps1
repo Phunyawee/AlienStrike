@@ -97,34 +97,33 @@ function Draw-HUD ($g, $score, $level, $lives, $inventory, $buffs, $debuffs, $ta
         $g.FillEllipse([System.Drawing.Brushes]::Red, ($sidebarX + 15 + ($l * 25)), 140, 18, 18)
     }
 
-    # --- 3. ระบบ Inventory แบบนับเลข (ใน Sidebar ล่าง) ---
+    # --- ระบบ Inventory Slot (Sidebar) ---
     $invY = 450
-    $g.DrawString("INVENTORY [E]", $fontSmall, [System.Drawing.Brushes]::Gray, ($sidebarX + 15), $invY)
+    $g.DrawString("WEAPON [Q:Swap]", $fontSmall, [System.Drawing.Brushes]::Gray, ($sidebarX + 15), $invY)
     
     if ($inventory.Count -gt 0) {
-        # จัดกลุ่มไอเทมเพื่อรวบรวมชิ้นที่เหมือนกัน (เช่น Missile x100)
-        $firstItemType = $inventory[0]
-        $count = ($inventory | Where-Object { $_ -eq $firstItemType }).Count
+        $activeType = $inventory[0]
+        $count = ($inventory | Where-Object { $_ -eq $activeType }).Count
         
-        # วาด Slot ชิ้นแรกแบบเด่นๆ
+        # 1. วาด Slot
         $rect = New-Object System.Drawing.Rectangle(($sidebarX + 15), ($invY + 20), 50, 50)
-        $g.FillRectangle([System.Drawing.Brushes]::DarkCyan, $rect)
-        $g.DrawRectangle([System.Drawing.Pen]::new([System.Drawing.Color]::Cyan, 2), $rect)
+        $color = if ($activeType -eq "Laser") { [System.Drawing.Color]::LimeGreen } else { [System.Drawing.Color]::DarkCyan }
+        $g.FillRectangle([System.Drawing.SolidBrush]::new($color), $rect)
+        $g.DrawRectangle([System.Drawing.Pen]::new([System.Drawing.Color]::White, 2), $rect)
         
-        # ตัวย่อไอเทม (เช่น M)
-        $itemTxt = if ($firstItemType -eq "Missile") { "M" } else { "?" }
-        $g.DrawString($itemTxt, $fontLarge, [System.Drawing.Brushes]::White, ($sidebarX + 28), ($invY + 32))
+        # 2. วาดตัวอักษร
+        $txt = if ($activeType -eq "Laser") { "L" } else { "M" }
+        $g.DrawString($txt, $fontLarge, [System.Drawing.Brushes]::White, ($sidebarX + 27), ($invY + 31))
         
-        # วาดเลขจำนวน (x100)
-        $g.DrawString("x$count", $fontLarge, [System.Drawing.Brushes]::Orange, ($sidebarX + 70), ($invY + 32))
+        # 3. วาดจำนวน (เช่น x10) ไว้ "ในหรือข้าง" Icon ให้เด่น
+        $g.DrawString("x$count", $fontLarge, [System.Drawing.Brushes]::Yellow, ($sidebarX + 70), ($invY + 31))
 
-        # ถ้ายยังมีไอเทมชนิดอื่นในคิว (แสดงชิ้นถัดไปเล็กๆ)
-        $otherItems = $inventory | Where-Object { $_ -ne $firstItemType } | Select-Object -First 1
-        if ($null -ne $otherItems) {
-            $g.DrawString("NEXT: $otherItems", $fontSmall, [System.Drawing.Brushes]::Gray, ($sidebarX + 15), ($invY + 75))
+        # 4. แสดงประเภทถัดไป
+        $nextType = $null
+        foreach($it in $inventory) { if($it -ne $activeType) { $nextType = $it; break } }
+        if ($nextType) {
+            $g.DrawString("NEXT: $nextType", $fontSmall, [System.Drawing.Brushes]::Cyan, ($sidebarX + 15), ($invY + 75))
         }
-    } else {
-        $g.DrawString("- EMPTY -", $fontSmall, [System.Drawing.Brushes]::DarkGray, ($sidebarX + 15), ($invY + 35))
     }
 
     # --- 4. สถานะ Buffs (ใน Sidebar กลาง) ---

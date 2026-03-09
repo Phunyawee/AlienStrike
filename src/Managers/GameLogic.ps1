@@ -1,4 +1,22 @@
 # AlienStrike\src\GameLogic.ps1
+# --- ฟังก์ชันเพิ่มไอเทมเข้ากระเป๋าแบบจัดกลุ่ม ---
+function Add-To-Inventory ($itemType) {
+    # 1. หาตำแหน่งสุดท้ายของไอเทมประเภทเดียวกัน
+    $lastIdx = -1
+    for ($i = 0; $i -lt $Script:inventory.Count; $i++) {
+        if ($Script:inventory[$i] -eq $itemType) { $lastIdx = $i }
+    }
+
+    # 2. ถ้าเจอ ให้แทรกต่อท้ายกลุ่มเดิมทันที
+    if ($lastIdx -ne -1) {
+        $Script:inventory.Insert($lastIdx + 1, $itemType)
+    } else {
+        # 3. ถ้าไม่มีประเภทนี้เลย ให้ต่อท้ายแถวตามปกติ
+        [void]$Script:inventory.Add($itemType)
+    }
+}
+
+
 
 # --- Function 1: คำนวณ Level และ SpawnRate จาก Score แบบสมการ ---
 function Get-GameDifficulty ($currentScore) {
@@ -130,14 +148,6 @@ function Handle-PlayerInput {
         }
     }
 
-    if ($Script:keysPressed["E"] -and $Script:inventory.Count -gt 0 -and $Script:jammerTimer -le 0) {
-        $Script:keysPressed["E"] = $false 
-        $activeItem = $Script:inventory[0]
-        $Script:inventory.RemoveAt(0)
-        if ($activeItem -eq "Missile") {
-            [void]$Script:bullets.Add([Missile]::new($Script:player.X + 15, $Script:player.Y))
-        }
-    }
     
     $Script:player.Update()
 }
@@ -328,11 +338,10 @@ function Handle-PostCollision ($collisionResult) {
         }
     }
 
-    # ระบบแจกไอเทมจาก Lust
+    # ระบบแจกไอเทมจาก Lust (เปลี่ยนมาใช้ Add-To-Inventory)
     if ($collisionResult.LustKills -gt 0) {
         for ($i = 0; $i -lt $collisionResult.LustKills; $i++) {
-            # ฆ่า Lust 1 ตัว ได้มิสไซล์ 5 อัน
-            1..5 | ForEach-Object { [void]$Script:inventory.Add("Missile") }
+            1..5 | ForEach-Object { Add-To-Inventory "Missile" }
         }
     }
 

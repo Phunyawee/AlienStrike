@@ -6,3 +6,12 @@ Sloth - Disruption Pulse
 Wrath - Scatter Shot
 Envy - Weapon Jam
 Pride - Hitscan Beam
+
+
+
+
+Player Technical
+Defense Hit
+Missile
+Wrath Buff (Scatter Shot)
+Laser

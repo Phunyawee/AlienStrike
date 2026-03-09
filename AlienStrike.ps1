@@ -25,7 +25,7 @@ Add-Type -AssemblyName System.Drawing
 . "$PSScriptRoot\src\Entities\Enemies\Sins\Sloth.ps1"
 . "$PSScriptRoot\src\Entities\Projectiles\GreedArrow.ps1" 
 . "$PSScriptRoot\src\Entities\Enemies\Sins\Greed.ps1"
-
+. "$PSScriptRoot\src\Entities\Projectiles\PlayerLaser.ps1" 
 
 # --- 1.1 Load Managers (New) ---
 . "$PSScriptRoot\src\Managers\HighScoreManager.ps1"
@@ -74,8 +74,10 @@ function Do-GameOver {
     $Script:enemyBullets = [System.Collections.ArrayList]::new()
 
     $Script:inventory = [System.Collections.ArrayList]::new()
-    # ตอนเริ่มเกม แจกให้ก่อนเลย 5 อัน
-    1..5 | ForEach-Object { [void]$Script:inventory.Add("Missile") }
+   
+    # ทดสอบ: แจกมิสไซล์ 5 อัน และ เลเซอร์ 1 อัน
+    1..5 | ForEach-Object { Add-To-Inventory "Missile" }
+    Add-To-Inventory "Laser"
     
     # รีเซ็ตค่าคะแนนและเลเวล
     $Script:score = 0
@@ -117,7 +119,8 @@ $Script:enemyBullets = [System.Collections.ArrayList]::new()
 
 $Script:inventory = [System.Collections.ArrayList]::new()
 # ตอนเริ่มเกม แจกให้ก่อนเลย 5 อัน
-1..5 | ForEach-Object { [void]$Script:inventory.Add("Missile") }
+1..5 | ForEach-Object { Add-To-Inventory "Missile" }
+Add-To-Inventory "Laser"
 
 $Script:score = 0
 $Script:nextPrideScoreTarget = 5000 # เป้าหมายคะแนนแรกที่ Pride จะเกิด
@@ -146,6 +149,58 @@ $form.KeyPreview = $true
 $form.Add_KeyDown({
     $Script:keysPressed[$_.KeyCode.ToString()] = $true
     
+     # --- [เพิ่มตรงนี้] ระบบสลับอาวุธแบบ Instant ---
+    if ($_.KeyCode.ToString() -eq "Q" -and $Script:gameStarted) {
+        if ($Script:inventory.Count -gt 1) {
+            $firstType = $Script:inventory[0]
+            
+            # หาว่าไอเทมประเภทอื่นตัวแรกอยู่ที่ไหน
+            $nextTypeIdx = -1
+            for ($i = 0; $i -lt $Script:inventory.Count; $i++) {
+                if ($Script:inventory[$i] -ne $firstType) {
+                    $nextTypeIdx = $i
+                    break
+                }
+            }
+
+            # ถ้ามีอาวุธประเภทอื่น ให้ย้าย "ทั้งก้อน" ของอาวุธปัจจุบันไปไว้ข้างหลัง
+            if ($nextTypeIdx -ne -1) {
+                for ($j = 0; $j -lt $nextTypeIdx; $j++) {
+                    $item = $Script:inventory[0]
+                    $Script:inventory.RemoveAt(0)
+                    [void]$Script:inventory.Add($item)
+                }
+                # เสียง Beep สั้นๆ ให้รู้ว่าสลับอาวุธแล้ว
+                [System.Media.SystemSounds]::Asterisk.Play()
+            }
+        }
+    }
+     # --- [NEW] ระบบใช้ไอเทม E (ย้ายมานี่เพื่อกันบั๊กรัว) ---
+    if ($_.KeyCode.ToString() -eq "E" -and $Script:jammerTimer -le 0) {
+        if ($Script:inventory.Count -gt 0) {
+            
+            # เช็คพิเศษ: ถ้าเป็นเลเซอร์ ห้ามยิงซ้ำถ้าของเก่าประเภทยังค้างอยู่ (ป้องกันบั๊กเลเซอร์ซ้อน)
+            $hasActiveLaser = ($Script:bullets | Where-Object { $_.GetType().Name -eq "PlayerLaser" }).Count -gt 0
+            
+            if ($Script:inventory[0] -eq "Laser" -and $hasActiveLaser) {
+                return # มีเลเซอร์อยู่แล้ว ไม่ให้ยิงเพิ่มจนกว่าจะหมด
+            }
+
+            # ดึงไอเทมออกมาใช้
+            $activeItem = $Script:inventory[0]
+            $Script:inventory.RemoveAt(0)
+            
+            if ($activeItem -eq "Missile") {
+                [void]$Script:bullets.Add([Missile]::new($Script:player.X + 5, $Script:player.Y))
+            }
+            elseif ($activeItem -eq "Laser") {
+                [void]$Script:bullets.Add([PlayerLaser]::new($Script:player))
+                # เสียง Beep สั้นๆ ให้รู้ว่าเปิดอัลติเลเซอร์แล้ว
+                [System.Media.SystemSounds]::Hand.Play()
+            }
+        }
+    }
+
     # Press Esc to pause/exit
     if ($_.KeyCode -eq "Escape") { 
         $timer.Stop()
@@ -215,7 +270,12 @@ $timer.Add_Tick({
     for ($i = $Script:bullets.Count - 1; $i -ge 0; $i--) {
         $b = $Script:bullets[$i]
         $b.Update()
-        if ($b.Y -lt -20) { $Script:bullets.RemoveAt($i) }
+        
+        # แก้ตรงนี้: ถ้าเป็นเลเซอร์ ห้ามลบด้วยเงื่อนไขขอบบน (-20)
+        # หรือปรับตัวเลขให้ลึกขึ้นเป็น -700 เพื่อรองรับความยาวเลเซอร์
+        if ($b.Y -lt -700 -or $b.Y -gt 1000) { 
+            $Script:bullets.RemoveAt($i) 
+        }
     }
 
     # --- D. Update Entities Movement (เคลื่อนที่ศัตรู & กระสุนศัตรู) ---

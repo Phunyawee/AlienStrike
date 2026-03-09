@@ -1,3 +1,71 @@
+## [3.2.0] - 2026-03-09
+### "The Tactical Arsenal Update"
+
+Version 3.2.0 focuses on expanding the **player arsenal** and improving the **precision of heavy weapon control**.  
+This update introduces a **Weapon Swap system**, a new **continuous Hitscan Laser weapon**, and a **smart inventory grouping system** to maintain stable weapon ordering.
+
+**Version 3.2 Focus:**
+- **Weapon Rotation (Q-Switch):** Batch-based weapon type rotation
+- **High-Power Weaponry:** Introduction of the Player Laser sweeping weapon
+- **Input Precision:** Item controls (Q/E) migrated to `KeyDown` events for 100% accurate input handling
+- **Smart Inventory:** Item grouping logic to prevent unintended weapon switching
+
+---
+
+## ➕ Added
+
+### New Player Weapon: Laser (`PlayerLaser.ps1`)
+A **bright lime-colored Hitscan weapon** that remains attached to the player ship for **1 second**.
+
+The laser can be **swept across the battlefield**, dealing **piercing damage** to all enemies in its path.
+
+### Weapon Swap System (Key: `Q`)
+Players can press **Q** to **rotate weapon types** in their inventory (e.g., switching between **Missile** and **Laser**).
+
+The system automatically **skips duplicate weapon types**, ensuring efficient rotation.
+
+### Smart Grouping Logic
+When collecting new items (such as **Missiles dropped by Lust**), the system will **insert them into the correct weapon group** within the inventory.
+
+This prevents the **current weapon order from shifting unexpectedly**.
+
+---
+
+## 🔄 Changed
+
+### Refactored Input Handling
+The logic for **Q and E inputs** has been moved from the **Game Loop** to the **`KeyDown` event** in the main file.
+
+This resolves **input overlap issues** caused by repeated frame polling and improves performance efficiency.
+
+### Laser Collision Handling
+Updated `CollisionManager.ps1` to properly support **continuous laser damage** without destroying the projectile object upon collision.
+
+### UI Enhancement (Inventory xCount)
+The HUD now:
+
+- Displays **item counts per weapon type**
+- Shows **`NEXT: [Type]`** to indicate the upcoming weapon in the rotation queue
+
+---
+
+## 🐞 Fixed
+
+### Auto-Switching Bug
+Fixed an issue where the **arsenal could automatically switch weapon types** after receiving new items from Lust.
+
+### Laser Visual Desync
+Corrected the **laser rendering position** so it remains perfectly aligned with the **player ship's weapon muzzle** on every frame.
+
+### Out-of-Bounds Culling
+Adjusted the **projectile cleanup condition** in the Game Loop to properly support **long-range projectiles** with extended length.
+
+---
+
+> **"Swap, Aim, and Obliterate. The inventory is now under your total control."**
+
+
+
 ## [3.1.0] - 2026-03-09
 ### "The Greed Duel & Shield Reinforcement"
 

@@ -39,14 +39,22 @@ function Invoke-GameCollisions ($player, $bullets, $enemies, $enemyBullets, $for
             $b = $bullets[$j]
             if ($e.GetBounds().IntersectsWith($b.GetBounds())) {
                 
-                # จัดการกระสุน Missile (ระเบิดวงกว้าง)
-                if ($b -is [Missile]) { $b.Explode() } 
-                else { $bullets.RemoveAt($j) }
+                 # --- [แก้ไข] จัดการกระสุนพิเศษ ---
+                if ($b -is [Missile]) {
+                    $b.Explode()
+                } 
+                elseif ($b -is [PlayerLaser]) {
+                    # เลเซอร์ไม่หายเมื่อชน (ทะลวง)
+                }
+                else {
+                    $bullets.RemoveAt($j) # กระสุนปกติโดนแล้วหาย
+                }
 
-                # คิดดาเมจ (Sloth จะมีเลือด 6 ตามที่ตั้งไว้ใน Constructor)
+                # คิดดาเมจ (1 หน่วย)
                 if ($e.PsObject.Methods.Match("TakeDamage").Count -gt 0) {
                     $isDead = $e.TakeDamage(1) 
                 } else { $isDead = $true }
+
 
                 if ($isDead) {
                     if ($null -ne $e.ScoreValue) { $result.ScoreAdded += $e.ScoreValue } else { $result.ScoreAdded += 100 }
@@ -68,7 +76,7 @@ function Invoke-GameCollisions ($player, $bullets, $enemies, $enemyBullets, $for
                         }
                     }
                 }
-                if ($b -isnot [Missile]) { break }
+                if ($b -isnot [Missile] -and $b -isnot [PlayerLaser]) { break }
             }
         }
 
