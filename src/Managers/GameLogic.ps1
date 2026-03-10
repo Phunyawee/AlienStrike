@@ -323,21 +323,35 @@ function Handle-PostCollision ($collisionResult) {
     if ($Script:speedTimer -gt 0) { $Script:speedTimer-- }
 
     # ==========================================
-    # 6. ตรวจสอบสถานะการตาย (GameOver & Fatal Check)
+    # 6. ตรวจสอบสถานะการตาย (Resurrection Logic)
     # ==========================================
     if ($collisionResult.IsPlayerHit) {
         $Script:lives--
-        if ($Script:lives -le 0) { Do-GameOver; return $true }
-        else {
+        
+        if ($Script:lives -le 0) {
+            Do-GameOver; return $true 
+        } else {
+            # เกิดใหม่ที่จุดเดิม
             $Script:player.X = 225; $Script:player.Y = 500
             
-            if ($collisionResult.IsFatalHit) {
+            # --- [NEW] เช็คว่ามี RealPride อยู่ในสนามไหม ---
+            $isRealPrideActive = ($Script:enemies | Where-Object { $_.GetType().Name -eq "RealPride" }).Count -gt 0
+
+            # ถ้าตายขณะสู้กับ RealPride (ไม่ว่าจะโดนเลเซอร์หรือโดนอย่างอื่น)
+            # หรือโดนเลเซอร์ Fatal ของตัวอื่น (ถ้ามีในอนาคต)
+            if ($isRealPrideActive -or $collisionResult.IsFatalHit) {
+                # --- [กฎ Arena Integrity] ---
                 $Script:defenseHits = 50 
-                # --- สั่งให้เป็นอมตะ 3 วินาที (180 เฟรม) ---
                 $Script:immortalTimer = 180 
-                Write-Host "FATAL RESURRECTION: IMMORTAL FOR 3 SECS!" -ForegroundColor White
+                
+                # ไม่สั่ง .Clear() บอสจะไม่หายไป!
+                Write-Host "DEATH WITHIN ARENA: RESURRECTING TO CONTINUE THE FIGHT." -ForegroundColor Yellow
             } else {
-                $Script:enemies.Clear(); $Script:enemyBullets.Clear(); $Script:bullets.Clear()
+                # --- [ตายปกติในด่านทั่วไป] ---
+                # ล้างสนามรบใหม่เพื่อความยุติธรรม
+                $Script:enemies.Clear()
+                $Script:enemyBullets.Clear()
+                $Script:bullets.Clear()
             }
         }
     }

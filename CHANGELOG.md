@@ -1,3 +1,40 @@
+## [3.4.1] - 2026-03-11
+### "The Arena Integrity Update"
+
+A minor update focused on **closing a loophole in the resurrection system**, ensuring that **Gatekeeper-class encounters remain uninterrupted and intense** throughout the fight.
+
+---
+
+## 🔄 Changed
+
+### Arena Integrity Logic
+Improved the **player death handling system**.
+
+If the player dies while **RealPride is still present on the battlefield**, the system will now **cancel any board-clearing routines** under all circumstances.  
+This prevents the boss from disappearing before the duel is properly concluded.
+
+### Persistent Encounter
+When the player dies within **RealPride's domain**, they will now **immediately respawn** with:
+
+- **50 Defense Shield**
+- **3 seconds of Immortal Status**
+
+This ensures the fight **continues seamlessly without breaking the encounter flow**.
+
+---
+
+## 🐞 Fixed
+
+### Accidental De-spawning
+Fixed a bug where **RealPride could be removed from the game** if the player died from other causes  
+*(such as collisions or standard projectiles)* rather than the **Fatal Laser attack**.
+
+---
+
+> **"The Gatekeeper doesn't leave until you're dead — or he's dust."**
+
+
+
 ## [3.4.0] - 2026-03-11
 ### "The Gatekeeper's Judgment"
 
