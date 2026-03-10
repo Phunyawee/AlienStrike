@@ -36,6 +36,19 @@ This project demonstrates how Object-Oriented Programming (OOP) principles can b
 
 </details>
 
+## Final Elite Class Technical Table
+
+| Sin Class | Technical Mechanic | Threat Profile |
+|---|---|---|
+| Lust | Directional Inversion | Movement Disruption |
+| Gluttony | Shield Devour | Resource Vampirism |
+| Greed | Inventory Erasure | Arsenal Sabotage |
+| Sloth | Disruption Pulse | Tactical Lockout |
+| Wrath | Scatter Shot | High-Density Fire |
+| Envy | Weapon Jam | Offensive Suppression |
+| Pride | Hitscan Beam | Precision Strike |
+| RealPride | Absolute Annihilation | Fatal Execution / Enrage Timer |
+
 ## ⚠️ Note on Graphics
 **Current Version (v3.0.0):** 
 The game currently utilizes primitive GDI+ shapes (rectangles/squares) for all game entities. This is a deliberate design choice to focus on the core engine logic, physics, and OOP structure first.

@@ -6,7 +6,7 @@ Sloth - Disruption Pulse
 Wrath - Scatter Shot
 Envy - Weapon Jam
 Pride - Hitscan Beam
-
+RealPride - Absolute Annihilation
 
 
 

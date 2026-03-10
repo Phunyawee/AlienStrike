@@ -31,6 +31,11 @@ Add-Type -AssemblyName System.Drawing
 . "$PSScriptRoot\src\Entities\Enemies\Sins\Gluttony.ps1"
 
 
+. "$PSScriptRoot\src\Entities\Projectiles\SovereignPulse.ps1"
+. "$PSScriptRoot\src\Entities\Projectiles\CataclysmWave.ps1"
+. "$PSScriptRoot\src\Entities\Enemies\Sins\RealPride.ps1"
+
+
 # --- 1.1 Load Managers (New) ---
 . "$PSScriptRoot\src\Managers\HighScoreManager.ps1"
 . "$PSScriptRoot\src\Managers\GameLogic.ps1" 
@@ -62,9 +67,12 @@ function Do-GameOver {
     $Script:jammerTimer = 0    # ตัวนับเวลาติดสถานะ Jammer (ห้ามใช้ Item)
     $Script:prideKills = 0     # ตัวนับจำนวนการฆ่า Pride (สะสมเพื่อเรียก Sloth)
     $Script:defenseHits = 0
+    $Script:totalGluttonyKills = 0  # นับสะสมเพื่อเรียก RealPride
+    $Script:immortalTimer = 0  # ตัวนับเวลาสถานะอมตะ (I)
     $Script:nextGreedTarget = 20000
 
     $Script:speedTimer = 0  # ตัวนับเวลา Buff Speed
+    $Script:realPrideDefeatedTotal = 0 # นับยอดคิลสะสมเพื่อจบเกม
 
     # --- RESET GAME OBJECTS ---
     # สร้าง Player ใหม่ที่จุดเริ่มต้น
@@ -140,12 +148,16 @@ $Script:wrathStackCount = 0  # ตัวนับ Stack (0-5)
 $Script:currentTrackedLevel = 1 # ใส่ไว้ตอนเริ่มเกม / ในฟังก์ชัน Do-GameOver
 $Script:jammerTimer = 0    # ตัวนับเวลาติดสถานะ Jammer (ห้ามใช้ Item)
 $Script:prideKills = 0     # ตัวนับจำนวนการฆ่า Pride (สะสมเพื่อเรียก Sloth)
+$Script:totalGluttonyKills = 0  # นับสะสมเพื่อเรียก RealPride
 $Script:spawnRate = 3  
 $Script:gameStarted = $false
 $Script:gameOver = $false
 $Script:showLeaderboard = $false
 $Script:speedTimer = 0  # ตัวนับเวลา Buff Speed
 $Script:defenseHits = 0
+$Script:immortalTimer = 0  # ตัวนับเวลาสถานะอมตะ (I)
+$Script:realPrideDefeatedTotal = 0 # นับยอดคิลสะสมเพื่อจบเกม
+
 $Script:keysPressed = @{}
 
 # --- 4. Input Handling ---
@@ -268,7 +280,7 @@ $timer.Add_Tick({
     $hasGreed = ($Script:enemies | Where-Object { $_.GetType().Name -eq "Greed" }).Count -gt 0
 
     # ถ้ามี Gluttony หรือ Greed อยู่ในสนาม ลูกกระจ๊อกจะไม่เกิด
-    if (-not $isGluttonyOut -and -not $hasGreed) {
+    if (-not $isGluttonyOut -and -not $hasGreed -and $Script:enemies.Count -lt 20) {
         if ($Script:rnd.Next(0, 100) -lt $Script:spawnRate) {
             [void]$Script:enemies.Add((New-EnemySpawn 500 $Script:level $Script:rnd))
         }

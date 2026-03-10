@@ -62,6 +62,15 @@ Each **Sin-class enemy** introduces a unique disruption mechanic that forces pla
 
 ---
 
+## 👑 Gatekeeper-Class Entity
+### RealPride — *Absolute Annihilation*
+
+| Image | Description |
+|---|---|
+| <img src="./Images/wiki_v1/realpride.gif" width="200"> | **Ability:** A Gatekeeper-class entity that appears after defeating **Gluttony three times**. RealPride tracks the player using **smooth pursuit AI** and enforces a **Cataclysm countdown**. If not defeated within **15 laser cycles**, it unleashes **Cataclysm Wave**, a screen-wide fatal attack that results in **instant Game Over**, bypassing shields, lives, and Immortal status. |
+
+---
+
 # 🚀 Player Arsenal & Tactical Systems
 
 ## Defensive Layer: **Defense Shield [D]**

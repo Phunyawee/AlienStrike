@@ -1,3 +1,105 @@
+## [3.4.0] - 2026-03-11
+### "The Gatekeeper's Judgment"
+
+Version 3.4.0 introduces the first **Gatekeeper-tier boss**, **RealPride**, who stands as the final barrier before entering **Lucifer's domain**.  
+This update focuses on **High-Stakes Combat**, where every decision and every second determines victory or defeat.
+
+**Version 3.4 Focus:**
+- **Gatekeeper Mechanics:** Boss encounter with an **Enrage Countdown Timer**
+- **Hard Game Over:** A fatal attack that bypasses all revival systems
+- **Fatal UI:** Critical-level warning system for catastrophic events
+- **Immortal Status:** Temporary invulnerability to prevent spawn-kill scenarios
+
+---
+
+## ➕ Added
+
+### True Boss: RealPride (`RealPride.ps1`) [HP: 2000]
+
+A **Gatekeeper-class boss** that appears after defeating **Gluttony three times**.
+
+RealPride features **smooth player-tracking AI** and a **phased attack sequence**, escalating the pressure as the fight progresses.
+
+---
+
+### Ultimate Skill: Cataclysm Wave
+
+If RealPride is **not defeated within 15 laser cycles**, the boss will unleash a **massive pink energy curtain** that wipes across the screen *(Opacity-based wipe effect)*.
+
+This attack causes an **instant Game Over**, bypassing:
+- Immortal status
+- Remaining player lives
+- Shield protection
+
+---
+
+### Victory Skill: Sovereign Grace (Blue Laser)
+
+Upon defeat, RealPride releases a **blue sweeping energy wave** across the battlefield.
+
+If the player is struck, their **Defense Shield is recalibrated to 50 units**, ensuring balance before entering the next boss encounter.
+
+---
+
+### New Status: Immortal [I]
+
+A **temporary 3-second invulnerability state** granted after reviving from a Fatal Laser hit.
+
+The player ship will **blink visually**, providing a brief recovery window to reposition and avoid immediate destruction.
+
+---
+
+## 🔄 Changed
+
+### Fatal UI Sidebar
+
+Added a critical warning indicator:
+```
+>> FATAL ENTITY <<
+CATACLYSM IN: X
+```
+Displayed in the **Sidebar**, updating in real-time to create intense pressure during the Gatekeeper encounter.
+
+---
+
+### Nuke Re-balancing
+
+Adjusted **Nuke damage against RealPride to 200**.
+
+This makes the **Nuke a key strategic weapon** during the boss fight, dealing **20× more effective damage compared to standard enemies**.
+
+---
+
+### Refactored Arena Logic
+
+When RealPride appears:
+
+- **Standard enemies (Minions) are cleared**
+- **Other Sin-class bosses remain active**
+
+This creates the **most challenging combat scenario**, forcing players to handle multiple high-level threats simultaneously.
+
+---
+
+## 🐞 Fixed
+
+### Smooth Interpolation
+Improved boss movement using **Lerp-like interpolation**, reducing jitter during high-speed tracking.
+
+### Console Color Compatibility
+Resolved a **Runtime Error** caused by unsupported **Gold console color**.  
+Replaced with compatible **Yellow / Cyan color values**.
+
+### PointF Construction Fix
+Fixed an exception when rendering **triangle-based geometry** by enforcing explicit **`[float]` casting** for all coordinates.
+
+---
+
+> **"The countdown to Cataclysm has begun.  
+> You aren't just fighting a Sin anymore — you're fighting time itself."**
+
+
+
 ## [3.3.0] - 2026-03-10
 ### "The Gluttony & Tactical Nuke Update"
 

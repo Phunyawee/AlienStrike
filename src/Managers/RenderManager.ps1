@@ -163,12 +163,44 @@ function Draw-HUD ($g, $score, $level, $lives, $inventory, $buffs, $debuffs, $ta
         
         $dbY += 50 # เว้นระยะห่างลงมาสำหรับ Debuff ตัวถัดไป
     }
+
+    # ในฟังก์ชัน Draw-HUD (Sidebar)
+    $isRealPride = ($enemies | Where-Object { $_.GetType().Name -eq "RealPride" }).Count -gt 0
+    if ($isRealPride) {
+        $boss = ($enemies | Where-Object { $_.GetType().Name -eq "RealPride" })[0]
+        $fatalFont = New-Object System.Drawing.Font("Consolas", 12, [System.Drawing.FontStyle]::Bold)
+        
+        # ป้าย Fatal
+        $rectFatal = New-Object System.Drawing.Rectangle(($sidebarX + 15), 300, 170, 70)
+        $g.FillRectangle([System.Drawing.Brushes]::DarkRed, $rectFatal)
+        $g.DrawRectangle([System.Drawing.Pen]::new([System.Drawing.Color]::Red, 2), $rectFatal)
+
+        # ตัวหนังสือแจ้งเตือน
+        $g.DrawString(">> FATAL ENTITY <<", $fontSmall, [System.Drawing.Brushes]::Yellow, ($sidebarX + 22), 305)
+        
+        # --- [NEW] ตัวนับถอยหลัง Cataclysm ---
+        $remaining = 15 - $boss.LaserCount
+        $g.DrawString("CATACLYSM IN: $remaining", $fatalFont, [System.Drawing.Brushes]::White, ($sidebarX + 25), 335)
+        
+        # เอฟเฟกต์สีแดงกะพริบที่พื้นหลังถ้าเหลือ < 3 นัด
+        if ($remaining -le 3 -and ([DateTime]::Now.Millisecond -lt 500)) {
+            $g.FillRectangle([System.Drawing.Brushes]::Red, $sidebarX, 0, 5, 600)
+        }
+    }
 }
 
 # แก้ไขฟังก์ชันหลักให้เรียกใช้ HUD
 function Draw-Gameplay ($g, $player, $bullets, $enemies, $enemyBullets, $score, $level, $lives, $targetScore, $buffs, $debuffs, $inventory) {
     # 1. วาดวัตถุในเกม
-    $player.Draw($g)
+      # วาด Player แบบกะพริบถ้าเป็นอมตะ
+    $showPlayer = $true
+    if ($Script:immortalTimer -gt 0) {
+        # สลับเปิดปิดทุก 5 เฟรม
+        if (($Script:immortalTimer % 10) -lt 5) { $showPlayer = $false }
+    }
+
+    if ($showPlayer) { $player.Draw($g) }
+
     foreach ($b in $bullets) { $b.Draw($g) }
     foreach ($e in $enemies) { $e.Draw($g) }
     foreach ($eb in $enemyBullets) { $eb.Draw($g) }
