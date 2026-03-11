@@ -69,149 +69,127 @@ function Draw-Leaderboard ($g, $width, $height) {
     $g.DrawString("Press ENTER to Return", $Global:GameFonts.Text, [System.Drawing.Brushes]::DarkGray, ($width/2), 520, $center)
 }
 
-# ฟังก์ชันวาด HUD แบบใหม่ (Inventory + Health + Status)
-function Draw-HUD ($g, $score, $level, $lives, $inventory, $buffs, $debuffs, $targetScore) {
+# --- เพิ่มพารามิเตอร์ $enemies เข้าไปในฟังก์ชัน Draw-HUD ---
+function Draw-HUD ($g, $score, $level, $lives, $inventory, $buffs, $debuffs, $targetScore, $enemies) {
     $fontSmall = New-Object System.Drawing.Font("Consolas", 10, [System.Drawing.FontStyle]::Bold)
     $fontLarge = New-Object System.Drawing.Font("Consolas", 18, [System.Drawing.FontStyle]::Bold)
     $sidebarX = 500
     $sidebarWidth = 200
 
-    # --- 1. วาดกรอบ Sidebar ด้านขวา (Semi-Transparent) ---
+    # --- 1. วาดกรอบ Sidebar ด้านขวา ---
     $sideBg = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(180, 20, 20, 25))
     $g.FillRectangle($sideBg, $sidebarX, 0, $sidebarWidth, 600)
     $g.DrawLine([System.Drawing.Pen]::new([System.Drawing.Color]::Cyan, 2), $sidebarX, 0, $sidebarX, 600)
 
-    # --- 2. ข้อมูลผู้เล่น (ใน Sidebar) ---
+    # --- 2. ข้อมูล Score / Level / Lives ใน Sidebar ---
     $g.DrawString("SCORE", $fontSmall, [System.Drawing.Brushes]::Gray, ($sidebarX + 15), 20)
     $g.DrawString("$score", $fontLarge, [System.Drawing.Brushes]::Yellow, ($sidebarX + 15), 35)
-
     $g.DrawString("LEVEL $level", $fontSmall, [System.Drawing.Brushes]::White, ($sidebarX + 15), 75)
-    # Progress Bar (เลเวลอัป)
+    
     $g.FillRectangle([System.Drawing.Brushes]::DarkSlateGray, ($sidebarX + 15), 95, 170, 6)
     $progress = [math]::Min(($score / $targetScore), 1.0)
     $g.FillRectangle([System.Drawing.Brushes]::Lime, ($sidebarX + 15), 95, (170 * $progress), 6)
 
-    # วาดดวงใจ (Health)
-    $g.DrawString("LIVES", $fontSmall, [System.Drawing.Brushes]::Gray, ($sidebarX + 15), 120)
+    $g.DrawString("LIVES", $fontSmall, [System.Drawing.Brushes]::Gray, ($sidebarX + 15), 115)
     for ($l = 0; $l -lt $lives; $l++) {
-        $g.FillEllipse([System.Drawing.Brushes]::Red, ($sidebarX + 15 + ($l * 25)), 140, 18, 18)
+        $g.FillEllipse([System.Drawing.Brushes]::Red, ($sidebarX + 15 + ($l * 25)), 135, 18, 18)
     }
 
-    # --- ระบบ Inventory Slot (Sidebar) ---
-    $invY = 450
+    # --- 3. [NEW] วาดบอสบาร์ของ LUCIFER (ถ้าบอสออกมาแล้ว) ---
+    $lucifer = $enemies | Where-Object { $_.GetType().Name -eq "Lucifer" } | Select-Object -First 1
+    if ($lucifer) {
+        $barX = 50; $barY = 15; $barW = 400
+        # พื้นหลังเทา
+        $g.FillRectangle([System.Drawing.Brushes]::DimGray, $barX, $barY, $barW, 14)
+        # เลือดสีขาว (Smooth HP - ไหลตาม)
+        $smoothW = ($lucifer.SmoothHP / 20000) * $barW
+        $g.FillRectangle([System.Drawing.Brushes]::White, $barX, $barY, $smoothW, 14)
+        # เลือดสีแดง (Visual HP - ลดทันที)
+        $visualW = ($lucifer.VisualHP / 20000) * $barW
+        $g.FillRectangle([System.Drawing.Brushes]::Red, $barX, $barY, $visualW, 14)
+        
+        # ถ้ามีเกราะ (Armor < 1000 HP) วาดกรอบสีฟ้าครอบ
+        if ($lucifer.ArmorHP -gt 0) {
+            $g.DrawRectangle([System.Drawing.Pen]::new([System.Drawing.Color]::Cyan, 3), ($barX - 2), ($barY - 2), ($barW + 4), 18)
+        }
+        $g.DrawString("LUCIFER - THE FALLEN", $fontSmall, [System.Drawing.Brushes]::White, $barX, ($barY + 18))
+    }
+
+    # --- 4. ระบบ Inventory (Sidebar) ---
+    $invY = 430
     $g.DrawString("WEAPON [Q:Swap]", $fontSmall, [System.Drawing.Brushes]::Gray, ($sidebarX + 15), $invY)
-    
-    # --- ระบบ Inventory Slot (Sidebar) ---
     if ($inventory.Count -gt 0) {
         $activeType = $inventory[0]
         $count = ($inventory | Where-Object { $_ -eq $activeType }).Count
-        
-        # 1. วาด Slot
         $rect = New-Object System.Drawing.Rectangle(($sidebarX + 15), ($invY + 20), 50, 50)
-        
-        # [แก้ไข] เพิ่มสีสำหรับ Nuke (OrangeRed)
-        $activeBrush = if ($activeType -eq "Laser") { 
-            [System.Drawing.Brushes]::LimeGreen 
-        } elseif ($activeType -eq "Nuke") { 
-            [System.Drawing.Brushes]::OrangeRed # สีสำหรับ Nuke
-        } else { 
-            [System.Drawing.Brushes]::DarkCyan 
-        }
-
+        $activeBrush = if ($activeType -eq "Laser") { [System.Drawing.Brushes]::LimeGreen } elseif ($activeType -eq "Nuke") { [System.Drawing.Brushes]::OrangeRed } else { [System.Drawing.Brushes]::DarkCyan }
         $g.FillRectangle($activeBrush, $rect)
         $g.DrawRectangle([System.Drawing.Pen]::new([System.Drawing.Color]::White, 2), $rect)
-        
-        # 2. วาดตัวอักษร (เพิ่มเงื่อนไข N)
         $txt = if ($activeType -eq "Laser") { "L" } elseif ($activeType -eq "Nuke") { "N" } else { "M" }
         $g.DrawString($txt, $fontLarge, [System.Drawing.Brushes]::White, ($sidebarX + 27), ($invY + 31))
-        
-        # 3. วาดจำนวน xCount
         $g.DrawString("x$count", $fontLarge, [System.Drawing.Brushes]::Yellow, ($sidebarX + 70), ($invY + 31))
-
-        # 4. แสดงประเภทถัดไป (Preview)
-        $nextType = $null
-        foreach($it in $inventory) { if($it -ne $activeType) { $nextType = $it; break } }
-        if ($nextType) {
-            $g.DrawString("NEXT: $nextType", $fontSmall, [System.Drawing.Brushes]::Cyan, ($sidebarX + 15), ($invY + 75))
-        }
     }
 
-    # --- 4. สถานะ Buffs (ใน Sidebar กลาง) ---
+    # --- 5. Buffs & Debuffs ---
+    # (โค้ดส่วน Buffs/Debuffs เดิมของคุณ ปรับตำแหน่ง Y เล็กน้อยถ้าทับกัน)
     $bfY = 200
     $g.DrawString("ACTIVE BUFFS", $fontSmall, [System.Drawing.Brushes]::Gray, ($sidebarX + 15), $bfY)
     $bfY += 20
     foreach ($bf in $buffs) {
-        if ($bf.Icon -ne "M") { # ไม่วาด Missile ซ้ำ
-            $bgBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(100, 0, 255, 255))
-            $g.FillRectangle($bgBrush, ($sidebarX + 15), $bfY, 170, 30)
+        if ($bf.Icon -ne "M") {
+            $g.FillRectangle([System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(100, 0, 255, 255)), ($sidebarX + 15), $bfY, 170, 30)
             $g.DrawString("$($bf.Icon) $($bf.Value)", $fontSmall, [System.Drawing.Brushes]::White, ($sidebarX + 25), ($bfY + 7))
             $bfY += 35
         }
     }
 
-    # --- 5. สถานะ Debuffs (บนจอ Play Area - เพื่อให้ผู้เล่นตกใจ!) ---
-    $dbY = 20 # เริ่มวาดจากด้านบนสุด
+    $dbY = 20
     foreach ($db in $debuffs) {
-        # พื้นหลังสีแดงเข้มกึ่งโปร่งแสงเพื่อให้ตัวอักษรสีเหลือง/ขาวอ่านง่าย
-        $bgBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(200, 60, 0, 0))
-        $g.FillRectangle($bgBrush, 10, $dbY, 100, 45)
+        $g.FillRectangle([System.Drawing.SolidBrush]::new([System.Drawing.Color]::FromArgb(200, 60, 0, 0)), 10, $dbY, 100, 45)
         $g.DrawRectangle([System.Drawing.Pen]::new([System.Drawing.Color]::Red, 2), 10, $dbY, 100, 45)
-        
-        # วาดไอคอน (ตัวใหญ่) และ เวลาถอยหลัง (สีเหลือง)
         $g.DrawString($db.Icon, $fontLarge, [System.Drawing.Brushes]::White, 15, ($dbY + 8))
         $g.DrawString($db.Value, $fontSmall, [System.Drawing.Brushes]::Yellow, 50, ($dbY + 15))
-        
-        $dbY += 50 # เว้นระยะห่างลงมาสำหรับ Debuff ตัวถัดไป
+        $dbY += 50
     }
 
-    # ในฟังก์ชัน Draw-HUD (Sidebar)
-    $isRealPride = ($enemies | Where-Object { $_.GetType().Name -eq "RealPride" }).Count -gt 0
-    if ($isRealPride) {
-        $boss = ($enemies | Where-Object { $_.GetType().Name -eq "RealPride" })[0]
+    # --- 6. Warnings (RealPride & Lucifer) ---
+    $realPride = $enemies | Where-Object { $_.GetType().Name -eq "RealPride" } | Select-Object -First 1
+    if ($realPride) {
         $fatalFont = New-Object System.Drawing.Font("Consolas", 12, [System.Drawing.FontStyle]::Bold)
-        
-        # ป้าย Fatal
-        $rectFatal = New-Object System.Drawing.Rectangle(($sidebarX + 15), 300, 170, 70)
+        $rectFatal = New-Object System.Drawing.Rectangle(($sidebarX + 15), 310, 170, 70)
         $g.FillRectangle([System.Drawing.Brushes]::DarkRed, $rectFatal)
         $g.DrawRectangle([System.Drawing.Pen]::new([System.Drawing.Color]::Red, 2), $rectFatal)
+        $g.DrawString(">> FATAL ENTITY <<", $fontSmall, [System.Drawing.Brushes]::Yellow, ($sidebarX + 22), 315)
+        $remaining = 15 - $realPride.LaserCount
+        $g.DrawString("CATACLYSM IN: $remaining", $fatalFont, [System.Drawing.Brushes]::White, ($sidebarX + 25), 345)
+    }
 
-        # ตัวหนังสือแจ้งเตือน
-        $g.DrawString(">> FATAL ENTITY <<", $fontSmall, [System.Drawing.Brushes]::Yellow, ($sidebarX + 22), 305)
-        
-        # --- [NEW] ตัวนับถอยหลัง Cataclysm ---
-        $remaining = 15 - $boss.LaserCount
-        $g.DrawString("CATACLYSM IN: $remaining", $fatalFont, [System.Drawing.Brushes]::White, ($sidebarX + 25), 335)
-        
-        # เอฟเฟกต์สีแดงกะพริบที่พื้นหลังถ้าเหลือ < 3 นัด
-        if ($remaining -le 3 -and ([DateTime]::Now.Millisecond -lt 500)) {
-            $g.FillRectangle([System.Drawing.Brushes]::Red, $sidebarX, 0, 5, 600)
+    # Lucifer Approach Warning
+    if ($Script:luciferWarningTimer -gt 0) {
+        if (([math]::Floor($Script:luciferWarningTimer / 10) % 2) -eq 0) {
+            $g.Clear([System.Drawing.Color]::DarkRed)
+            $f = New-Object System.Drawing.Font("Impact", 30)
+            $g.DrawString("!!! WARNING: LUCIFER APPROACHING !!!", $f, [System.Drawing.Brushes]::White, 30, 250)
         }
     }
 }
 
-# แก้ไขฟังก์ชันหลักให้เรียกใช้ HUD
+# --- แก้ไขฟังก์ชัน Draw-Gameplay ให้ส่ง $enemies ไปด้วย ---
 function Draw-Gameplay ($g, $player, $bullets, $enemies, $enemyBullets, $score, $level, $lives, $targetScore, $buffs, $debuffs, $inventory) {
-    # 1. วาดวัตถุในเกม
-      # วาด Player แบบกะพริบถ้าเป็นอมตะ
+    # 1. วาดวัตถุ
     $showPlayer = $true
-    if ($Script:immortalTimer -gt 0) {
-        # สลับเปิดปิดทุก 5 เฟรม
-        if (($Script:immortalTimer % 10) -lt 5) { $showPlayer = $false }
-    }
-
+    if ($Script:immortalTimer -gt 0 -and ($Script:immortalTimer % 10) -lt 5) { $showPlayer = $false }
     if ($showPlayer) { $player.Draw($g) }
 
     foreach ($b in $bullets) { $b.Draw($g) }
     foreach ($e in $enemies) { $e.Draw($g) }
     foreach ($eb in $enemyBullets) { $eb.Draw($g) }
 
-     # วาดวงกลมโล่ (ถ้ามีแต้มป้องกัน)
     if ($Script:defenseHits -gt 0) {
         $shieldPen = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(150, 0, 255, 255), 2)
-        # วาดวงกลมครอบยาน (ยานขนาด 21 เราวาดวงกลมขนาด 40)
         $g.DrawEllipse($shieldPen, ($player.X - 10), ($player.Y - 10), 41, 41)
     }
 
-    # 2. วาด HUD ทับด้านบน
-    Draw-HUD $g $score $level $lives $inventory $buffs $debuffs $targetScore
+    # 2. วาด HUD (เพิ่มพารามิเตอร์ $enemies)
+    Draw-HUD $g $score $level $lives $inventory $buffs $debuffs $targetScore $enemies
 }

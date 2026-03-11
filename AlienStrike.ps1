@@ -35,6 +35,9 @@ Add-Type -AssemblyName System.Drawing
 . "$PSScriptRoot\src\Entities\Projectiles\CataclysmWave.ps1"
 . "$PSScriptRoot\src\Entities\Enemies\Sins\RealPride.ps1"
 
+. "$PSScriptRoot\src\Entities\Enemies\Sins\LuciferPart.ps1"
+. "$PSScriptRoot\src\Entities\Enemies\Sins\Lucifer.ps1"
+
 
 # --- 1.1 Load Managers (New) ---
 . "$PSScriptRoot\src\Managers\HighScoreManager.ps1"

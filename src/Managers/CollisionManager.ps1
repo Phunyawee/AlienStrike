@@ -6,11 +6,8 @@ function Invoke-GameCollisions ($player, $bullets, $enemies, $enemyBullets, $for
         PrideKilled  = $false; GluttonyKills = 0; RealPrideKilled = $false 
     }
 
-    # --- [NEW] ระบบ Immortal Check ---
-    # ถ้ายังเป็นอมตะอยู่ ให้ข้ามการเช็คดาเมจและดีบัฟทั้งหมดไปเลย (โกงความตาย)
-    if ($Script:immortalTimer -gt 0) {
-        return $result
-    }
+    # --- [Immortal Check] ---
+    if ($Script:immortalTimer -gt 0) { return $result }
 
     $Script:blockHit = { if ($Script:defenseHits -gt 0) { $Script:defenseHits -= 1; return $true }; return $false }
 
@@ -20,31 +17,50 @@ function Invoke-GameCollisions ($player, $bullets, $enemies, $enemyBullets, $for
         $isDead = $false
         $typeName = $e.GetType().Name 
 
-        # [เช็ค Nuke]
+        # [1.1 เช็ค Nuke]
         foreach ($b in $bullets) {
             if ($b.GetType().Name -eq "Nuke" -and $b.Exploded) {
                 if ($e -is [BaseEnemy]) {
                     if ($typeName -eq "Gluttony") { $isDead = $e.TakeDamage(50) }
-                    elseif ($typeName -eq "Lucifer") { $isDead = $e.TakeDamage(3) }
+                    elseif ($typeName -eq "Lucifer") { $isDead = $e.TakeDamage(5) } # Nuke โดนลูซิเฟอร์เบาหน่อย
                     elseif ($typeName -eq "RealPride") { $isDead = $e.TakeDamage(200) }
                     else { $isDead = $e.TakeDamage(99) }
                 } else { $isDead = $true }
             }
         }
 
-        # [เช็คชนผู้เล่น]
+        # [1.2 เช็คศัตรูชนผู้เล่น]
         if ($e.GetBounds().IntersectsWith($player.GetBounds())) {
             if (& $Script:blockHit) { $enemies.RemoveAt($i); continue }
             $result.IsPlayerHit = $true; return $result
         }
 
-        # [เช็คโดนยิง]
+        # [1.3 เช็คโดนกระสุนผู้เล่น]
         if (-not $isDead) {
             for ($j = $bullets.Count - 1; $j -ge 0; $j--) {
                 $b = $bullets[$j]
-                if ($e.GetBounds().IntersectsWith($b.GetBounds())) {
+                $hitBox = $b.GetBounds()
+                
+                # --- [พิเศษ] เช็คชิ้นส่วน LUCIFER ---
+                if ($typeName -eq "Lucifer") {
+                    $partHit = $false
+                    foreach ($part in $e.Parts) {
+                        if (-not $part.IsDestroyed -and $part.GetBounds($e.X, $e.Y).IntersectsWith($hitBox)) {
+                            $part.TakeDamage(1)
+                            if ($b.GetType().Name -ne "PlayerLaser") { $bullets.RemoveAt($j) }
+                            $partHit = $true; break
+                        }
+                    }
+                    if ($partHit) { continue } # ถ้าโดนชิ้นส่วน ให้ข้ามไปเช็คกระสุนนัดถัดไป
+                    
+                    # ถ้า Phase ยังไม่ถึง Core (0 หรือ 1) จะยิงเข้าตัวแม่ไม่ได้
+                    if ($e.Phase -lt 2) { continue }
+                }
+
+                # --- เช็คการชนปกติ ---
+                if ($e.GetBounds().IntersectsWith($hitBox)) {
                     if ($b -is [Missile]) { $b.Explode() } 
-                    elseif ($b.GetType().Name -ne "PlayerLaser") { $bullets.RemoveAt($j) }
+                    elseif ($b.GetType().Name -ne "PlayerLaser" -and $b.GetType().Name -ne "Nuke") { $bullets.RemoveAt($j) }
                     
                     if ($e.PsObject.Methods.Match("TakeDamage").Count -gt 0) { $isDead = $e.TakeDamage(1) } else { $isDead = $true }
                     if ($b.GetType().Name -ne "Missile" -and $b.GetType().Name -ne "PlayerLaser") { break }
@@ -52,8 +68,8 @@ function Invoke-GameCollisions ($player, $bullets, $enemies, $enemyBullets, $for
             }
         }
 
+        # [1.4 จัดการเมื่อศัตรูตาย]
         if ($isDead) {
-            # --- แก้ไขตรงนี้: แยก IF ออกมาบวกคะแนนแบบปกติ ---
             if ($null -ne $e.ScoreValue) { $result.ScoreAdded += $e.ScoreValue } else { $result.ScoreAdded += 100 }
             
             if ($typeName -eq "Gluttony") { $result.GluttonyKills += 1 }
@@ -62,25 +78,32 @@ function Invoke-GameCollisions ($player, $bullets, $enemies, $enemyBullets, $for
             elseif ($typeName -eq "Greed")    { $result.GreedKills += 1 }
             elseif ($typeName -eq "Pride")    { $result.PrideKilled = $true }
             elseif ($typeName -eq "RealPride"){ $result.RealPrideKilled = $true }
-            
-            if ($typeName -eq "Wrath") {
-                $result.WrathKills += 1      # <--- [เพิ่มบรรทัดนี้เข้าไปครับ!]
-                
-                $Script:wrathKills++         # อันนี้ของเดิมที่ใช้นับเรียก Envy (ปล่อยไว้เหมือนเดิม)
+            elseif ($typeName -eq "Wrath") {
+                $result.WrathKills += 1
+                $Script:wrathKills++
                 if ($Script:wrathKills % 5 -eq 0) { [void]$enemies.Add([Envy]::new(225, -50, $player)) }
             }
             $enemies.RemoveAt($i)
         } elseif ($e.Y -gt $formHeight) { $enemies.RemoveAt($i) }
     }
 
-    # --- 2. RealPride Fatal Laser ---
+    # --- 2. Fatal Beam Checks (RealPride & Lucifer) ---
     foreach ($boss in $enemies) {
-        if ($boss.GetType().Name -eq "RealPride" -and $boss.State -eq 2) {
-            $bx = $boss.X + ($boss.Width / 2.0) - 15.0
-            $beamRect = [System.Drawing.RectangleF]::new($bx, [float]($boss.Y + 55), 30.0, 600.0)
-            if ($beamRect.IntersectsWith($player.GetBounds())) {
-                $result.IsPlayerHit = $true
-                $result.IsFatalHit = $true 
+        $bName = $boss.GetType().Name
+        # RealPride Laser
+        if ($bName -eq "RealPride" -and $boss.State -eq 2) {
+            $beam = [System.Drawing.RectangleF]::new($boss.X + ($boss.Width/2) - 15, $boss.Y + 55, 30, 600)
+            if ($beam.IntersectsWith($player.GetBounds())) { $result.IsPlayerHit = $true; $result.IsFatalHit = $true }
+        }
+        # Lucifer Fatal Beams (Phase 1: 2 ปีก / Phase 2+: 1 กลาง)
+        if ($bName -eq "Lucifer" -and $boss.ChargeTimer -gt 2.5) {
+            foreach ($p in ($boss.Parts | Where-Object { $_.Type -eq "Cannon" -and -not $_.IsDestroyed })) {
+                $beam = [System.Drawing.RectangleF]::new($boss.X + $p.RelX + 5, $boss.Y + $p.RelY + 80, 30, 600)
+                if ($beam.IntersectsWith($player.GetBounds())) { $result.IsPlayerHit = $true; $result.IsFatalHit = $true }
+            }
+            if ($boss.Phase -gt 0) {
+                $beam = [System.Drawing.RectangleF]::new($boss.X + 35, $boss.Y + 100, 30, 600)
+                if ($beam.IntersectsWith($player.GetBounds())) { $result.IsPlayerHit = $true; $result.IsFatalHit = $true }
             }
         }
     }
@@ -89,38 +112,28 @@ function Invoke-GameCollisions ($player, $bullets, $enemies, $enemyBullets, $for
     for ($i = $enemyBullets.Count - 1; $i -ge 0; $i--) {
         $eb = $enemyBullets[$i]
         $bulletName = $eb.GetType().Name
-
-         # --- [NEW] เช็คคลื่นล้างโลก (Hard GameOver) ---
-        if ($bulletName -eq "CataclysmWave") {
-            if ($eb.GetBounds().IntersectsWith($player.GetBounds())) {
-                $result.IsPlayerHit = $true
-                $Script:lives = 0 # บังคับชีวิตเป็น 0 ทันที
-                return $result # จบเกมแน่นอน
-            }
-        }
-
-        # --- [NEW] เช็ค Sovereign Grace (Blue Laser) ---
-        if ($bulletName -eq "SovereignPulse") {
-            if ($eb.GetBounds().IntersectsWith($player.GetBounds())) {
-                if ($Script:defenseHits -gt 50) { $Script:defenseHits = 50 }
-                # ไม่ Remove คลื่นออกเพื่อให้มันกวาดจนจบอายุ
-                continue
-            }
-        }
-
-
-
+        
+        # [3.1 Special Bullets]
         if ($bulletName -eq "SlothBomb" -and $eb.State -eq 3) {
-            $wave = $eb.GetShockwave(); if ($null -ne $wave) { [void]$enemyBullets.Add($wave) }; $enemyBullets.RemoveAt($i); continue
+            $wave = $eb.GetShockwave(); if ($wave) { [void]$enemyBullets.Add($wave) }; $enemyBullets.RemoveAt($i); continue
+        }
+        if ($bulletName -eq "CataclysmWave" -and $eb.GetBounds().IntersectsWith($player.GetBounds())) {
+            $result.IsPlayerHit = $true; $Script:lives = 0; return $result
+        }
+        if ($bulletName -eq "SovereignPulse" -and $eb.GetBounds().IntersectsWith($player.GetBounds())) {
+            if ($Script:defenseHits -gt 50) { $Script:defenseHits = 50 }; continue
         }
 
+        # [3.2 Player Hit Check]
         if ($eb.GetBounds().IntersectsWith($player.GetBounds())) {
-            # --- แก้ไขตรงนี้: แยก IF คำนวณโล่ Gluttony ---
+            # Lucifer Shield Shredder (Speed 15)
+            if ($eb.SpeedY -eq 15) {
+                $Script:defenseHits = [math]::Max(0, $Script:defenseHits - 5)
+                $enemyBullets.RemoveAt($i); continue
+            }
+            # Gluttony Shield Devour
             if ($bulletName -eq "GluttonyBlast") {
-                $lost = 0
-                if ($Script:defenseHits -ge 10) { $lost = [math]::Floor($Script:defenseHits * 0.5) } 
-                else { $lost = $Script:defenseHits }
-                
+                $lost = if ($Script:defenseHits -ge 10) { [math]::Floor($Script:defenseHits * 0.5) } else { $Script:defenseHits }
                 $Script:defenseHits -= $lost
                 foreach ($b in $enemies) { if ($b.GetType().Name -eq "Gluttony") { $b.HP += $lost } }
                 $enemyBullets.RemoveAt($i)
@@ -130,14 +143,13 @@ function Invoke-GameCollisions ($player, $bullets, $enemies, $enemyBullets, $for
 
             if (& $Script:blockHit) { $enemyBullets.RemoveAt($i); continue }
 
+            # Debuffs
             if ($bulletName -eq "SilenceBullet") { $result.ApplySilence = $true; $enemyBullets.RemoveAt($i); continue } 
-            elseif ($bulletName -eq "SirenBullet")   { $result.ApplySiren = $true;   $enemyBullets.RemoveAt($i); continue }
-            elseif ($bulletName -eq "GreedArrow")   { $result.ApplyGreed = $true;   $enemyBullets.RemoveAt($i); continue }
-            elseif ($bulletName -eq "SlothShockwave") { $result.ApplyJammer = $true; continue }
-            else {
-                $result.IsPlayerHit = $true
-                return $result
-            }
+            if ($bulletName -eq "SirenBullet")   { $result.ApplySiren = $true;   $enemyBullets.RemoveAt($i); continue }
+            if ($bulletName -eq "GreedArrow")   { $result.ApplyGreed = $true;   $enemyBullets.RemoveAt($i); continue }
+            if ($bulletName -eq "SlothShockwave") { $result.ApplyJammer = $true; continue }
+            
+            $result.IsPlayerHit = $true; return $result
         }
         if ($eb.Y -gt $formHeight) { $enemyBullets.RemoveAt($i) }
     }
