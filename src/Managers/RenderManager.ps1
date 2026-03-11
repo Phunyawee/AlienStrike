@@ -122,7 +122,10 @@ function Draw-HUD ($g, $score, $level, $lives, $inventory, $buffs, $debuffs, $ta
         $activeType = $inventory[0]
         $count = ($inventory | Where-Object { $_ -eq $activeType }).Count
         $rect = New-Object System.Drawing.Rectangle(($sidebarX + 15), ($invY + 20), 50, 50)
-        $activeBrush = if ($activeType -eq "Laser") { [System.Drawing.Brushes]::LimeGreen } elseif ($activeType -eq "Nuke") { [System.Drawing.Brushes]::OrangeRed } else { [System.Drawing.Brushes]::DarkCyan }
+        $activeBrush = [System.Drawing.Brushes]::DarkCyan
+        if ($activeType -eq "Laser") { $activeBrush = [System.Drawing.Brushes]::LimeGreen }
+        elseif ($activeType -eq "Nuke") { $activeBrush = [System.Drawing.Brushes]::OrangeRed }
+
         $g.FillRectangle($activeBrush, $rect)
         $g.DrawRectangle([System.Drawing.Pen]::new([System.Drawing.Color]::White, 2), $rect)
         $txt = if ($activeType -eq "Laser") { "L" } elseif ($activeType -eq "Nuke") { "N" } else { "M" }
@@ -166,30 +169,41 @@ function Draw-HUD ($g, $score, $level, $lives, $inventory, $buffs, $debuffs, $ta
 
     # Lucifer Approach Warning
     if ($Script:luciferWarningTimer -gt 0) {
-        if (([math]::Floor($Script:luciferWarningTimer / 10) % 2) -eq 0) {
-            $g.Clear([System.Drawing.Color]::DarkRed)
-            $f = New-Object System.Drawing.Font("Impact", 30)
-            $g.DrawString("!!! WARNING: LUCIFER APPROACHING !!!", $f, [System.Drawing.Brushes]::White, 30, 250)
+        # 180 เฟรม = 3 วินาที. หาร 60 เพื่อดูว่าอยู่คิววินาทีที่เท่าไหร่
+        # ใน 1 วินาที (60 เฟรม) ให้โชว์แค่ 30 เฟรมแรกเพื่อให้เกิดการกะพริบ (Flash)
+        if (($Script:luciferWarningTimer % 60) -gt 30) {
+            $warnFont = New-Object System.Drawing.Font("Impact", 24)
+            $warnRect = New-Object System.Drawing.Rectangle(50, 250, 400, 70)
+            
+            # วาดพื้นหลังป้ายเตือน
+            $g.FillRectangle([System.Drawing.Brushes]::DarkRed, $warnRect)
+            $g.DrawRectangle([System.Drawing.Pen]::new([System.Drawing.Color]::Red, 3), $warnRect)
+            
+            # วาดข้อความ
+            $g.DrawString("!!! LUCIFER APPROACHING !!!", $warnFont, [System.Drawing.Brushes]::Yellow, 65, 265)
         }
     }
 }
 
 # --- แก้ไขฟังก์ชัน Draw-Gameplay ให้ส่ง $enemies ไปด้วย ---
 function Draw-Gameplay ($g, $player, $bullets, $enemies, $enemyBullets, $score, $level, $lives, $targetScore, $buffs, $debuffs, $inventory) {
-    # 1. วาดวัตถุ
+    # 1. วาดผู้เล่น
     $showPlayer = $true
     if ($Script:immortalTimer -gt 0 -and ($Script:immortalTimer % 10) -lt 5) { $showPlayer = $false }
     if ($showPlayer) { $player.Draw($g) }
 
-    foreach ($b in $bullets) { $b.Draw($g) }
+    # 2. วาดศัตรู (Lucifer จะอยู่ข้างล่างระเบิด)
     foreach ($e in $enemies) { $e.Draw($g) }
     foreach ($eb in $enemyBullets) { $eb.Draw($g) }
+
+    # 3. วาดกระสุนและเอฟเฟกต์ระเบิด (วาดทีหลังสุดเพื่อให้ทับตัวบอส)
+    foreach ($b in $bullets) { $b.Draw($g) }
 
     if ($Script:defenseHits -gt 0) {
         $shieldPen = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(150, 0, 255, 255), 2)
         $g.DrawEllipse($shieldPen, ($player.X - 10), ($player.Y - 10), 41, 41)
     }
 
-    # 2. วาด HUD (เพิ่มพารามิเตอร์ $enemies)
+    # 4. วาด HUD
     Draw-HUD $g $score $level $lives $inventory $buffs $debuffs $targetScore $enemies
 }

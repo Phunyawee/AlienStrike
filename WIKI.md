@@ -1,4 +1,4 @@
-# AlienStrike - Technical Wiki (v3.3.0)
+# AlienStrike - Technical Wiki (v4.0.0)
 
 ## 😈 Elite Enemy Encyclopedia (The 7 Sins)
 
@@ -68,6 +68,52 @@ Each **Sin-class enemy** introduces a unique disruption mechanic that forces pla
 | Image | Description |
 |---|---|
 | <img src="./Images/wiki_v1/realpride.gif" width="200"> | **Ability:** A Gatekeeper-class entity that appears after defeating **Gluttony three times**. RealPride tracks the player using **smooth pursuit AI** and enforces a **Cataclysm countdown**. If not defeated within **15 laser cycles**, it unleashes **Cataclysm Wave**, a screen-wide fatal attack that results in **instant Game Over**, bypassing shields, lives, and Immortal status. |
+
+---
+
+## 🔥 Final Sin Entity
+### Lucifer — *The King of Hell*
+
+| Image | Description |
+|---|---|
+| <img src="./Images/wiki_v1/lucifer.gif" width="200"> | **Ability:** The ultimate enemy of AlienStrike. Lucifer is a **multi-part boss entity** composed of destructible weapon systems. The battle revolves around **strategically dismantling its combat modules** to expose the Core. Destroying components directly reduces Lucifer's main HP. When its health drops below **7000**, Lucifer opens a **Magenta Summoning Portal**, continuously spawning **Wrath-class enemies** to overwhelm the battlefield. |
+
+---
+
+### 🧩 Boss Architecture
+
+| Component | HP | Function |
+|---|---|---|
+| Side Cannon (Left) | 2000 | Fires **Fatal Beam** attacks |
+| Side Cannon (Right) | 2000 | Fires **Fatal Beam** attacks |
+| Top Turret (Left) | 400 | Fires **Armor-Piercing Projectiles** |
+| Top Turret (Right) | 400 | Fires **Armor-Piercing Projectiles** |
+
+---
+
+### ⚙ Destruction Feedback System
+
+| Destroyed Part | Core HP Damage |
+|---|---|
+| Cannon | -4000 |
+| Turret | -1000 |
+
+Destroying Lucifer’s weapon systems weakens the boss **both tactically and structurally**, forcing a transition toward **Core exposure**.
+
+---
+
+### 🔄 Combat Phases
+
+| Phase | Condition | Effect |
+|---|---|---|
+| Phase 0 | Boss Appears | Core protected by armor |
+| Phase 1 | Cannons Destroyed | Core shield weakened |
+| Phase 2 | Turrets Destroyed | Core becomes fully vulnerable |
+| Phase 3 | HP < 7000 | **Wrath Portal** begins summoning enemies |
+
+---
+
+> **"Heaven sent you. Hell built this. Only one survives the Final Sin."**
 
 ---
 

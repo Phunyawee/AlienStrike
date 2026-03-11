@@ -43,16 +43,20 @@ function Check-BossSpawns {
     if ($isLuciferActive) { return }
 
     # 2. เงื่อนไขเรียก Lucifer (เมื่อฆ่า RealPride ครบ 2 ตัว)
-    if ($Script:realPrideDefeatedTotal -ge 2) {
-        if ($Script:luciferWarningTimer -eq 0) {
+    if ($Script:realPrideDefeatedTotal -ge 2 -and -not $isLuciferActive) {
+        if ($Script:luciferWarningTimer -le 0) {
+            # ล้างกระดานและเริ่มนับ 3 วิ
             $Script:enemies.Clear(); $Script:enemyBullets.Clear(); $Script:bullets.Clear()
-            $Script:luciferWarningTimer = 180 # เริ่มนับถอยหลัง 3 วิ
+            $Script:luciferWarningTimer = 180 
         }
+        
         if ($Script:luciferWarningTimer -gt 0) {
             $Script:luciferWarningTimer--
             if ($Script:luciferWarningTimer -eq 1) {
+                # เสก Lucifer
                 [void]$Script:enemies.Add([Lucifer]::new(200, -150, $Script:player))
-                $Script:realPrideDefeatedTotal = 0 # รีเซ็ตเพื่อไม่ให้เข้าเงื่อนไขซ้ำ
+                # [สำคัญ] รีเซ็ตยอดคิลเพื่อไม่ให้มันรัน Clear() ซ้ำซ้อนในเฟรมถัดไป
+                $Script:realPrideDefeatedTotal = 0 
             }
             return 
         }
@@ -197,29 +201,30 @@ function Handle-PostCollision ($collisionResult) {
 # --- ฟังก์ชันจัดการควบคุมผู้เล่น (ย้ายมาจากหน้าหลัก) ---
 # ==========================================
 function Handle-PlayerInput {
+    # 1. ลดเวลาสถานะ (Timer)
     if ($Script:sirenTimer -gt 0) { $Script:sirenTimer-- }
-    if ($Script:speedTimer -gt 0) { $Script:speedTimer-- } # ลดเวลาบัฟ Speed ตรงนี้ด้วย
+    if ($Script:speedTimer -gt 0) { $Script:speedTimer-- }
 
     $moveLeft = ($Script:keysPressed["A"] -or $Script:keysPressed["Left"])
     $moveRight = ($Script:keysPressed["D"] -or $Script:keysPressed["Right"])
 
-    # 1. คำนวณความเร็ว (ปกติ 8, บัฟ 16)
+    # 2. คำนวณความเร็ว (ปกติ 8, บัฟ 16)
     $currentSpeed = 8
     if ($Script:speedTimer -gt 0) { $currentSpeed = 16 }
 
-    # 2. คำนวณทิศทาง (ปกติ หรือ Siren)
+    # 3. คำนวณทิศทาง (ปกติ หรือ Siren)
     $direction = 0
     if ($moveLeft) { $direction = -1 }
     if ($moveRight) { $direction = 1 }
 
     if ($Script:sirenTimer -gt 0) { $direction *= -1 } # สลับทิศถ้าติด Siren
 
-    # 3. สั่งเคลื่อนที่ครั้งเดียวจบ!
+    # 4. สั่งเคลื่อนที่ด้วย Move($step) อย่างเดียว (ห้ามเรียก MoveLeft/Right!)
     if ($direction -ne 0) {
         $Script:player.Move($direction * $currentSpeed)
     }
 
-    # --- ส่วนยิงปืนและไอเทมเหมือนเดิม ---
+    # 5. การยิงปืนหลัก (W / Space)
     if ($Script:keysPressed["W"] -or $Script:keysPressed["Space"] -or $Script:keysPressed["Up"]) {
         if ($Script:silenceTimer -le 0 -and $Script:player.CanShoot()) {
             $px = $Script:player.X; $py = $Script:player.Y
@@ -232,13 +237,13 @@ function Handle-PlayerInput {
                 [void]$Script:bullets.Add([Bullet]::new($px + 4, $py, 0))
                 [void]$Script:bullets.Add([Bullet]::new($px + 20, $py, 0))
             } else {
-                [void]$Script:bullets.Add([Bullet]::new($px + 12, $py))
+                [void]$Script:bullets.Add([Bullet]::new($px + 7, $py))
             }
             $Script:player.ResetCooldown()
         }
     }
-
     
+    # 6. อัปเดต Cooldown (สำคัญมาก! ถ้าบรรทัดนี้ไม่ทำงาน จะยิงไม่ออก)
     $Script:player.Update()
 }
 

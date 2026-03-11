@@ -1,3 +1,60 @@
+## [4.0.0] - 2026-03-11
+### "The Fall of Lucifer"
+
+Version 4.0.0 marks a **major milestone**, introducing the game's **Final Encounter**.  
+Players now face **Lucifer**, the most complex boss ever created in AlienStrike, featuring **destructible parts, phase-based combat, and large-scale battlefield mechanics**.
+
+---
+
+## Version 4.0 Focus
+
+- **Multi-Part Boss Architecture** — Destructible boss components
+- **Phase Transition System** — Combat behavior evolves as damage is dealt
+- **Cinematic Visual Feedback** — Smooth HP bars and dimensional portal effects
+- **Strategic Combat Design** — Destroying boss parts directly damages the core
+
+---
+
+## ➕ Added
+
+### Final Boss: Lucifer (`Lucifer.ps1`)  
+**HP: 20,000**
+
+The largest and most complex enemy in the game. Lucifer is composed of **four destructible combat modules**:
+
+**Side Cannons (2x)**  
+- Fires **Fatal Beams**  
+- HP: 2000 each
+
+**Top Turrets (2x)**  
+- Fires **Armor-Piercing Projectiles (Speed 15)**  
+- HP: 400 each
+
+---
+
+### Destruction Feedback System
+
+Destroying Lucifer’s components immediately reduces the **main boss HP**:
+
+| Destroyed Part | Boss HP Reduction |
+|---|---|
+| Cannon | -4000 |
+| Turret | -1000 |
+
+---
+
+### Summoning Portal
+
+When Lucifer's HP drops below **7000**, a **Magenta Portal** opens, continuously summoning **Wrath-class enemies** to reinforce the battlefield.
+
+---
+
+### Approaching Warning System
+
+After defeating **RealPride**, the screen will flash red and display:
+
+
+
 ## [3.4.1] - 2026-03-11
 ### "The Arena Integrity Update"
 
@@ -32,6 +89,72 @@ Fixed a bug where **RealPride could be removed from the game** if the player die
 ---
 
 > **"The Gatekeeper doesn't leave until you're dead — or he's dust."**
+```
+!!! LUCIFER APPROACHING !!!
+```
+
+for **3 seconds**, signaling the arrival of the final boss.
+
+---
+
+## 🔄 Changed
+
+### Smooth HP Bar Overhaul
+The boss health bar now uses a **dual-layer display**:
+
+- **Red Bar** → Immediate damage
+- **White Bar** → Smooth delayed follow effect
+
+This creates a **cinematic damage visualization**.
+
+---
+
+### Shield Dynamics (Phase Lock)
+
+Lucifer's **Core remains shielded** until key components are destroyed:
+
+| Phase | Condition |
+|---|---|
+| Phase 0 | Core fully protected |
+| Phase 1 | Cannons destroyed |
+| Phase 2 | Turrets destroyed → Core vulnerable |
+
+---
+
+### Nuke Tactical Buff
+
+The **Nuke** now:
+
+- **Bypasses phase armor**
+- Deals **direct damage to Lucifer's Core**
+- Causes **massive AOE damage to surrounding parts**
+
+---
+
+### Arena Continuity
+
+Respawn rules during the **Final Boss Encounter**:
+
+- Player respawns instantly after death
+- Gains **3 seconds of Immortal status**
+- **Battlefield is not cleared**, ensuring uninterrupted combat.
+
+---
+
+## 🐞 Fixed
+
+### PointF Construction Error
+Resolved drawing coordinate issues in PowerShell by separating coordinate calculations from render calls.
+
+### Missile Phase Clipping
+Missiles now **explode on contact with boss components**, even if the component is currently in an invulnerable state.
+
+### Index Out of Range
+Prevented crashes caused by large simultaneous entity removal during **Nuke activations**.
+
+---
+
+> **"Heaven sent you. Hell built this. Only one survives the Final Sin."**
 
 
 

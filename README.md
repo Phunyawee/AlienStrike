@@ -6,6 +6,16 @@ This project demonstrates how Object-Oriented Programming (OOP) principles can b
 
 
 <details open>
+<summary><b>Version 4.0.0</b></summary>
+<br>
+
+| Start Screen | Gameplay | Leaderboard |
+|:---:|:---:|:---:|
+| <img src="./Images/v4/start_screen.png" width="250" alt="Start Screen"> | <img src="./Images/v4/gameplay.png" width="250" alt="Gameplay Action"> | <img src="./Images/v4/leaderboard.png" width="250" alt="High Scores"> |
+
+</details>
+
+<details>
 <summary><b>Version 3.0.0</b></summary>
 <br>
 
@@ -48,6 +58,16 @@ This project demonstrates how Object-Oriented Programming (OOP) principles can b
 | Envy | Weapon Jam | Offensive Suppression |
 | Pride | Hitscan Beam | Precision Strike |
 | RealPride | Absolute Annihilation | Fatal Execution / Enrage Timer |
+| Lucifer | Sovereign Domination | Destructible Multi-Phase Boss |
+
+| System | Type | Technical Description | HUD |
+|------|------|----------------------|------|
+| Defense Shield | Defensive Layer | Multi-layer hit negation (Max 400) | [D] |
+| Missile | Heavy Weapon | AOE projectile with piercing blast | [M] |
+| Laser | Precision Weapon | Continuous Hitscan beam (Tracks Player) | [L] |
+| Nuke | Ultimate Weapon | Global Field Wipe (Ignores Boss Armor) | [N] |
+| Wrath Buff | Combat Buff | 3-Stack Fire Rate Upgrade (Scatter) | [W] |
+| Immortal | Status Effect | 3s Damage Immunity (Post-Resurrection) | [I] |
 
 ## ⚠️ Note on Graphics
 **Current Version (v3.0.0):** 

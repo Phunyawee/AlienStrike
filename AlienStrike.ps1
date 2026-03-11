@@ -76,6 +76,7 @@ function Do-GameOver {
 
     $Script:speedTimer = 0  # ตัวนับเวลา Buff Speed
     $Script:realPrideDefeatedTotal = 0 # นับยอดคิลสะสมเพื่อจบเกม
+    $Script:luciferWarningTimer = 0  # เพิ่มบรรทัดนี้ใน Do-GameOver
 
     # --- RESET GAME OBJECTS ---
     # สร้าง Player ใหม่ที่จุดเริ่มต้น
@@ -160,7 +161,6 @@ $Script:speedTimer = 0  # ตัวนับเวลา Buff Speed
 $Script:defenseHits = 0
 $Script:immortalTimer = 0  # ตัวนับเวลาสถานะอมตะ (I)
 $Script:realPrideDefeatedTotal = 0 # นับยอดคิลสะสมเพื่อจบเกม
-
 $Script:keysPressed = @{}
 
 # --- 4. Input Handling ---
@@ -281,6 +281,14 @@ $timer.Add_Tick({
     # --- B. Spawn Enemies (ศัตรูธรรมดา) ---
     $isGluttonyOut = ($Script:enemies | Where-Object { $_.GetType().Name -eq "Gluttony" }).Count -gt 0
     $hasGreed = ($Script:enemies | Where-Object { $_.GetType().Name -eq "Greed" }).Count -gt 0
+
+    $isLuciferActive = ($Script:enemies | Where-Object { $_.GetType().Name -eq "Lucifer" }).Count -gt 0
+    # เพิ่ม -and -not $isLuciferActive
+    if (-not $isGluttonyOut -and -not $hasGreed -and -not $isLuciferActive -and $Script:enemies.Count -lt 20) {
+        if ($Script:rnd.Next(0, 100) -lt $Script:spawnRate) {
+            [void]$Script:enemies.Add((New-EnemySpawn 500 $Script:level $Script:rnd))
+        }
+    }
 
     # ถ้ามี Gluttony หรือ Greed อยู่ในสนาม ลูกกระจ๊อกจะไม่เกิด
     if (-not $isGluttonyOut -and -not $hasGreed -and $Script:enemies.Count -lt 20) {
