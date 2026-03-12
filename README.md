@@ -11,11 +11,7 @@ This project demonstrates how Object-Oriented Programming (OOP) principles can b
 
 | Start Screen | Gameplay | Leaderboard |
 |:---:|:---:|:---:|
-<<<<<<< HEAD
-| <img src="./Images/v4/start_screen.png" width="250" alt="Start Screen"> | <video src="https://github.com/Phunyawee/AlienStrike/blob/main/Images/v4/gameplay.mov" width="250" controls> | <img src="./Images/v4/leaderboard.png" width="250" alt="High Scores"> |
-=======
 | <img src="./Images/v4/start_screen.png" width="250" alt="Start Screen"> | <img src="./Images/v4/gameplay.png" width="250" alt="Gameplay Action"> | <img src="./Images/v4/leaderboard.png" width="250" alt="High Scores"> |
->>>>>>> parent of a7f14e9 (update readme)
 
 </details>
 
