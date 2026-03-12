@@ -1,3 +1,67 @@
+## [4.1.2] - 2026-03-12
+### "The Smart Kernel Update"
+
+This update introduces a **major improvement to the engine's dependency management system**, preparing the architecture for future expansion.  
+The manual file-loading approach has been replaced with a **Smart Auto-Loader kernel** capable of dynamically discovering and loading game modules.
+
+---
+
+## 🔄 Changed
+
+### Kernel Architecture Overhaul
+
+Replaced the traditional **manual Dot-Sourcing file loading** with a **Smart Auto-Loader system**.
+
+The new kernel automatically scans the **`src` directory** and loads all required game modules, including:
+
+- Enemy classes
+- Boss entities
+- Weapon systems
+- Supporting engine components
+
+This significantly simplifies development and allows **new content to be added without modifying the core loader**.
+
+---
+
+### Inheritance Priority System
+
+Implemented a **class loading priority structure** to ensure stable PowerShell class resolution.
+
+| Load Priority | Description |
+|---|---|
+| Base Classes | Core engine and parent classes |
+| Entity Classes | Enemies, bosses, and gameplay objects |
+| Derived Classes | Specialized or inherited implementations |
+
+This prevents **TypeNotFound errors** caused by child classes loading before their parent definitions.
+
+---
+
+## 🐞 Fixed
+
+### Type Resolution Errors
+
+Resolved multiple **PowerShell 5.1 parser errors** where class types were not recognized during the loading stage.
+
+A **multi-pass loading strategy** is now used to guarantee that dependencies are resolved before execution.
+
+---
+
+### Circular Reference Protection
+
+Added **HashSet-based dependency tracking** to prevent duplicate loading when files are referenced through both:
+
+- Explicit file paths
+- Wildcard imports
+
+This ensures the loader avoids **circular references and redundant class initialization**.
+
+---
+
+> **"The core is now autonomous. Add a Sin, add a weapon—the engine will find them."**
+
+
+
 ## [4.1.1] - 2026-03-12
 ### "The Celestial Rings Update"
 

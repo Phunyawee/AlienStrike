@@ -4,48 +4,46 @@ $ErrorActionPreference = "Stop"
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-# --- 1. Load Classes ---
-. "$PSScriptRoot\src\Entities\GameObject.ps1"
-. "$PSScriptRoot\src\Entities\Player.ps1"
-. "$PSScriptRoot\src\Entities\Projectiles\Bullet.ps1"
-. "$PSScriptRoot\src\Entities\Projectiles\EnemyBullet.ps1" 
-. "$PSScriptRoot\src\Entities\Enemy.ps1"
+# --- 1. Smart Auto-Loader (v4.1.2: Strict Dependency Loading) ---
 
-# --- 1.0 Load New Enemy Types (ต้องเพิ่มตรงนี้ครับ!) ---
-. "$PSScriptRoot\src\Entities\Enemies\BaseEnemy.ps1"
-. "$PSScriptRoot\src\Entities\Enemies\Sins\Wrath.ps1"
-. "$PSScriptRoot\src\Entities\Projectiles\SilenceBullet.ps1" 
-. "$PSScriptRoot\src\Entities\Enemies\Sins\Envy.ps1"
-. "$PSScriptRoot\src\Entities\Projectiles\PrideLaser.ps1" 
-. "$PSScriptRoot\src\Entities\Enemies\Sins\Pride.ps1"
-. "$PSScriptRoot\src\Entities\Projectiles\Missile.ps1"
-. "$PSScriptRoot\src\Entities\Projectiles\SirenBullet.ps1" 
-. "$PSScriptRoot\src\Entities\Enemies\Sins\Lust.ps1"
-. "$PSScriptRoot\src\Entities\Projectiles\SlothBomb.ps1" 
-. "$PSScriptRoot\src\Entities\Enemies\Sins\Sloth.ps1"
-. "$PSScriptRoot\src\Entities\Projectiles\GreedArrow.ps1" 
-. "$PSScriptRoot\src\Entities\Enemies\Sins\Greed.ps1"
-. "$PSScriptRoot\src\Entities\Projectiles\PlayerLaser.ps1" 
-. "$PSScriptRoot\src\Entities\Projectiles\GluttonyBlast.ps1"
-. "$PSScriptRoot\src\Entities\Projectiles\Nuke.ps1"
-. "$PSScriptRoot\src\Entities\Enemies\Sins\Gluttony.ps1"
+# กำหนดลำดับการโหลดตาม "ความต้องการ" ของแต่ละ Class
+$LoadOrder = @(
+    "src\Entities\GameObject.ps1",           # 1. รากฐานสูงสุด
+    "src\Entities\Projectiles\Bullet.ps1",   # 2. กระสุนแม่
+    "src\Entities\Projectiles\EnemyBullet.ps1",
+    "src\Entities\Projectiles\*.ps1",       # 3. กระสุนลูกทุกชนิด (ต้องโหลดก่อนบอสที่ยิงมัน)
+    "src\Entities\Enemies\BaseEnemy.ps1",    # 4. ศัตรูแม่
+    "src\Entities\Player.ps1",               # 5. ผู้เล่น
+    "src\Entities\*.ps1",                    # 6. คลาสเสริม (DefenseDrop)
+    "src\Entities\Enemies\Sins\LuciferPart.ps1", # 7. ชิ้นส่วนบอส (ต้องโหลดก่อนตัวบอสใหญ่)
+    "src\Entities\Enemies\Sins\Wrath.ps1",       # 8. บอสที่ถูกบอสอื่นเรียกใช้
+    "src\Entities\Enemies\Sins\*.ps1",           # 9. บอสที่เหลือทั้งหมด
+    "src\Managers\*.ps1"                         # 10. ตัวจัดการ (โหลดหลังสุด)
+)
 
+$LoadedFiles = New-Object System.Collections.Generic.HashSet[string]
 
-. "$PSScriptRoot\src\Entities\Projectiles\SovereignPulse.ps1"
-. "$PSScriptRoot\src\Entities\Projectiles\CataclysmWave.ps1"
-. "$PSScriptRoot\src\Entities\Projectiles\HolyBomb.ps1"
-. "$PSScriptRoot\src\Entities\Enemies\Sins\RealPride.ps1"
+foreach ($pattern in $LoadOrder) {
+    $targetPath = Join-Path $PSScriptRoot $pattern
+    
+    # ดึงไฟล์ตาม Pattern และเรียงลำดับให้แน่นอน
+    Get-ChildItem -Path $targetPath -ErrorAction SilentlyContinue | Sort-Object Name | ForEach-Object {
+        if (-not $LoadedFiles.Contains($_.FullName)) {
+            try {
+                . $_.FullName
+                [void]$LoadedFiles.Add($_.FullName)
+            } catch {
+                Write-Warning "Failed to load: $($_.Name). Dependency might be missing."
+            }
+        }
+    }
+}
 
-. "$PSScriptRoot\src\Entities\Enemies\Sins\LuciferPart.ps1"
-. "$PSScriptRoot\src\Entities\Enemies\Sins\Lucifer.ps1"
-
-. "$PSScriptRoot\src\Entities\DefenseDrop.ps1" # <--- เพิ่มบรรทัดนี้
-
-# --- 1.1 Load Managers (New) ---
-. "$PSScriptRoot\src\Managers\HighScoreManager.ps1"
-. "$PSScriptRoot\src\Managers\GameLogic.ps1" 
-. "$PSScriptRoot\src\Managers\CollisionManager.ps1" 
-. "$PSScriptRoot\src\Managers\RenderManager.ps1"
+# ตรวจสอบความพร้อม (Critical Check)
+if (!(Get-Command "Get-GameDifficulty" -ErrorAction SilentlyContinue)) {
+    Write-Error "Critical Managers failed to load. Check folder structure!"
+    exit
+}
 
 # --- Helper Functions: Score System ---
 $scoreFile = "$PSScriptRoot\scores.json"
