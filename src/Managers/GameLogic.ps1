@@ -1,6 +1,5 @@
 # AlienStrike\src\GameLogic.ps1
-# --- ฟังก์ชันเพิ่มไอเทมเข้ากระเป๋าแบบจัดกลุ่ม ---
-# --- ฟังก์ชันเพิ่มไอเทมเข้ากระเป๋าแบบจัดกลุ่ม ---
+# ฟังก์ชันเพิ่มไอเทมเข้ากระเป๋าแบบจัดกลุ่ม
 function Add-To-Inventory ($itemType) {
     $lastIdx = -1
     for ($i = 0; $i -lt $Script:inventory.Count; $i++) {
@@ -10,6 +9,19 @@ function Add-To-Inventory ($itemType) {
     else { [void]$Script:inventory.Add($itemType) }
 }
 
+# [NEW] ระบบสุ่มดรอปไอเทม D (เพิ่มโล่ 5) ทุกๆ 15 วินาที
+function Check-ItemDrops {
+    $Script:itemDropTimer++
+    if ($Script:itemDropTimer -ge 900) { # 900 เฟรม = 15 วินาที
+        $Script:itemDropTimer = 0
+        $rx = $Script:rnd.Next(50, 450)
+        # ตรวจสอบว่าลิสต์ items ถูกประกาศไว้ใน AlienStrike.ps1 หรือยัง
+        if ($null -ne $Script:items) {
+            [void]$Script:items.Add([DefenseDrop]::new($rx, -50))
+            Write-Host ">>> DEFENSE CARGO DETECTED! <<<" -ForegroundColor Cyan
+        }
+    }
+}
 # --- คำนวณความยาก (Optimised) ---
 function Get-GameDifficulty ($currentScore) {
     $calculatedLevel = [math]::Floor([math]::Sqrt($currentScore / 750)) + 1
@@ -48,6 +60,7 @@ function Check-BossSpawns {
             # ล้างกระดานและเริ่มนับ 3 วิ
             $Script:enemies.Clear(); $Script:enemyBullets.Clear(); $Script:bullets.Clear()
             $Script:luciferWarningTimer = 180 
+            Write-Host "!!! WARNING: UNKNOWN ENTITY APPROACHING !!!" -ForegroundColor Red
         }
         
         if ($Script:luciferWarningTimer -gt 0) {
@@ -57,6 +70,7 @@ function Check-BossSpawns {
                 [void]$Script:enemies.Add([Lucifer]::new(200, -150, $Script:player))
                 # [สำคัญ] รีเซ็ตยอดคิลเพื่อไม่ให้มันรัน Clear() ซ้ำซ้อนในเฟรมถัดไป
                 $Script:realPrideDefeatedTotal = 0 
+                Write-Host ">>> LUCIFER HAS ARRIVED <<<" -ForegroundColor Magenta
             }
             return 
         }
@@ -127,15 +141,32 @@ function Handle-PostCollision ($collisionResult) {
 
     $isLuciferActive = ($Script:enemies | Where-Object { $_.GetType().Name -eq "Lucifer" }).Count -gt 0
 
-    # รางวัลพิเศษในสนาม Lucifer
-    if ($collisionResult.WrathKills -gt 0 -and $isLuciferActive) {
-        for ($i=0;$i-lt $collisionResult.WrathKills;$i++) {
-            1..5 | ForEach-Object { Add-To-Inventory "Laser"; Add-To-Inventory "Missile" }
+    # Wrath Stack System
+    if ($collisionResult.WrathKills -gt 0 -and $Script:wrathBuffLevel -lt 2) {
+        for ($k = 0; $k -lt $collisionResult.WrathKills; $k++) {
+            $Script:wrathStackCount++
+            if ($Script:wrathStackCount -ge 3) { $Script:wrathBuffLevel = 2; $Script:wrathBuffTimer = 840; $Script:wrathStackCount = 0 }
+            else { $Script:wrathBuffLevel = 1; $Script:wrathBuffTimer = 420 }
         }
     }
+    # รางวัลพิเศษในสนาม Lucifer
+    
 
+    if ($collisionResult.WrathKills -gt 0 -and $isLuciferActive) {
+        for ($i=0; $i -lt $collisionResult.WrathKills; $i++) {
+            # รางวัลปกติ
+            1..5 | ForEach-Object {Add-To-Inventory "Laser"}
+            1..5 | ForEach-Object {Add-To-Inventory "Missile"}
+            
+            # --- [NEW] โอกาส 5% ดรอป Holy Bomb ---
+            if ($Script:rnd.Next(1, 101) -le 5) {
+                Add-To-Inventory "HolyBomb"
+                Write-Host ">>> HOLY BOMB ACQUIRED! DEPLOY TO WEAKEN LUCIFER! <<<" -ForegroundColor White
+            }
+        }
+    }
     if ($collisionResult.GluttonyKills -gt 0) {
-        Add-To-Inventory "Nuke"
+        1..1 | ForEach-Object {Add-To-Inventory "Nuke"}
         $Script:totalGluttonyKills += $collisionResult.GluttonyKills
         Write-Host "Gluttony Defeated. RealPride Progress: $Script:totalGluttonyKills / 3" -ForegroundColor Magenta
     }
@@ -153,14 +184,14 @@ function Handle-PostCollision ($collisionResult) {
     if ($collisionResult.GreedKills -gt 0) { $Script:defenseHits += (10 * $collisionResult.GreedKills) }
     if ($collisionResult.PrideKilled) { $Script:prideKills++ }
 
-    # Wrath Stack System
-    if ($collisionResult.WrathKills -gt 0 -and $Script:wrathBuffLevel -lt 2) {
-        for ($k = 0; $k -lt $collisionResult.WrathKills; $k++) {
-            $Script:wrathStackCount++
-            if ($Script:wrathStackCount -ge 3) { $Script:wrathBuffLevel = 2; $Script:wrathBuffTimer = 840; $Script:wrathStackCount = 0 }
-            else { $Script:wrathBuffLevel = 1; $Script:wrathBuffTimer = 420 }
-        }
+    if ($collisionResult.LuciferKilled) {
+        # เริ่มตัวนับเวลาประกาศชัยชนะ (180 เฟรม = 3 วินาที)
+        $Script:victoryTimer = 180 
+        $Script:isLuciferDead = $true
+        Write-Host ">>> LUCIFER DESTROYED! <<<" -ForegroundColor Green
+        return $true 
     }
+
 
     # จัดการ Timers
     if ($Script:immortalTimer -gt 0) { $Script:immortalTimer-- }
@@ -326,3 +357,48 @@ function Get-UIStatus {
     return @{ Buffs = $activeBuffs; Debuffs = $activeDebuffs }
 }
 
+
+# ระบบสุ่มดรอปไอเทมป้องกัน (Defense D) เฉพาะช่วงวิกฤตของ Lucifer
+function Check-ItemDrops {
+    # 1. หาตัวบอส Lucifer ในสนาม
+    $lucifer = $Script:enemies | Where-Object { $_.GetType().Name -eq "Lucifer" } | Select-Object -First 1
+
+    # 2. เช็คเงื่อนไข: ต้องมี Lucifer และเลือดต้องต่ำกว่า 9000
+    if ($lucifer -and $lucifer.HP -lt 9000) {
+        $Script:itemDropTimer++
+        
+        # ทุกๆ 15 วินาที (900 เฟรม)
+        if ($Script:itemDropTimer -ge 900) {
+            $Script:itemDropTimer = 0
+            $rx = $Script:rnd.Next(50, 450)
+            
+            if ($null -ne $Script:items) {
+                [void]$Script:items.Add([DefenseDrop]::new($rx, -50))
+                Write-Host ">>> LUCIFER CRITICAL PHASE: EMERGENCY DEFENSE DROPPED! <<<" -ForegroundColor Cyan
+            }
+        }
+    } else {
+        # ถ้าบอสยังเลือดเยอะ หรือบอสยังไม่ออก ให้รีเซ็ต Timer ไว้ที่ 0 เสมอ
+        $Script:itemDropTimer = 0
+    }
+}
+
+
+# [TEST MODE] ระบบดรอปไอเทม D
+# function Check-ItemDrops {
+#     # บังคับให้ทำงานตลอดเวลาสำหรับทดสอบ
+#     if ($true) { 
+#         $Script:itemDropTimer++
+        
+#         # ปรับเหลือ 120 เฟรม (ประมาณ 2 วินาที) เพื่อให้เทสง่าย
+#         if ($Script:itemDropTimer -ge 120) {
+#             $Script:itemDropTimer = 0
+#             $rx = $Script:rnd.Next(50, 450)
+            
+#             if ($null -ne $Script:items) {
+#                 [void]$Script:items.Add([DefenseDrop]::new($rx, -50))
+#                 Write-Host ">>> TEST DROP: DEFENSE D <<<" -ForegroundColor Cyan
+#             }
+#         }
+#     }
+# }

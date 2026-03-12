@@ -110,7 +110,14 @@ function Draw-HUD ($g, $score, $level, $lives, $inventory, $buffs, $debuffs, $ta
         
         # ถ้ามีเกราะ (Armor < 1000 HP) วาดกรอบสีฟ้าครอบ
         if ($lucifer.ArmorHP -gt 0) {
-            $g.DrawRectangle([System.Drawing.Pen]::new([System.Drawing.Color]::Cyan, 3), ($barX - 2), ($barY - 2), ($barW + 4), 18)
+            # คำนวณความกว้างหลอดฟ้า (เต็มที่ 1000)
+            $armorW = ($lucifer.ArmorHP / 1000) * $barW
+            # วาดหลอดสีฟ้าสว่าง
+            $g.FillRectangle([System.Drawing.Brushes]::DeepSkyBlue, $barX, $barY, $armorW, 14)
+            # วาดกรอบสี Cyan ให้รู้ว่าเป็นเกราะพิเศษ
+            $g.DrawRectangle([System.Drawing.Pen]::new([System.Drawing.Color]::Cyan, 2), $barX, $barY, $barW, 14)
+            
+            $g.DrawString("ARMOR ACTIVE", $fontSmall, [System.Drawing.Brushes]::Cyan, $barX + 150, $barY + 18)
         }
         $g.DrawString("LUCIFER - THE FALLEN", $fontSmall, [System.Drawing.Brushes]::White, $barX, ($barY + 18))
     }
@@ -125,10 +132,12 @@ function Draw-HUD ($g, $score, $level, $lives, $inventory, $buffs, $debuffs, $ta
         $activeBrush = [System.Drawing.Brushes]::DarkCyan
         if ($activeType -eq "Laser") { $activeBrush = [System.Drawing.Brushes]::LimeGreen }
         elseif ($activeType -eq "Nuke") { $activeBrush = [System.Drawing.Brushes]::OrangeRed }
+        elseif ($activeType -eq "HolyBomb") { [System.Drawing.Brushes]::White } # สีขาวสำหรับ H
+        else { [System.Drawing.Brushes]::DarkCyan }
 
         $g.FillRectangle($activeBrush, $rect)
         $g.DrawRectangle([System.Drawing.Pen]::new([System.Drawing.Color]::White, 2), $rect)
-        $txt = if ($activeType -eq "Laser") { "L" } elseif ($activeType -eq "Nuke") { "N" } else { "M" }
+        $txt = if ($activeType -eq "Laser") { "L" } elseif ($activeType -eq "Nuke") { "N" } elseif ($activeType -eq "HolyBomb") { "H" } else { "M" }
         $g.DrawString($txt, $fontLarge, [System.Drawing.Brushes]::White, ($sidebarX + 27), ($invY + 31))
         $g.DrawString("x$count", $fontLarge, [System.Drawing.Brushes]::Yellow, ($sidebarX + 70), ($invY + 31))
     }
@@ -206,4 +215,106 @@ function Draw-Gameplay ($g, $player, $bullets, $enemies, $enemyBullets, $score, 
 
     # 4. วาด HUD
     Draw-HUD $g $score $level $lives $inventory $buffs $debuffs $targetScore $enemies
+}
+
+# --- ระบบพื้นหลังอวกาศ ---
+function Draw-Background ($g, $width, $height, $level) {
+    # 1. วาดดวงดาวระยิบระยับ (Starfield)
+    # ใช้ Ticks ในการทำให้ดาวเคลื่อนที่แบบนุ่มนวล
+    $time = [DateTime]::Now.Ticks / 1000000
+    for ($i = 0; $i -lt 50; $i++) {
+        $starX = ($i * 137.5) % 500 # กระจายดาวในพื้นที่เล่น (0-500)
+        $starY = ($i * 200 + $time * (2 + $i % 3)) % 600 # ดาวแต่ละดวงเร็วไม่เท่ากัน (Parallax)
+        
+        $starSize = if ($i % 10 -eq 0) { 3 } else { 1 }
+        $g.FillEllipse([System.Drawing.Brushes]::White, [float]$starX, [float]$starY, [float]$starSize, [float]$starSize)
+    }
+
+    # 2. ระบบดาวเคราะห์ (สุ่มเกิดทุก 10 เลเวล)
+    if ($level % 10 -eq 0 -and $Script:planets.Count -eq 0) {
+        $randomColor = @([System.Drawing.Color]::DarkSlateBlue, [System.Drawing.Color]::Sienna, [System.Drawing.Color]::DarkOliveGreen, [System.Drawing.Color]::Maroon)
+        $planet = [PSCustomObject]@{
+            X = [float]($Script:rnd.Next(50, 350))
+            Y = -250.0
+            Size = [float]($Script:rnd.Next(100, 200))
+            Color = $randomColor[$Script:rnd.Next(0, $randomColor.Count)]
+        }
+        [void]$Script:planets.Add($planet)
+    }
+
+    # วาดและเคลื่อนที่ดาวเคราะห์
+    for ($i = $Script:planets.Count - 1; $i -ge 0; $i--) {
+        $p = $Script:planets[$i]
+        $p.Y += 0.3 # ดาวเลื่อนลงมาช้ามากกก เพื่อไม่ให้กวนสายตา
+        
+        $pBrush = New-Object System.Drawing.SolidBrush($p.Color)
+        $g.FillEllipse($pBrush, $p.X, $p.Y, $p.Size, $p.Size)
+        
+        # เพิ่มเงาด้านข้างดาวเคราะห์ให้ดูมีมิติ
+        $shadowPen = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(100, 0, 0, 0), 10)
+        $g.DrawArc($shadowPen, $p.X, $p.Y, $p.Size, $p.Size, 0, 360)
+
+        # ลบเมื่อพ้นจอ
+        if ($p.Y -gt 700) { $Script:planets.RemoveAt($i) }
+    }
+}
+
+
+
+function Draw-Credits ($g, $width, $height) {
+    # 1. ถมพื้นหลังสีดำโปร่งแสงทับหน้าจอ
+    $overlay = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(200, 0, 0, 0))
+    $g.FillRectangle($overlay, 0, 0, $width, $height)
+
+    $titleF = New-Object System.Drawing.Font("Impact", 40, [System.Drawing.FontStyle]::Bold)
+    $textF = New-Object System.Drawing.Font("Consolas", 14, [System.Drawing.FontStyle]::Bold)
+    $center = New-Object System.Drawing.StringFormat; $center.Alignment = "Center"
+
+    # 2. ป้ายประกาศชัยชนะ
+    $bannerW = 600
+    $bannerH = 120
+    $bannerX = ($width - $bannerW) / 2
+    $bannerY = 200
+
+    $g.FillRectangle([System.Drawing.Brushes]::DarkBlue, $bannerX, $bannerY, $bannerW, $bannerH)
+    $g.DrawRectangle([System.Drawing.Pen]::new([System.Drawing.Color]::Gold, 4), $bannerX, $bannerY, $bannerW, $bannerH)
+    
+    $g.DrawString("LUCIFER DESTROYED", $titleF, [System.Drawing.Brushes]::Yellow, ($width/2), ($bannerY + 15), $center)
+    $g.DrawString("THE AGE OF SIN IS OVER", $textF, [System.Drawing.Brushes]::Cyan, ($width/2), ($bannerY + 75), $center)
+
+    # 3. ตัวหนังสือเครดิต
+    if ($Script:showCredits) {
+        $lines = @(
+            "", "", "", "", "", "", "",
+            "--- MISSION COMPLETE ---",
+            "GALAXY STATUS: RESTORED",
+            "",
+            "--- CREDITS ---",
+            "LEAD ARCHITECT: YOU",
+            "SYSTEM ADVISOR: AI ASSISTANT",
+            "",
+            "--- ENGINE ---",
+            "POWERSHELL GAME CORE 4.1",
+            "",
+            "THANK YOU FOR PLAYING!",
+            ""
+        )
+
+        $Script:creditY -= 0.7 
+        $currentY = $Script:creditY
+
+        foreach ($line in $lines) {
+            # แก้ไข operators ที่นี่
+            if ($currentY -gt ($bannerY + $bannerH) -or $currentY -lt $bannerY) {
+                $brush = if ($line -match "---") { [System.Drawing.Brushes]::Yellow } else { [System.Drawing.Brushes]::White }
+                $g.DrawString($line, $textF, $brush, ($width/2), $currentY, $center)
+            }
+            $currentY += 40
+        }
+
+        # 4. ปุ่ม Enter to Continue (กะพริบ)
+        if (([DateTime]::Now.Millisecond % 1000) -gt 500) {
+            $g.DrawString("- PRESS [ENTER] TO CONTINUE -", $textF, [System.Drawing.Brushes]::Lime, ($width/2), 540, $center)
+        }
+    }
 }

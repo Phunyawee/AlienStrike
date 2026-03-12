@@ -33,11 +33,13 @@ Add-Type -AssemblyName System.Drawing
 
 . "$PSScriptRoot\src\Entities\Projectiles\SovereignPulse.ps1"
 . "$PSScriptRoot\src\Entities\Projectiles\CataclysmWave.ps1"
+. "$PSScriptRoot\src\Entities\Projectiles\HolyBomb.ps1"
 . "$PSScriptRoot\src\Entities\Enemies\Sins\RealPride.ps1"
 
 . "$PSScriptRoot\src\Entities\Enemies\Sins\LuciferPart.ps1"
 . "$PSScriptRoot\src\Entities\Enemies\Sins\Lucifer.ps1"
 
+. "$PSScriptRoot\src\Entities\DefenseDrop.ps1" # <--- เพิ่มบรรทัดนี้
 
 # --- 1.1 Load Managers (New) ---
 . "$PSScriptRoot\src\Managers\HighScoreManager.ps1"
@@ -77,6 +79,16 @@ function Do-GameOver {
     $Script:speedTimer = 0  # ตัวนับเวลา Buff Speed
     $Script:realPrideDefeatedTotal = 0 # นับยอดคิลสะสมเพื่อจบเกม
     $Script:luciferWarningTimer = 0  # เพิ่มบรรทัดนี้ใน Do-GameOver
+
+    $Script:items.Clear()
+    $Script:itemDropTimer = 0
+    $Script:isCataclysmIncoming = $false
+
+    $Script:isLuciferDead = $false
+    $Script:victoryTimer = 0
+    $Script:showCredits = $false
+    $Script:creditY = 600.0
+
 
     # --- RESET GAME OBJECTS ---
     # สร้าง Player ใหม่ที่จุดเริ่มต้น
@@ -163,6 +175,15 @@ $Script:immortalTimer = 0  # ตัวนับเวลาสถานะอม
 $Script:realPrideDefeatedTotal = 0 # นับยอดคิลสะสมเพื่อจบเกม
 $Script:keysPressed = @{}
 
+$Script:items = [System.Collections.ArrayList]::new()
+$Script:itemDropTimer = 0
+$Script:isCataclysmIncoming = $false # สำหรับป้ายเตือน Cataclysm
+$Script:planets = [System.Collections.ArrayList]::new() # สำหรับพื้นหลังอวกาศ
+$Script:isLuciferDead = $false
+$Script:victoryTimer = 0
+$Script:showCredits = $false # สำหรับ End Credit
+$Script:creditY = 600.0
+
 # --- 4. Input Handling ---
 $form.KeyPreview = $true 
 $form.Add_KeyDown({
@@ -218,6 +239,10 @@ $form.Add_KeyDown({
                 # เสียงระเบิดเตือน
                 [System.Media.SystemSounds]::Hand.Play()
             }
+            elseif ($activeItem -eq "HolyBomb") {
+                [void]$Script:bullets.Add([HolyBomb]::new($Script:player.X + 5, $Script:player.Y))
+                $Script:inventory.RemoveAt(0)
+            }
         }
     }
 
@@ -231,8 +256,20 @@ $form.Add_KeyDown({
 
      # กด Enter
     if ($_.KeyCode -eq "Enter") {
+        if ($Script:showCredits) {
+            $Script:showCredits = $false
+            # ล้างสนามรบทั้งหมดก่อนไปหน้ากรอกชื่อ (เพื่อให้เริ่มลูปใหม่ได้สะอาด)
+            $Script:enemies.Clear()
+            $Script:enemyBullets.Clear()
+            $Script:bullets.Clear()
+            $Script:realPrideDefeatedTotal = 0
+            $Script:totalGluttonyKills = 0
+            
+            Do-GameOver # ไปหน้ากรอกชื่อและ Leaderboard
+            return
+        }
         # กรณี 1: ถ้าดู Leaderboard อยู่ -> ให้กลับไปหน้า Start Screen
-        if ($Script:showLeaderboard) {
+        elseif ($Script:showLeaderboard) {
             $Script:showLeaderboard = $false
             $Script:gameStarted = $false
             $Script:gameOver = $false
@@ -264,6 +301,18 @@ $timer = New-Object System.Windows.Forms.Timer
 $timer.Interval = 16 # ~60 FPS
 
 $timer.Add_Tick({
+    # ถ้าปราบ Lucifer ได้แล้ว
+    if ($Script:isLuciferDead) {
+        if ($Script:victoryTimer -gt 0) {
+            $Script:victoryTimer--
+            if ($Script:victoryTimer -le 0) { 
+                $Script:showCredits = $true # จบ 3 วิแล้วค่อยเปิดเครดิต
+            }
+        }
+        $form.Invalidate() # สั่งวาดหน้าจอต่อไปเรื่อยๆ เพื่อให้เครดิตเลื่อน
+        return # ออกจาก Loop ตรงนี้เลย (ศัตรูและกระสุนจะหยุดนิ่งค้างสนาม)
+    }
+
     if (-not $Script:gameStarted -or $Script:gameOver) { return }
 
     # --- A. Update Difficulty ---
@@ -274,6 +323,8 @@ $timer.Add_Tick({
 
     # --- เช็คการเกิดของบอสพิเศษ (Lust / Pride) ---
     Check-BossSpawns
+
+    Check-ItemDrops
 
     # --- ควบคุมผู้เล่น ---
     Handle-PlayerInput
@@ -296,6 +347,14 @@ $timer.Add_Tick({
             [void]$Script:enemies.Add((New-EnemySpawn 500 $Script:level $Script:rnd))
         }
     }
+
+     # --- [เพิ่ม] อัปเดตตำแหน่งไอเทมที่ดรอป ---
+    for ($i = $Script:items.Count - 1; $i -ge 0; $i--) {
+        $it = $Script:items[$i]
+        $it.Update()
+        if ($it.Y -gt 650) { $Script:items.RemoveAt($i) }
+    }
+
 
     # --- C. Update Bullets ---
     for ($i = $Script:bullets.Count - 1; $i -ge 0; $i--) {
@@ -336,7 +395,7 @@ $timer.Add_Tick({
     foreach ($eb in $Script:enemyBullets) { $eb.Update() }
 
     # --- E. Handle Collisions ---
-    $collisionResult = Invoke-GameCollisions $Script:player $Script:bullets $Script:enemies $Script:enemyBullets $form.ClientSize.Height
+     $collisionResult = Invoke-GameCollisions $Script:player $Script:bullets $Script:enemies $Script:enemyBullets $form.ClientSize.Height $Script:items
 
     # --- F. จัดการสถานะหลังการชน ---
     # ถ้าฟังก์ชันคืนค่า $true แปลว่าเลือดหมด ให้หยุดทำ Loop นี้ทันที (เหมือนคำสั่ง return เดิมของคุณ)
@@ -354,6 +413,15 @@ $form.Add_Paint({
         $g.TextRenderingHint = "AntiAlias"
         $g.Clear([System.Drawing.Color]::Black)
 
+        # --- [เพิ่ม] วาดพื้นหลังอวกาศ (Layer ล่างสุด) ---
+        Draw-Background $g $form.Width $form.Height $Script:level
+
+        if ($Script:showCredits) {
+            Draw-Credits $g $form.Width $form.Height
+            $form.Invalidate() # บังคับให้วาดซ้ำเรื่อยๆ เพื่อให้ตัวหนังสือเลื่อน (Scrolling)
+            return
+        }
+
         if ($Script:showLeaderboard) {
             Draw-Leaderboard $g $form.Width $form.Height
             return
@@ -363,6 +431,21 @@ $form.Add_Paint({
             Draw-StartScreen $g $form.Width $form.Height
             return
         }
+
+        # --- [เพิ่ม] วาดไอเทม D ที่กำลังร่วงลงมา ---
+        foreach ($it in $Script:items) { $it.Draw($g) }
+
+        # --- [เพิ่ม] ป้ายเตือน Cataclysm Incoming (RealPride) ---
+        if ($Script:isCataclysmIncoming) {
+            $warnFont = New-Object System.Drawing.Font("Impact", 20)
+            if (([DateTime]::Now.Millisecond % 500) -lt 250) { # กะพริบ
+                $g.DrawString("!!! CATACLYSM INCOMING !!!", $warnFont, [System.Drawing.Brushes]::OrangeRed, 130, 150)
+                # วาดกรอบสีแดงกะพริบรอบสนามรบ
+                $g.DrawRectangle([System.Drawing.Pen]::new([System.Drawing.Color]::Red, 5), 5, 5, 490, 590)
+            }
+        }
+
+    
 
         # --- เรียกใช้ฟังก์ชันดึงค่า UI แทนโค้ดยาวๆ ---
         $uiStatus = Get-UIStatus

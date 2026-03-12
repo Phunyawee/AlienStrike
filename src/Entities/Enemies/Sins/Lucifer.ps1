@@ -7,6 +7,7 @@ class Lucifer : BaseEnemy {
     [System.Collections.ArrayList]$Parts
     [int]$Phase = 0 
     [bool]$PlayerLocked = $false
+    [bool]$ArmorActivated = $false # <--- [เพิ่มตัวแปรล็อค]
     hidden [Object]$PlayerRef
 
     Lucifer([float]$x, [float]$y, [Object]$player) 
@@ -54,7 +55,11 @@ class Lucifer : BaseEnemy {
         }
         if ($this.Phase -ge 1 -and [math]::Abs(($this.X + 50.0) - $px) -lt 25) { $this.PlayerLocked = $true }
 
-        if ($this.HP -lt 1000 -and $this.ArmorHP -eq 0) { $this.ArmorHP = 1000 }
+        if ($this.HP -lt 1000 -and -not $this.ArmorActivated) { 
+            $this.ArmorHP = 1000 
+            $this.ArmorActivated = $true # ล็อคทันที บรรทัดนี้จะไม่ทำงานอีกเลย
+            Write-Host ">>> LUCIFER: FINAL ARMOR DEPLOYED! <<<" -ForegroundColor Cyan
+        }
         if ($this.HP -lt 7000) { $this.SummonTimer++ }
         if ($this.Phase -ge 1) { $this.GluttonyTimer++ }
 
@@ -144,6 +149,15 @@ class Lucifer : BaseEnemy {
             }
         }
 
+        # ในฟังก์ชัน Draw ของ Lucifer.ps1 (เพิ่มไว้ก่อนส่วนวาด HP หรือต่อท้าย Gauge)
+        if ($this.Phase -eq 2) {
+            $fragileFont = New-Object System.Drawing.Font("Impact", 12, [System.Drawing.FontStyle]::Italic)
+            # วาดคำว่า FRAGILE กะพริบสีเหลืองใต้ตัวบอส
+            if (([DateTime]::Now.Millisecond % 400) -lt 200) {
+                $g.DrawString(">>> FRAGILE <<<", $fragileFont, [System.Drawing.Brushes]::Yellow, [float]($bx + 15), [float]($by + 110))
+            }
+        }
+
         # 4. Core & HP
         $g.FillRectangle((New-Object System.Drawing.SolidBrush($this.Color)), $bx, $by, 100.0, 100.0)
         $hpT = "$([math]::Floor($this.HP / 1000.0))K"; $fHP = New-Object System.Drawing.Font("Consolas", 14, [System.Drawing.FontStyle]::Bold)
@@ -173,5 +187,25 @@ class Lucifer : BaseEnemy {
                 $g.DrawEllipse($portalP, ($bx - 30.0), ($by - 30.0), 160.0, 160.0)
             }
         }
+    }
+
+    # แก้ไขฟังก์ชัน TakeDamage ใน Lucifer.ps1
+    [bool] TakeDamage([int]$damageAmount) {
+        # 1. ถ้ายังมีโล่ (ArmorHP) ให้หักที่โล่ก่อน
+        if ($this.ArmorHP -gt 0) {
+            $this.ArmorHP -= $damageAmount
+            if ($this.ArmorHP -lt 0) { 
+                # ถ้าดาเมจแรงจนโล่ทะลุ ให้ดาเมจที่เหลือไปหักเลือดหลัก (Optional)
+                # หรือจะให้โล่กันดาเมจเกินนัดนั้นไปเลยก็ได้ ในที่นี้ผมให้โล่กันหมดนัดนั้นครับ
+                $this.ArmorHP = 0 
+            }
+            return $false # ยังไม่ตายเพราะติดโล่อยู่
+        }
+        
+        # 2. ถ้าโล่หมดแล้ว หักเลือดหลัก และกันไม่ให้ติดลบ
+        $this.HP -= $damageAmount
+        if ($this.HP -lt 0) { $this.HP = 0 } # <--- กันเลือดติดลบ 2K
+        
+        return ($this.HP -le 0)
     }
 }

@@ -3,7 +3,8 @@ function Invoke-GameCollisions ($player, $bullets, $enemies, $enemyBullets, $for
         ScoreAdded   = 0; IsPlayerHit  = $false; IsFatalHit   = $false 
         ApplySilence = $false; ApplySiren   = $false; ApplyJammer  = $false 
         WrathKills   = 0; LustKills    = 0; SlothKills   = 0; GreedKills = 0 
-        PrideKilled  = $false; GluttonyKills = 0; RealPrideKilled = $false 
+        PrideKilled  = $false; GluttonyKills = 0; RealPrideKilled = $false ;
+        LuciferKilled = $false
     }
 
     if ($Script:immortalTimer -gt 0) { return $result }
@@ -18,16 +19,23 @@ function Invoke-GameCollisions ($player, $bullets, $enemies, $enemyBullets, $for
             if ($e -is [BaseEnemy]) {
                 if ($eName -eq "RealPride") { $nukeDead = $e.TakeDamage(200) }
                 elseif ($eName -eq "Gluttony") { $nukeDead = $e.TakeDamage(50) }
-                elseif ($eName -eq "Lucifer") { 
-                    $nukeDead = $e.TakeDamage(5) 
-                    # --- [เพิ่มส่วนนี้] เช็คชิ้นส่วนที่พังจาก Nuke ---
-                    foreach ($part in $e.Parts) { 
-                        if (-not $part.IsDestroyed -and $part.TakeDamage(100)) {
-                            if ($part.Type -eq "Cannon") { $e.HP -= 4000 }
-                            elseif ($part.Type -eq "Turret") { $e.HP -= 1000 }
+                # ในลูป Enemy Collisions ส่วนเช็คกระสุนผู้เล่นชน Lucifer
+                if ($eName -eq "Lucifer") {
+                # Nuke ทำดาเมจชิ้นส่วนละ 200
+                        foreach ($part in $e.Parts) {
+                            if (-not $part.IsDestroyed -and $part.TakeDamage(200)) {
+                                # ถ้าพัง หักเลือดตัวแม่ตามประเภท
+                                if ($part.Type -eq "Cannon") { $e.HP -= 4000 } else { $e.HP -= 1000 }
                         }
                     }
-                } else { $nukeDead = $e.TakeDamage(99) }
+                     # --- [แก้ไข] ดาเมจเข้า Core บอส ---
+                        if ($e.Phase -ge 2) { 
+                            $nukeDead = $e.TakeDamage(400) # Phase สุดท้ายโดน 400!
+                        } else { 
+                            $nukeDead = $e.TakeDamage(5) # เฟสแรกๆ โดนแค่ 5 (ต้องพังปีกก่อน)
+                        }
+                }
+                else { $nukeDead = $e.TakeDamage(99) }
             } else { $nukeDead = $true }
 
             if ($nukeDead) {
@@ -37,6 +45,22 @@ function Invoke-GameCollisions ($player, $bullets, $enemies, $enemyBullets, $for
                 $enemies.RemoveAt($i)
             }
         }
+    }
+
+    for ($k = $items.Count - 1; $k -ge 0; $k--) {
+        $it = $items[$k]
+        if ($it.GetBounds().IntersectsWith($player.GetBounds())) {
+            # บวกลอจิกที่นี่ตรงๆ
+            $Script:defenseHits += 5
+            if ($Script:defenseHits -gt 400) { $Script:defenseHits = 400 }
+            
+            # ลบไอเทมออกทันที
+            $items.RemoveAt($k)
+            Write-Host ">>> ITEM COLLECTED: SHIELD +5 <<<" -ForegroundColor Green
+            continue # ตรวจสอบชิ้นถัดไป
+        }
+        # ลบถ้าตกจอ
+        if ($it.Y -gt $formHeight) { $items.RemoveAt($k) }
     }
 
     # 2. Enemy Collisions
@@ -49,47 +73,67 @@ function Invoke-GameCollisions ($player, $bullets, $enemies, $enemyBullets, $for
             $result.IsPlayerHit = $true; return $result
         }
 
+        # --- ภายในลูปกระสุนผู้เล่น (ลูป $j) ---
         for ($j = $bullets.Count - 1; $j -ge 0; $j--) {
-            $b = $bullets[$j]; $hitBox = $b.GetBounds()
+            $b = $bullets[$j]; $bName = $b.GetType().Name; $hitBox = $b.GetBounds()
             
-            # --- [ส่วนเช็คชิ้นส่วน LUCIFER ใน CollisionManager] ---
-                if ($typeName -eq "Lucifer") {
-                    $partHit = $false
-                    foreach ($part in $e.Parts) {
-                        if (-not $part.IsDestroyed -and $part.GetBounds($e.X, $e.Y).IntersectsWith($hitBox)) {
-                            
-                            if ($b.GetType().Name -eq "Missile") { $b.Explode() }
+            # 1. กำหนดดาเมจพื้นฐานสำหรับศัตรูทั่วไป (Normal Damage)
+            $currentDmg = 1
+            if ($bName -eq "Nuke") { $currentDmg = 99 } # Nuke ต้องคิลมอนปกติได้ทันที
+            elseif ($bName -eq "HolyBomb") { $currentDmg = 5 } # HolyBomb ลงมอนปกติแรงกว่านิดหน่อย
 
-                            # เช็คเงื่อนไข Phase
-                            if ($part.Type -eq "Turret" -and $e.Phase -lt 1) { 
-                                 if ($b.GetType().Name -ne "PlayerLaser") { $bullets.RemoveAt($j) }
-                                 $partHit = $true; break 
-                            }
-
-                            # --- [จุดที่เพิ่มใหม่: หักเลือดตัวแม่เมื่อชิ้นส่วนพัง] ---
-                            # สั่งทำดาเมจชิ้นส่วน และเช็คว่ามัน "พังในนัดนี้พอดี" หรือไม่
-                            if ($part.TakeDamage(1)) { 
-                                # ถ้าพังพอดี ให้หักเลือด Lucifer ตามประเภทปืน
-                                if ($part.Type -eq "Cannon") { $e.HP -= 4000 }
-                                elseif ($part.Type -eq "Turret") { $e.HP -= 1000 }
-                                
-                                Write-Host ">>> LUCIFER PART DESTROYED! Boss HP -$(if($part.Type -eq 'Cannon'){4000}else{1000}) <<<" -ForegroundColor Red
-                            }
-
-                            if ($b.GetType().Name -ne "PlayerLaser" -and $b.GetType().Name -ne "Nuke") { $bullets.RemoveAt($j) }
-                            $partHit = $true; break
+            # 2. ถ้าเป้าหมายคือ Lucifer
+            if ($typeName -eq "Lucifer") {
+                # --- เช็คดาเมจใส่ชิ้นส่วน (Parts) ---
+                $partHit = $false
+                foreach ($part in $e.Parts) {
+                    if (-not $part.IsDestroyed -and $part.GetBounds($e.X, $e.Y).IntersectsWith($hitBox)) {
+                        if ($bName -eq "Missile") { $b.Explode() }
+                        # ดาเมจใส่ปีก (ให้แรงกว่าปกตินิดหน่อยเพื่อให้พังง่ายขึ้น)
+                        $partDmg = if ($bName -eq "HolyBomb") { 50 } else { 1 }
+                        
+                        if ($part.TakeDamage($partDmg)) {
+                            if ($part.Type -eq "Cannon") { $e.HP -= 4000 } else { $e.HP -= 1000 }
                         }
+                        if ($bName -ne "PlayerLaser" -and $bName -ne "Nuke" -and $bName -ne "Missile") { $bullets.RemoveAt($j) }
+                        $partHit = $true; break
                     }
-                    if ($partHit) { continue }
-                    if ($b.GetType().Name -eq "Missile" -and $e.GetBounds().IntersectsWith($hitBox)) { $b.Explode() }
-                    if ($e.Phase -lt 2) { continue }
                 }
+                if ($partHit) { continue }
 
+                # --- เช็คดาเมจใส่แกนกลาง (Core) ---
+                if ($e.GetBounds().IntersectsWith($hitBox)) {
+                    if ($e.Phase -ge 2 -or $bName -eq "HolyBomb") {
+                        if ($bName -eq "Missile") { $b.Explode() }
+                        
+                        # [จุดสำคัญ] คำนวณดาเมจพิเศษสำหรับ Lucifer Core เท่านั้น!
+                        $bossDmg = 1
+                        if ($bName -eq "HolyBomb") { $bossDmg = 800 }
+                        elseif ($bName -eq "Nuke") { $bossDmg = 400 }
+                        elseif ($bName -eq "Missile") { $bossDmg = 50 }
+                        elseif ($bName -eq "PlayerLaser") { $bossDmg = 2 }
+
+                        $isDead = $e.TakeDamage($bossDmg)
+                        if ($bName -ne "PlayerLaser" -and $bName -ne "Missile") { $bullets.RemoveAt($j) }
+                        break
+                    } else {
+                        if ($bName -ne "PlayerLaser") { $bullets.RemoveAt($j) }
+                        break
+                    }
+                }
+                continue
+            }
+
+            # 3. เช็คการชนศัตรูทั่วไป (ใช้ $currentDmg ที่เป็น 1 หรือ 5)
             if ($e.GetBounds().IntersectsWith($hitBox)) {
-                if ($b.GetType().Name -eq "Missile") { $b.Explode() } 
-                elseif ($b.GetType().Name -ne "PlayerLaser" -and $b.GetType().Name -ne "Nuke") { $bullets.RemoveAt($j) }
-                if ($e.PsObject.Methods.Match("TakeDamage").Count -gt 0) { $isDead = $e.TakeDamage(1) } else { $isDead = $true }
-                if ($b.GetType().Name -ne "Missile" -and $b.GetType().Name -ne "PlayerLaser") { break }
+                if ($bName -eq "Missile") { $b.Explode() }
+                if ($bName -ne "PlayerLaser" -and $bName -ne "Nuke" -and $bName -ne "Missile") { $bullets.RemoveAt($j) }
+                
+                if ($e.PsObject.Methods.Match("TakeDamage").Count -gt 0) { 
+                    $isDead = $e.TakeDamage($currentDmg) 
+                } else { $isDead = $true }
+                
+                if ($bName -ne "Missile" -and $bName -ne "PlayerLaser") { break }
             }
         }
 
@@ -101,6 +145,7 @@ function Invoke-GameCollisions ($player, $bullets, $enemies, $enemyBullets, $for
             elseif ($typeName -eq "Greed")    { $result.GreedKills += 1 }
             elseif ($typeName -eq "Pride")    { $result.PrideKilled = $true }
             elseif ($typeName -eq "RealPride"){ $result.RealPrideKilled = $true }
+            elseif ($typeName -eq "Lucifer"){ $result.LuciferKilled  = $true }
             elseif ($typeName -eq "Wrath") {
                 $result.WrathKills += 1
                 $Script:wrathKills++; if ($Script:wrathKills % 5 -eq 0) { [void]$enemies.Add([Envy]::new(225, -50, $player)) }
@@ -156,5 +201,7 @@ function Invoke-GameCollisions ($player, $bullets, $enemies, $enemyBullets, $for
         }
         if ($eb.Y -gt $formHeight) { $enemyBullets.RemoveAt($i) }
     }
+
+   
     return $result
 }

@@ -1,3 +1,131 @@
+## [4.1.0] - 2026-03-12
+### "The Restoration of Peace"
+
+Version 4.1.0 focuses on **gameplay polish, visual atmosphere, and a memorable ending sequence**, marking the conclusion of the epic battle against the **Seven Sins**.
+
+---
+
+## Version 4.1 Focus
+
+- **Dynamic Backgrounds** — Parallax starfield with randomized planetary visuals  
+- **Tactical Support** — Emergency defense item drops during critical boss phases  
+- **Visual Feedback** — Critical warning banners and victory screen system  
+- **Boss Balancing** — Improved armor mechanics and target-specific damage scaling  
+
+---
+
+## ➕ Added
+
+### Cosmic Starfield & Planets
+Introduced a **dynamic space background system** featuring:
+
+- Twinkling stars moving at **different parallax speeds**
+- **Randomized planets** with varying sizes and colors
+- Planets drift across the battlefield **every 10 levels**
+
+---
+
+### Emergency Defense Drop — *Item [D]*
+
+A tactical support system during the **Lucifer encounter**.
+
+When Lucifer’s HP falls below **9000**, an **Emergency Defense Supply** will drop every **15 seconds**, granting:
+
+- **+5 Defense Shield**
+
+---
+
+### Holy Bomb — *Item [H]*
+
+A legendary weapon dropped by **Wrath enemies during the final boss battle**.
+
+| Property | Value |
+|---|---|
+| Damage | 800 |
+| Target | Lucifer Core / Armor |
+| Type | High-impact boss weapon |
+
+---
+
+### Victory Banner & Credits
+
+A full **endgame sequence** has been added.
+
+After defeating Lucifer:
+
+- A banner appears:
+```
+LUCIFER DESTROYED
+```
+
+- **Scrolling credits** play on screen
+- The game transitions to the **Hall of Fame leaderboard**
+
+---
+
+## 🔄 Changed
+
+### Lucifer Armor Logic
+
+Lucifer's **blue armor shield** now behaves as a **one-time trigger**:
+
+| Condition | Effect |
+|---|---|
+| HP < 1000 | Armor activates once |
+| Damage Taken | HP bar visually reflects the real value |
+
+---
+
+### Target-Specific Damage Scaling
+
+Heavy weapons now deal **enhanced damage against boss entities** during vulnerable phases.
+
+| Weapon | Behavior |
+|---|---|
+| Nuke | Increased boss damage |
+| Missile | Enhanced damage vs boss parts |
+| Holy Bomb | Extremely effective vs Lucifer |
+
+Damage against **standard enemies remains unchanged**.
+
+---
+
+### Cataclysm Proximity Warning
+
+When **RealPride** has **3 laser cycles remaining**, the battlefield will trigger a warning system:
+
+- Arena border flashes
+- Warning banner appears:
+```
+!!! CATACLYSM INCOMING !!!
+```
+
+This signals that **the final attack is imminent**.
+
+---
+
+## 🐞 Fixed
+
+### Negative HP Glitch
+Resolved an issue where Lucifer's HP could drop below zero when hit by heavy weapons.  
+A **minimum HP clamp (0)** has been implemented.
+
+---
+
+### Missile Phase Ghosting
+Missiles now **detonate immediately upon hitting boss components**, even if those components are temporarily protected by phase shields.
+
+---
+
+### Z-Index Rendering
+Adjusted rendering order so that **Missile and Nuke explosion effects appear above boss entities**, improving damage visibility.
+
+---
+
+> **"The stars are silent again. The sins have been purged. Mission: Accomplished."**
+
+
+
 ## [4.0.0] - 2026-03-11
 ### "The Fall of Lucifer"
 
