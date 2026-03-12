@@ -11,7 +11,7 @@ This project demonstrates how Object-Oriented Programming (OOP) principles can b
 
 | Start Screen | Gameplay | Leaderboard |
 |:---:|:---:|:---:|
-| <img src="./Images/v4/start_screen.png" width="250" alt="Start Screen"> | <img src="./Images/v4/gameplay.png" width="250" alt="Gameplay Action"> | <img src="./Images/v4/leaderboard.png" width="250" alt="High Scores"> |
+| <img src="./Images/v4/start_screen.png" width="250" alt="Start Screen"> | <img src="./Images/v4/gameplay.mov" width="250" alt="Gameplay Action"> | <img src="./Images/v4/leaderboard.png" width="250" alt="High Scores"> |
 
 </details>
 
