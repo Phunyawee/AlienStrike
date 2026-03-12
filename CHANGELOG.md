@@ -1,3 +1,33 @@
+## [4.1.1] - 2026-03-12
+### "The Celestial Rings Update"
+
+A small visual update that enhances the **cosmic atmosphere** of the battlefield by introducing more diverse planetary objects in the background.
+
+---
+
+## ➕ Added
+
+### Ringed Planet Variations
+
+New planetary visuals now appear within the **dynamic background system**.
+
+| Planet Type | Description |
+|---|---|
+| **Saturn Type** | A planet with a **single horizontal ring**. Uses **depth rendering** so the ring visually wraps around the planet. |
+| **X-Rings Type** | A rare planet featuring **two intersecting rings forming an X shape**, adding unique visual depth to the starfield. |
+
+---
+
+### Randomized Planet Types
+
+The background generation system now **randomizes planet styles** every **10 levels**, ensuring the cosmic scenery remains varied and visually engaging throughout gameplay.
+
+---
+
+> **"Even in the depths of space, beauty remains. Watch the rings drift by as you prepare for the next Sin."**
+
+
+
 ## [4.1.0] - 2026-03-12
 ### "The Restoration of Peace"
 
