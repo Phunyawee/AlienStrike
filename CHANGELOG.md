@@ -1,3 +1,138 @@
+## [4.4.2] - 2026-03-15
+### "The Modular Awakening & The End of GameLogic"
+
+Version 4.4.2 marks a major **architectural shift** for the engine.  
+The long-standing **God Object** (`GameLogic.ps1`) has been officially dismantled, with its responsibilities redistributed into specialized modules under a new **Modular Architecture**.
+
+This transformation prepares the engine for long-term scalability, allowing future content such as **Chapter 2, Chapter 3, and additional gameplay modes** to be introduced without rewriting core systems.
+
+---
+
+## Version 4.4 Focus
+
+- **De-coupling Core Logic** — Separating previously intertwined logic into dedicated responsibilities
+- **Scalability Foundation** — Enabling future chapter expansions without modifying legacy code
+- **Logic Modules** — Introducing specialized modules for Factory, Director, Combat Response, and World Events
+
+---
+
+## ➕ Added (Logic Modules)
+
+A new directory has been introduced:
+
+```
+src/Managers/LogicModules/
+```
+
+This folder now contains the core runtime systems, separated into **five primary modules**.
+
+### `EntityManager.ps1` — *The Factory*
+Responsible for creating all game entities.
+
+Key functions:
+- `New-Sin`
+- `New-EnemySpawn`
+- `Get-GameDifficulty`
+
+This file acts as the **single entry point for entity creation**, making it the only location that needs modification when adding new enemy types.
+
+---
+
+### `StageDirector.ps1` — *The Progression Controller*
+Handles boss progression and narrative transitions.
+
+Key functions:
+- `Check-BossSpawns`
+- `Update-ChapterOneProgression`
+
+This module controls **story pacing and gameplay flow**.
+
+---
+
+### `CombatResponse.ps1` — *The Outcome Processor*
+Processes the results of combat interactions immediately after collisions occur.
+
+Key function:
+- `Handle-PostCollision`
+
+Responsibilities include:
+- Score calculation
+- Reward distribution
+- Combat outcome handling
+
+---
+
+### `PlayerSystem.ps1` — *The Player Controller*
+Manages all player-related systems.
+
+Key functions:
+- `Handle-PlayerInput`
+- `Add-To-Inventory`
+- `Get-UIStatus`
+
+This module centralizes **player state, controls, and inventory systems**.
+
+---
+
+### `WorldEvents.ps1` — *The Environment Controller*
+Handles environmental events and item drops.
+
+Key function:
+- `Check-ItemDrops`
+
+This module lays the groundwork for future systems such as:
+- Dynamic weather
+- Environmental hazards
+- Event-driven gameplay elements
+
+---
+
+## 🔄 Changed
+
+### Smart Auto-Loader Update
+The automatic script loader in `AlienStrike.ps1` has been updated to scan the new **LogicModules directory**.
+
+Dependency order between classes is still preserved, ensuring stable initialization during runtime.
+
+---
+
+### System Orchestration
+The **game loop logic** has been refactored to call specialized modules rather than relying on a single monolithic file.
+
+This significantly improves:
+
+- Debugging precision
+- Code readability
+- System maintainability
+
+---
+
+## ❌ Removed
+
+### The Retirement of `GameLogic.ps1`
+The legacy `GameLogic.ps1` file has been officially removed after serving as the engine's central brain for many versions.
+
+This change eliminates the risk of **spaghetti code** and clears the path for a cleaner, modular system architecture.
+
+---
+
+## 🛠️ Modular Architecture Overview
+
+| Module File | Key Functions | Responsibility |
+|-------------|--------------|---------------|
+| EntityManager | New-Sin, New-EnemySpawn | Object Creation |
+| StageDirector | Check-BossSpawns, Progression | Story & Mode Flow |
+| CombatResponse | Handle-PostCollision | Battle Results & Rewards |
+| PlayerSystem | Handle-PlayerInput, Inventory | Player State & Controls |
+| WorldEvents | Check-ItemDrops | Environment & Random Events |
+
+---
+
+> **"Rest in peace, GameLogic.  
+> Your legacy lives on in the shards of a stronger, faster, and smarter engine."**
+
+
+
 ## [4.4.1] - 2026-03-15
 ### "The Tactical Dock Alignment"
 

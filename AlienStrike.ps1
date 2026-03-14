@@ -18,7 +18,8 @@ $LoadOrder = @(
     "src\Entities\Enemies\Sins\LuciferPart.ps1", # 7. ชิ้นส่วนบอส (ต้องโหลดก่อนตัวบอสใหญ่)
     "src\Entities\Enemies\Sins\Wrath.ps1",       # 8. บอสที่ถูกบอสอื่นเรียกใช้
     "src\Entities\Enemies\Sins\*.ps1",           # 9. บอสที่เหลือทั้งหมด
-    "src\Managers\*.ps1"                         # 10. ตัวจัดการ (โหลดหลังสุด)
+    "src\Managers\*.ps1" ,                        # 10. ตัวจัดการ (โหลดหลังสุด)
+    "src\Managers\LogicModules\*.ps1" 
 )
 
 $LoadedFiles = New-Object System.Collections.Generic.HashSet[string]
