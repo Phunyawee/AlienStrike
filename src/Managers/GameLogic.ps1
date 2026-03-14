@@ -269,7 +269,7 @@ function Handle-PostCollision ($collisionResult) {
     return $false 
 }
 
-# (Get-GameDifficulty, New-EnemySpawn, Handle-PlayerInput, Get-UIStatus เหมือนเดิมตามกฎคุณ)
+
 function Get-GameDifficulty ($currentScore) {
     $calculatedLevel = [math]::Floor([math]::Sqrt($currentScore / 750)) + 1
     $lvl = [math]::Min($calculatedLevel, 999)
@@ -387,24 +387,23 @@ function Handle-PlayerInput {
 
 function Get-UIStatus {
     $buffs = @(); $debuffs = @()
-    if ($Script:wrathBuffLevel -eq 2) { $buffs += [PSCustomObject]@{ Icon="W"; Value="{0:N1}s" -f ($Script:wrathBuffTimer/60.0); Color=[System.Drawing.Brushes]::Red } } 
-    elseif ($Script:wrathStackCount -gt 0) { $buffs += [PSCustomObject]@{ Icon="W"; Value="$($Script:wrathStackCount)/3"; Color=[System.Drawing.Brushes]::DeepSkyBlue } }
     
-    if ($Script:inventory.Count -gt 0) {
-        $activeType = $Script:inventory[0]
-        # แก้ไขการนับเลขใน UI ให้เสถียรขึ้น
-        $typeCount = ($Script:inventory | Where-Object { $_ -eq $activeType }).Count
-        $icon = if ($activeType -eq "Missile") { "M" } elseif ($activeType -eq "Laser") { "L" } elseif ($activeType -eq "Nuke") { "N" } elseif ($activeType -eq "HolyBomb") { "H" } else { "?" }
-        $color = if ($activeType -eq "Laser") { [System.Drawing.Brushes]::LimeGreen } elseif ($activeType -eq "Nuke") { [System.Drawing.Brushes]::OrangeRed } elseif ($activeType -eq "HolyBomb") { [System.Drawing.Brushes]::White } else { [System.Drawing.Brushes]::Cyan }
-        
-        $buffs += [PSCustomObject]@{ Icon=$icon; Value="x$typeCount"; Color=$color }
+    # 1. Wrath Buff (W)
+    if ($Script:wrathBuffLevel -eq 2) { 
+        $buffs += [PSCustomObject]@{ Icon="W"; Value="{0:N1}s" -f ($Script:wrathBuffTimer/60.0); Color=[System.Drawing.Brushes]::Red } 
+    } elseif ($Script:wrathStackCount -gt 0) { 
+        $buffs += [PSCustomObject]@{ Icon="W"; Value="$($Script:wrathStackCount)/3"; Color=[System.Drawing.Brushes]::DeepSkyBlue } 
     }
+    
+    # --- [ลบก้อนที่เช็ค $Script:inventory[0] ตรงนี้ออกให้หมด] ---
 
+    # 2. Debuffs (Z, S, J, I)
     if ($Script:silenceTimer -gt 0) { $debuffs += [PSCustomObject]@{ Icon="Z"; Value="{0:N1}s" -f ($Script:silenceTimer/60.0); Color=[System.Drawing.Brushes]::Magenta } }
     if ($Script:sirenTimer -gt 0) { $debuffs += [PSCustomObject]@{ Icon="S"; Value="{0:N1}s" -f ($Script:sirenTimer/60.0); Color=[System.Drawing.Brushes]::DeepPink } }
     if ($Script:jammerTimer -gt 0) { $debuffs += [PSCustomObject]@{ Icon="J"; Value="{0:N1}s" -f ($Script:jammerTimer/60.0); Color=[System.Drawing.Brushes]::Yellow } }
     if ($Script:speedTimer -gt 0) { $buffs += [PSCustomObject]@{ Icon="S"; Value="{0:N1}s" -f ($Script:speedTimer/60.0); Color=[System.Drawing.Brushes]::SkyBlue } }
     if ($Script:defenseHits -gt 0) { $buffs += [PSCustomObject]@{ Icon="D"; Value="x$Script:defenseHits"; Color=[System.Drawing.Brushes]::Gold } }
     if ($Script:immortalTimer -gt 0) { $debuffs += [PSCustomObject]@{ Icon="I"; Value="{0:N1}s" -f ($Script:immortalTimer/60.0); Color=[System.Drawing.Brushes]::White } }
+
     return @{ Buffs = $buffs; Debuffs = $debuffs }
 }

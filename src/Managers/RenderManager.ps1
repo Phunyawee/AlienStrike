@@ -153,53 +153,64 @@ function Draw-HUD ($g, $score, $level, $lives, $inventory, $buffs, $debuffs, $ta
     }
 
     # --- 4. ระบบ Inventory (Sidebar) ---
-    # --- [NEW] ระบบ Inventory 3-Slot Pocket ---
-    $invY = 410
-    $g.DrawString("POCKET ARSENAL", $fontSmall, [System.Drawing.Brushes]::Gray, ($sidebarX + 15), $invY)
+    # --- [ส่วนที่ 1: เพิ่มช่องไฟ Inventory] ---
+    $invY = 500  
+    $g.DrawString("POCKET ARSENAL [Q]", $fontSmall, [System.Drawing.Brushes]::Gray, ($sidebarX + 15), ($invY - 20))
     
     if ($inventory.Count -gt 0) {
-        # หาประเภทอาวุธที่ต่างกัน 3 อันแรกเพื่อโชว์คิว
         $uniqueQueue = @()
-        foreach($item in $inventory) {
+        foreach ($item in $inventory) {
             if ($uniqueQueue.Count -lt 3 -and $item -notin $uniqueQueue) { $uniqueQueue += $item }
         }
 
         for ($i = 0; $i -lt 3; $i++) {
-            $slotSize = if ($i -eq 0) { 50 } else { 35 } # ช่องหลักใหญ่กว่า
-            $posX = $sidebarX + 15
-            $posY = $invY + 20 + ($i * 55)
-            if ($i -gt 0) { $posY -= 10 } # ขยับช่องรองให้ชิดขึ้น
+            $slotSize = if ($i -eq 0) { 50 } else { 38 } 
+            
+            # --- ปรับระยะห่างตรงนี้ ($i * 65) เพื่อเพิ่มช่องไฟ ---
+            $posX = $sidebarX + 15 + ($i * 62) 
+            $posY = if ($i -eq 0) { $invY } else { $invY + 6 } 
 
             if ($i -lt $uniqueQueue.Count) {
+                # ... (โค้ดวาดสีอาวุธเหมือนเดิม) ...
                 $type = $uniqueQueue[$i]
                 $count = ($inventory | Where-Object { $_ -eq $type }).Count
-                
-                # กำหนดสีตามประเภท
-                $colorName = switch($type) { "Laser" {"LimeGreen"}; "Nuke" {"OrangeRed"}; "HolyBomb" {"White"}; default {"DarkCyan"} }
+                $colorName = switch($type) { "Laser"{"LimeGreen"}; "Nuke"{"OrangeRed"}; "HolyBomb"{"White"}; default{"DarkCyan"} }
                 $brush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromName($colorName))
-                
-                # วาด Slot
                 $rect = New-Object System.Drawing.Rectangle($posX, $posY, $slotSize, $slotSize)
                 $g.FillRectangle($brush, $rect)
-                $g.DrawRectangle([System.Drawing.Pens]::White, $rect)
-
-                # วาดตัวย่อ (M, L, N, H)
-                $txt = $type.Substring(0,1)
-                $f = if($i -eq 0){$fontLarge} else {$fontSmall}
-                $g.DrawString($txt, $f, [System.Drawing.Brushes]::Black, ($posX + ($slotSize/4)), ($posY + ($slotSize/5)))
-
-                # วาดจำนวนไว้ในกรอบ (มุมขวาล่าง)
-                $g.DrawString($count.ToString(), $Global:GameFonts.Icon, [System.Drawing.Brushes]::Yellow, ($posX + $slotSize - 18), ($posY + $slotSize - 15))
 
                 if ($i -eq 0) {
-                    $g.DrawString("<- ACTIVE [E]", $fontSmall, [System.Drawing.Brushes]::Lime, ($posX + 60), ($posY + 15))
+                    $p = New-Object System.Drawing.Pen([System.Drawing.Color]::White, 3)
+                    $g.DrawRectangle($p, $rect)
+                    $g.DrawString("[E]", $fontSmall, [System.Drawing.Brushes]::Lime, $posX + 12, ($posY + $slotSize + 2))
+                } else {
+                    $g.DrawRectangle([System.Drawing.Pens]::Gray, $rect)
                 }
+                
+                $txt = $type.Substring(0,1); $f = if($i -eq 0){$fontLarge} else {$fontSmall}
+                $g.DrawString($txt, $f, [System.Drawing.Brushes]::Black, ($posX + ($slotSize/4)), ($posY + ($slotSize/6)))
+                $g.DrawString($count.ToString(), $Global:GameFonts.Tiny, [System.Drawing.Brushes]::Yellow, ($posX + $slotSize - 18), ($posY + $slotSize - 15))
             } else {
-                $g.DrawRectangle([System.Drawing.Pens]::DimGray, $posX, $posY, $slotSize, $slotSize)
+                # วาดช่องว่าง
+                $pEmpty = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(50, 255, 255, 255), 1)
+                $g.DrawRectangle($pEmpty, $posX, $posY, $slotSize, $slotSize)
             }
         }
     }
 
+    # --- [ส่วนที่ 2: กรองอาวุธออกจากช่อง ACTIVE BUFFS] ---
+    $bfY = 200
+    $g.DrawString("ACTIVE BUFFS", $fontSmall, [System.Drawing.Brushes]::Gray, ($sidebarX + 15), $bfY)
+    $bfY += 20
+    foreach ($bf in $buffs) {
+        # กรองไอคอนอาวุธ (M, L, N, H) ออกจากรายการ Buffs
+        if ($bf.Icon -notin @("M", "L", "N", "H")) {
+            $bgBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(100, 0, 255, 255))
+            $g.FillRectangle($bgBrush, ($sidebarX + 15), $bfY, 170, 30)
+            $g.DrawString("$($bf.Icon) $($bf.Value)", $fontSmall, [System.Drawing.Brushes]::White, ($sidebarX + 25), ($bfY + 7))
+            $bfY += 35
+        }
+    }
     # --- 5. Buffs & Debuffs ---
     # (โค้ดส่วน Buffs/Debuffs เดิมของคุณ ปรับตำแหน่ง Y เล็กน้อยถ้าทับกัน)
     $bfY = 200

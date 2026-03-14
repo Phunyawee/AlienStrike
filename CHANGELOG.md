@@ -1,3 +1,57 @@
+## [4.4.1] - 2026-03-15
+### "The Tactical Dock Alignment"
+
+A small update focused on refining the **HUD interface** for improved clarity and modern UI standards.  
+This update cleanly separates the **Arsenal display** from the **Active Buff system**, ensuring a more organized and readable combat interface.
+
+---
+
+## ➕ Added
+
+### Horizontal Pocket Arsenal
+The item display has been redesigned from a **vertical layout** to a **horizontal 3-slot dock**.
+
+This new layout, referred to as **"The Dock"**, visually resembles a weapon tray and improves quick recognition of the player's available arsenal.
+
+### Spatial Padding
+Added additional **spacing between weapon slots** to improve visual comfort and make the weapon queue easier to distinguish during intense gameplay.
+
+---
+
+## 🔄 Changed
+
+### HUD Ergonomics
+The **Pocket Arsenal** has been moved to the **bottom of the Sidebar**, freeing space above for clearer **boss status and buff indicators**.
+
+### Buff List Filtration
+Improved status processing logic by **filtering weapon icons** (`M`, `L`, `N`, `H`) out of the **Active Buff list**.
+
+This prevents duplicate visual information and keeps the buff display clean.
+
+### Visual Prompts
+The `[E]` usage indicator has been repositioned to appear **perfectly centered beneath the Active Slot**.
+
+---
+
+## 🐞 Fixed
+
+### GDI+ Pen Error
+Resolved the runtime error:
+
+`[System.Drawing.Pens] does not contain a method named 'FromArgb'`
+
+The system now creates custom **Pen objects via `New-Object`**, ensuring proper color handling in the rendering pipeline.
+
+### Inventory Overlap
+Fixed an issue where **Nuke and Missile items** could appear incorrectly in the **Active Buff display area**, causing visual overlap.
+
+---
+
+> **"A clear screen leads to a clear shot.  
+> Your arsenal is now perfectly docked."**
+
+
+
 ## [4.4.0] - 2026-03-14
 ### "The Endless Rebirth & Tactical Pocket"
 
