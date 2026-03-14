@@ -204,7 +204,7 @@ function Handle-PostCollision ($collisionResult) {
     $isLuciferActive = ($Script:enemies | Where-Object { $_.GetType().Name -eq "Lucifer" }).Count -gt 0
 
     if ($collisionResult.GluttonyKills -gt 0) { 
-        Add-To-Inventory "Nuke" 5
+        Add-To-Inventory "Nuke" 1
         $Script:totalGluttonyKills += $collisionResult.GluttonyKills
         Write-Host ">>> GLUTTONY DEFEATED ($Script:totalGluttonyKills / 3) <<<" -ForegroundColor Magenta
     }
