@@ -46,6 +46,12 @@ function Handle-PostCollision ($collisionResult) {
     if ($collisionResult.WrathKills -gt 0 -and $isLuciferActive) { 
         for($i=0;$i-lt $collisionResult.WrathKills;$i++) { 
             Add-To-Inventory "Laser" 5; Add-To-Inventory "Missile" 5 
+
+            # 2. [NEW] โอกาส 5% ดรอป Holy Bomb (อาวุธปราบมาร)
+            if ($Script:rnd.Next(1, 101) -le 100) {
+                Add-To-Inventory "HolyBomb" 1
+                Write-Host ">>> HOLY BOMB ACQUIRED! THE LIGHT IS WITH YOU! <<<" -ForegroundColor White
+            }
         } 
         Write-Host ">>> ARSENAL REPLENISHED! <<<" -ForegroundColor Green
     }

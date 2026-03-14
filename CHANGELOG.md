@@ -1,3 +1,118 @@
+## [4.4.3] - 2026-03-15
+# "The Visionary Layers & Rendering Refactor"
+
+Version **4.4.3** focuses on reorganizing the **Rendering Architecture** by separating graphical processing into modular **Rendering Layers**.  
+This improves drawing efficiency and makes future visual effect management significantly easier.
+
+---
+
+## Version 4.4 Focus
+
+**Layered Rendering**  
+Separates responsibilities for rendering **background elements**, **in-game entities**, and **user interface components**.
+
+**Internal Shake Engine**  
+Upgrades the screen-shake system to operate within the **graphics coordinate space**, making it non-intrusive to UI elements.
+
+**Modular Render Modules**  
+Marks the transition away from monolithic graphics files toward **specialized rendering modules**.
+
+---
+
+## ➕ Added (Render Modules)
+
+A new directory has been introduced:
+```
+src\Managers\RenderModules\
+```
+This directory organizes rendering layers into dedicated modules:
+
+**EnvironmentEngine.ps1 (Background Layer)**  
+Handles rendering of distant elements such as:
+- Twinkling **Starfield**
+- **Saturn** and **X-Ring planetary visuals**
+
+**UserInterface.ps1 (UI Layer)**  
+Manages all screen-attached interface elements, including:
+- Sidebar
+- Boss HP Bar
+- **Pocket Arsenal (3-Slot Horizontal Dock)**
+
+**ScreenManager.ps1 (State Layer)**  
+Controls all game state screens:
+- Start Screen
+- Menu
+- Leaderboard
+- Credits
+- Pause Menu
+
+---
+
+## 🔄 Changed
+
+### Internal Screen Shake
+Reworked from **window-level movement** to **graphics-level `TranslateTransform`**.
+
+This change allows:
+- Only the **Play Area** to shake
+- **UI and Sidebar remain completely stable** for better visual comfort.
+
+---
+
+### Rendering Orchestration
+
+The core file **RenderManager.ps1** now acts as a strict **rendering hub**, controlling the Z-Index drawing order:
+
+1. Environment  
+2. Shake Apply  
+3. Entities  
+4. Shake Reset  
+5. HUD  
+6. Pause Menu  
+
+---
+
+### Pocket Arsenal Refinement
+
+The logic for rendering weapon slots has been moved into the **UI module**, making it easier to customize:
+
+- Colors
+- Icons (**M, L, N, H**)
+
+---
+
+## 🛠️ Rendering Architecture Overview
+
+| Module File | Layer | Responsibilities |
+|--------------|------|------------------|
+| EnvironmentEngine | Background | Stars, Planets, Parallax Effects |
+| UserInterface | HUD | Sidebar, Score, Arsenal Dock, Boss HP |
+| ScreenManager | Overlay | Menus, Credits, Leaderboard, Pause |
+| RenderManager | Orchestrator | Layering Order, Resource Cache, Shake Logic |
+
+---
+
+## 😈 Sin Class Summary (v4.4.3)
+
+| Sin | Technical Mechanic | Disruption Class |
+|-----|--------------------|------------------|
+| Lust | Directional Inversion | Movement Inversion |
+| Gluttony | Shield Devour | Resource Stealing |
+| Greed | Inventory Erasure | Arsenal Sabotage |
+| Sloth | Disruption Pulse | Input Lockout (Item E) |
+| Wrath | Scatter Shot | High Bullet Density |
+| Envy | Weapon Jam | Primary Fire Suppression |
+| Pride | Hitscan Beam | Precision Strike |
+| RealPride | Absolute Annihilation | Execution / Enrage Timer |
+| Lucifer | Sovereign Domination | Multi-Part Endurance Battle |
+
+---
+
+> **"The layers are aligned. The visuals are steady.  
+> The engine now sees the galaxy with perfect clarity."**
+
+
+
 ## [4.4.2] - 2026-03-15
 ### "The Modular Awakening & The End of GameLogic"
 
