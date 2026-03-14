@@ -48,17 +48,19 @@ This project demonstrates how Object-Oriented Programming (OOP) principles can b
 
 ## Final Elite Class Technical Table
 
-| Sin Class | Technical Mechanic | Threat Profile |
+## 📝 Elite Sin Class — Technical Mechanic Table (v4.2.0)
+
+| Enemy | Mechanic | Threat Profile |
 |---|---|---|
-| Lust | Directional Inversion | Movement Disruption |
-| Gluttony | Shield Devour | Resource Vampirism |
+| Lust | Directional Inversion | Movement Control |
+| Gluttony | Shield Devour | Resource Depletion |
 | Greed | Inventory Erasure | Arsenal Sabotage |
-| Sloth | Disruption Pulse | Tactical Lockout |
-| Wrath | Scatter Shot | High-Density Fire |
+| Sloth | Disruption Pulse | Input Lockout |
+| Wrath | Scatter Shot | Bullet Hell |
 | Envy | Weapon Jam | Offensive Suppression |
 | Pride | Hitscan Beam | Precision Strike |
-| RealPride | Absolute Annihilation | Fatal Execution / Enrage Timer |
-| Lucifer | Sovereign Domination | Destructible Multi-Phase Boss |
+| RealPride | Absolute Annihilation | Fatal Execution / Enrage |
+| Lucifer | Sovereign Domination | Multi-Part Boss |
 
 | System | Type | Technical Description | HUD |
 |------|------|----------------------|------|
@@ -70,7 +72,7 @@ This project demonstrates how Object-Oriented Programming (OOP) principles can b
 | Immortal | Status Effect | 3s Damage Immunity (Post-Resurrection) | [I] |
 
 ## ⚠️ Note on Graphics
-**Current Version (v3.0.0):** 
+**Current Version** 
 The game currently utilizes primitive GDI+ shapes (rectangles/squares) for all game entities. This is a deliberate design choice to focus on the core engine logic, physics, and OOP structure first.
 
 Enhanced sprites, textures, and visual effects are planned for future updates. For now, enjoy the retro "developer art" aesthetic!

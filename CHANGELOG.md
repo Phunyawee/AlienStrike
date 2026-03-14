@@ -1,3 +1,92 @@
+## [4.2.0] - 2026-03-14
+### "The Architect & Impact Update"
+
+Version 4.2.0 focuses on a major internal **refactoring effort** to prepare the engine for future expansion, while also introducing stronger **visual feedback systems** to make combat feel more impactful and satisfying.
+
+### Version 4.2 Focus
+- **Factory & Director Pattern** — A modular system for spawning bosses and controlling narrative flow
+- **Hit Feedback System** — White flash visual impact when enemies take damage
+- **Advanced Collision Layering** — Reorganized collision handling and rendering order
+- **Robust Memory Management** — Reduced redundant object creation for improved stability
+
+---
+
+## ➕ Added
+
+### The Sin Factory (`New-Sin`)
+A **modular boss creation system** that allows any boss to be spawned directly by name.
+
+Example:
+```
+New-Sin "Lucifer"
+```
+
+This enables instant **1v1 boss testing** and custom encounter setups.
+
+### Chapter Director System
+Boss spawn logic for **Chapter 1** has been separated from the main game loop.
+
+This prepares the engine for future content such as:
+- **Chapter 2**
+- **Endless Mode**
+
+### Hit Flash Effect (`FlashTimer`)
+All enemies and bosses now **flash white when taking damage**, improving hit confirmation and combat feedback.
+
+### Emergency Support Drop
+An automatic support item drop system that spawns a `[D] (Defense)` item every **15 seconds** when **Lucifer enters his critical phase** `(HP < 9,000)`.
+
+---
+
+## 🔄 Changed
+
+### Collision Logic Segmentation
+`CollisionManager.ps1` has been reorganized into dedicated processing groups:
+
+- **Unstoppable Threats**
+- **Global Nuke**
+- **Item Pickups**
+- **Weapon Damage**
+
+This improves both **performance clarity and maintainability**.
+
+### Z-Index Overhaul
+Rendering order has been adjusted so that **explosion effects (Missile / Nuke)** always render **above bosses**, ensuring clearer damage feedback.
+
+### Weapon Balancing (Phase 2)
+Heavy weapon damage has been rebalanced when **Lucifer enters his Fragile Phase (armor broken)**.
+
+| Weapon | Damage |
+|------|------|
+| Holy Bomb | 800 |
+| Nuke | 400 |
+| Missile | 50 |
+
+---
+
+## 🐞 Fixed
+
+### Immortal Exploit
+Fixed a bug where the **Immortal status** allowed players to pass through the `Cataclysm Wave`.
+
+`Cataclysm` now **always bypasses immortality mechanics**.
+
+### Indexing Error (ArrayList)
+Prevented crashes caused by  
+`Index was out of range`
+
+when large numbers of enemies were removed simultaneously by **Nuke effects**.
+
+### PointF & `op_Subtraction`
+Permanently fixed rendering errors caused by **floating-point coordinate calculations in PowerShell**.
+
+---
+
+> **"The foundation is laid. The sins are coded.  
+> The King has fallen, but the engine is just waking up."**
+
+
+
 ## [4.1.2] - 2026-03-12
 ### "The Smart Kernel Update"
 

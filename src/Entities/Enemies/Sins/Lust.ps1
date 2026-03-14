@@ -35,7 +35,7 @@ class Lust : BaseEnemy {
     # Override การวาด ให้วาดสามเหลี่ยม + หลอดเลือด
     [void] Draw([System.Drawing.Graphics]$g) {
         # 1. วาดตัวยานสามเหลี่ยม
-        $brush = New-Object System.Drawing.SolidBrush($this.Color)
+        $brush = New-Object System.Drawing.SolidBrush($this.GetFlashColor())
         
         $points = [System.Drawing.PointF[]]::new(3)
         $points[0] = New-Object System.Drawing.PointF([float]$this.X, [float]$this.Y)

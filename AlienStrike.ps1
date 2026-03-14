@@ -102,8 +102,8 @@ function Do-GameOver {
     $Script:inventory = [System.Collections.ArrayList]::new()
    
     # ทดสอบ: แจกมิสไซล์ 5 อัน และ เลเซอร์ 1 อัน
-    1..5 | ForEach-Object { Add-To-Inventory "Missile" }
-    Add-To-Inventory "Laser"
+    Add-To-Inventory "Missile" 5
+    Add-To-Inventory "Laser" 1
     
     # รีเซ็ตค่าคะแนนและเลเวล
     $Script:score = 0
@@ -130,6 +130,7 @@ $prop.SetValue($form, $true, $null)
 
 # --- 3. Game Variables ---
 Write-Host "Loading Game Objects..."
+$Script:gameMode = "Chapter1" # หรือเปลี่ยนเป็น "1v1_Lucifer" เพื่อเทสบอสใหญ่ทันที
 $Script:player = [Player]::new(225, 500)
 
 if ($null -eq $Script:player) {
@@ -145,8 +146,8 @@ $Script:enemyBullets = [System.Collections.ArrayList]::new()
 
 $Script:inventory = [System.Collections.ArrayList]::new()
 # ตอนเริ่มเกม แจกให้ก่อนเลย 5 อัน
-1..5 | ForEach-Object { Add-To-Inventory "Missile" }
-Add-To-Inventory "Laser"
+Add-To-Inventory "Missile" 5
+Add-To-Inventory "Laser" 1
 
 $Script:score = 0
 $Script:nextPrideScoreTarget = 5000 # เป้าหมายคะแนนแรกที่ Pride จะเกิด
@@ -250,6 +251,12 @@ $form.Add_KeyDown({
         $ans = [System.Windows.Forms.MessageBox]::Show("Do you want to exit?", "Quit Game", 4, 32)
         if ($ans -eq "Yes") { $form.Close() }
         else { $timer.Start() }
+    }
+
+    if ($_.KeyCode -eq "F1") {
+        $Script:gameMode = "1v1_Lucifer"
+        $Script:enemies.Clear()
+        Write-Host ">>> MODE CHANGED: 1v1 LUCIFER <<<" -ForegroundColor Red
     }
 
      # กด Enter
@@ -393,8 +400,18 @@ $timer.Add_Tick({
     foreach ($eb in $Script:enemyBullets) { $eb.Update() }
 
     # --- E. Handle Collisions ---
-     $collisionResult = Invoke-GameCollisions $Script:player $Script:bullets $Script:enemies $Script:enemyBullets $form.ClientSize.Height $Script:items
+    $collisionResult = Invoke-GameCollisions $Script:player $Script:bullets $Script:enemies $Script:enemyBullets $form.ClientSize.Height $Script:items
 
+    # --- [NEW] ระบบสั่นจอ (Screen Shake) ---
+    if ($collisionResult.ShakeIntensity -gt 0) {
+        $intensity = $collisionResult.ShakeIntensity
+        # ดีดตำแหน่งหน้าต่างสุ่มตามความแรง
+        $form.Left += $Script:rnd.Next(-$intensity, $intensity)
+        $form.Top += $Script:rnd.Next(-$intensity, $intensity)
+    } else {
+        # ถ้าไม่มีการสั่น ให้พยายามจัดหน้าต่างกลับเข้าที่กึ่งกลาง (ถ้าต้องการ)
+        # หรือปล่อยไว้อย่างนั้นก็ได้ครับ
+    }
     # --- F. จัดการสถานะหลังการชน ---
     # ถ้าฟังก์ชันคืนค่า $true แปลว่าเลือดหมด ให้หยุดทำ Loop นี้ทันที (เหมือนคำสั่ง return เดิมของคุณ)
     $isDead = Handle-PostCollision $collisionResult

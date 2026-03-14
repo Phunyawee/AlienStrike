@@ -14,6 +14,20 @@ $Global:GameFonts = @{
     Icon    = New-Object System.Drawing.Font("Consolas", 12, [System.Drawing.FontStyle]::Bold) # ฟอนต์สำหรับตัวย่อไอคอน
     Tiny    = New-Object System.Drawing.Font("Consolas", 8)  # ฟอนต์สำหรับตัวเลขบัพ
 }
+# สร้างคลังเก็บฟอนต์และแปรงสี (Cache)
+$Global:GameCache = @{
+    Fonts = @{
+        Small = New-Object System.Drawing.Font("Consolas", 10, [System.Drawing.FontStyle]::Bold)
+        Large = New-Object System.Drawing.Font("Consolas", 18, [System.Drawing.FontStyle]::Bold)
+        Fatal = New-Object System.Drawing.Font("Impact", 12, [System.Drawing.FontStyle]::Italic)
+    }
+    Brushes = @{
+        Yellow = [System.Drawing.Brushes]::Yellow
+        White  = [System.Drawing.Brushes]::White
+        Red    = [System.Drawing.Brushes]::Red
+        Cyan   = [System.Drawing.Brushes]::Cyan
+    }
+}
 
 function Draw-StartScreen ($g, $width, $height) {
     $center = New-Object System.Drawing.StringFormat

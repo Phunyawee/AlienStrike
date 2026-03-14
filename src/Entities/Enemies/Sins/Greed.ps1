@@ -36,7 +36,7 @@ class Greed : BaseEnemy {
     }
 
     [void] Draw([System.Drawing.Graphics]$g) {
-        $brush = New-Object System.Drawing.SolidBrush($this.Color)
+        $brush = New-Object System.Drawing.SolidBrush($this.GetFlashColor())
         
         # สร้างอาเรย์พิกัดแบบระบุชนิดชัดเจน (วิธีนี้ปลอดภัยที่สุด)
         $starPoints = [System.Drawing.PointF[]]::new(10)

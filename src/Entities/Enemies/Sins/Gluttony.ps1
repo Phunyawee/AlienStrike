@@ -37,7 +37,7 @@ class Gluttony : BaseEnemy {
     }
 
     [void] Draw([System.Drawing.Graphics]$g) {
-        $b = New-Object System.Drawing.SolidBrush($this.Color)
+        $b = New-Object System.Drawing.SolidBrush($this.GetFlashColor())
         
         # 1. วาดสี่เหลี่ยมแกนกลาง
         $g.FillRectangle($b, [float]($this.X + 15), [float]($this.Y + 10), 50.0, 30.0)

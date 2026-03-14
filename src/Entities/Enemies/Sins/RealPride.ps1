@@ -56,9 +56,9 @@ class RealPride : BaseEnemy {
         }
         return $null
     }
-
+   
     [void] Draw([System.Drawing.Graphics]$g) {
-        $b = New-Object System.Drawing.SolidBrush($this.Color)
+        $b = New-Object System.Drawing.SolidBrush($this.GetFlashColor())
         $centerX = [float]($this.X + ($this.Width / 2.0))
         
         # 1. วาดตัวยาน (Rectangle แกนกลาง)
