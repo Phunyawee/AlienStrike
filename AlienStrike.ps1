@@ -46,8 +46,52 @@ if (!(Get-Command "Get-GameDifficulty" -ErrorAction SilentlyContinue)) {
 }
 
 # --- Helper Functions: Score System ---
+
 $scoreFile = "$PSScriptRoot\scores.json"
 
+function Reset-Session {
+    # 1. ล้างสถานะ Pause และหน้าจอ (แก้ปัญหา Exit แล้วยัง Pause)
+    $Script:isPaused = $false
+    $Script:gameStarted = $false
+    $Script:showCredits = $false
+    $Script:isLuciferDead = $false
+    $Script:victoryTimer = 0
+
+    # 2. ล้างลิสต์วัตถุทั้งหมด
+    $Script:enemies.Clear()
+    $Script:enemyBullets.Clear()
+    $Script:bullets.Clear()
+    $Script:items.Clear()
+
+    # 3. รีเซ็ตอาวุธเริ่มต้น (แก้ปัญหาอาวุธไม่กลับมา)
+    $Script:inventory.Clear()
+    Add-To-Inventory "Missile" 5
+    Add-To-Inventory "Laser" 1
+
+    # 4. รีเซ็ตตัวแปรนับยอดบอสและการสปอน (แก้ปัญหา Lust ไม่เกิด)
+    $Script:score = 0
+    $Script:level = 1
+    $Script:targetScore = 750
+    $Script:currentTrackedLevel = 1 # <--- สำคัญมากเพื่อให้ Lust รู้ว่าเลเวลอัปแล้ว
+    $Script:realPrideDefeatedTotal = 0
+    $Script:totalGluttonyKills = 0
+    $Script:gluttonyStage = 0
+    $Script:prideKills = 0
+    $Script:itemDropTimer = 0
+    
+    # 5. รีเซ็ตสถานะผู้เล่น
+    $Script:lives = 3
+    $Script:defenseHits = 0
+    $Script:immortalTimer = 0
+    $Script:wrathStackCount = 0
+    $Script:wrathBuffLevel = 0
+    $Script:silenceTimer = 0
+    $Script:sirenTimer = 0
+    $Script:jammerTimer = 0
+    $Script:speedTimer = 0
+
+    Write-Host ">>> SESSION CLEANED & ARSENAL REFILLED <<<" -ForegroundColor Gray
+}
 function Do-GameOver {
     $timer.Stop() # หยุดเกม
     
@@ -137,6 +181,13 @@ if ($null -eq $Script:player) {
     [System.Windows.Forms.MessageBox]::Show("Failed to load player! Check Player.ps1", "Error")
     exit
 }
+$Script:shakeOffset = New-Object System.Drawing.Point(0, 0)
+$Script:gameStarted = $false
+$Script:menuState = "MAIN"
+$Script:menuIndex = 0
+$Script:mainMenuItems = @("STORY MODE", "BATTLE MODE", "ENDLESS MODE", "LEADERBOARD", "EXIT")
+$Script:storyItems = @("CHAPTER 1: THE 7 SINS", "COMING SOON...")
+$Script:battleItems = @("LUCIFER", "REAL PRIDE", "GLUTTONY", "GREED", "BACK") # รายชื่อบอส
 
 $Script:bullets = [System.Collections.ArrayList]::new()
 $Script:enemies = [System.Collections.ArrayList]::new()
@@ -144,12 +195,18 @@ $Script:enemies = [System.Collections.ArrayList]::new()
 $Script:rnd = New-Object System.Random
 $Script:enemyBullets = [System.Collections.ArrayList]::new()
 
+$Script:isPaused = $false
+$Script:pauseIndex = 0
+$Script:pauseItems = @("RESUME", "EXIT TO MENU")
+
+
 $Script:inventory = [System.Collections.ArrayList]::new()
 # ตอนเริ่มเกม แจกให้ก่อนเลย 5 อัน
 Add-To-Inventory "Missile" 5
 Add-To-Inventory "Laser" 1
 
 $Script:score = 0
+$Script:targetScore = 750 # <--- เพิ่มบรรทัดนี้ (ค่าเริ่มต้นของ Level 1)
 $Script:nextPrideScoreTarget = 5000 # เป้าหมายคะแนนแรกที่ Pride จะเกิด
 $Script:nextGreedTarget = 20000
 $Script:level = 1
@@ -183,119 +240,212 @@ $Script:victoryTimer = 0
 $Script:showCredits = $false # สำหรับ End Credit
 $Script:creditY = 600.0
 
-# --- 4. Input Handling ---
+
+# --- 4. Input Handling (v4.2.1: Fix Enter Key & Output) ---
 $form.KeyPreview = $true 
 $form.Add_KeyDown({
-    $Script:keysPressed[$_.KeyCode.ToString()] = $true
+    $key = $_.KeyCode.ToString()
+    $Script:keysPressed[$key] = $true
     
-     # --- [เพิ่มตรงนี้] ระบบสลับอาวุธแบบ Instant ---
-    if ($_.KeyCode.ToString() -eq "Q" -and $Script:gameStarted) {
-        if ($Script:inventory.Count -gt 1) {
-            $firstType = $Script:inventory[0]
-            
-            # หาว่าไอเทมประเภทอื่นตัวแรกอยู่ที่ไหน
-            $nextTypeIdx = -1
-            for ($i = 0; $i -lt $Script:inventory.Count; $i++) {
-                if ($Script:inventory[$i] -ne $firstType) {
-                    $nextTypeIdx = $i
-                    break
-                }
-            }
+    # [Debug] เปิดบรรทัดนี้ถ้าอยากรู้ว่าปุ่มที่กดชื่ออะไรใน Console
+    # Write-Host "Key Pressed: $key" -ForegroundColor Gray
 
-            # ถ้ามีอาวุธประเภทอื่น ให้ย้าย "ทั้งก้อน" ของอาวุธปัจจุบันไปไว้ข้างหลัง
-            if ($nextTypeIdx -ne -1) {
-                for ($j = 0; $j -lt $nextTypeIdx; $j++) {
-                    $item = $Script:inventory[0]
-                    $Script:inventory.RemoveAt(0)
-                    [void]$Script:inventory.Add($item)
-                }
-                # เสียง Beep สั้นๆ ให้รู้ว่าสลับอาวุธแล้ว
-                [System.Media.SystemSounds]::Asterisk.Play()
-            }
-        }
-    }
-     # --- [NEW] ระบบใช้ไอเทม E (ย้ายมานี่เพื่อกันบั๊กรัว) ---
-    if ($_.KeyCode.ToString() -eq "E" -and $Script:jammerTimer -le 0) {
-        if ($Script:inventory.Count -gt 0) {
-            $activeItem = $Script:inventory[0]
-            
-            if ($activeItem -eq "Missile") {
-                [void]$Script:bullets.Add([Missile]::new($Script:player.X + 5, $Script:player.Y))
-                $Script:inventory.RemoveAt(0)
-            }
-            elseif ($activeItem -eq "Laser") {
-                # เช็คไม่ให้ยิงเลเซอร์ซ้อน
-                $hasActiveLaser = ($Script:bullets | Where-Object { $_.GetType().Name -eq "PlayerLaser" }).Count -gt 0
-                if (-not $hasActiveLaser) {
-                    [void]$Script:bullets.Add([PlayerLaser]::new($Script:player))
-                    $Script:inventory.RemoveAt(0)
-                }
-            }
-            # [เพิ่มตรงนี้] ถ้าไอเทมที่ถือคือ Nuke
-            elseif ($activeItem -eq "Nuke") {
-                [void]$Script:bullets.Add([Nuke]::new($Script:player.X, $Script:player.Y))
-                $Script:inventory.RemoveAt(0)
-                # เสียงระเบิดเตือน
-                [System.Media.SystemSounds]::Hand.Play()
-            }
-            elseif ($activeItem -eq "HolyBomb") {
-                [void]$Script:bullets.Add([HolyBomb]::new($Script:player.X + 5, $Script:player.Y))
-                $Script:inventory.RemoveAt(0)
-            }
-        }
-    }
-
-    # Press Esc to pause/exit
-    if ($_.KeyCode -eq "Escape") { 
-        $timer.Stop()
-        $ans = [System.Windows.Forms.MessageBox]::Show("Do you want to exit?", "Quit Game", 4, 32)
-        if ($ans -eq "Yes") { $form.Close() }
-        else { $timer.Start() }
-    }
-
-    if ($_.KeyCode -eq "F1") {
-        $Script:gameMode = "1v1_Lucifer"
-        $Script:enemies.Clear()
-        Write-Host ">>> MODE CHANGED: 1v1 LUCIFER <<<" -ForegroundColor Red
-    }
-
-     # กด Enter
-    if ($_.KeyCode -eq "Enter") {
-        if ($Script:showCredits) {
+    # ==========================================
+    # CASE A: หน้าเครดิต
+    # ==========================================
+    if ($Script:showCredits) {
+        if ($key -eq "Return" -or $key -eq "Enter") {
             $Script:showCredits = $false
-            # ล้างสนามรบทั้งหมดก่อนไปหน้ากรอกชื่อ (เพื่อให้เริ่มลูปใหม่ได้สะอาด)
-            $Script:enemies.Clear()
-            $Script:enemyBullets.Clear()
-            $Script:bullets.Clear()
-            $Script:realPrideDefeatedTotal = 0
-            $Script:totalGluttonyKills = 0
+            $Script:enemies.Clear(); $Script:enemyBullets.Clear(); $Script:bullets.Clear()
+            $Script:realPrideDefeatedTotal = 0; $Script:totalGluttonyKills = 0
+            Do-GameOver
+        }
+        return
+    }
+
+    # ==========================================
+    # CASE B: หน้าเมนู (ปุ่มเลือกโหมด)
+    # ==========================================
+    if (-not $Script:gameStarted -and -not $Script:showLeaderboard) {
+        $currentMenu = if ($Script:menuState -eq "MAIN") { $Script:mainMenuItems } 
+                       elseif ($Script:menuState -eq "STORY") { $Script:storyItems }
+                       else { $Script:battleItems } # สำหรับหน้า BATTLE
+        
+        if ($key -eq "Up" -or $key -eq "W") {
+            $Script:menuIndex--
+            if ($Script:menuIndex -lt 0) { $Script:menuIndex = $currentMenu.Count - 1 }
+            [System.Media.SystemSounds]::Asterisk.Play()
+            $form.Invalidate()
+        }
+        if ($key -eq "Down" -or $key -eq "S") {
+            $Script:menuIndex++
+            if ($Script:menuIndex -ge $currentMenu.Count) { $Script:menuIndex = 0 }
+            [System.Media.SystemSounds]::Asterisk.Play()
+            $form.Invalidate()
+        }
+
+        # --- แก้ไขจุดนี้: ใช้ Return เพื่อให้กด Enter ติด ---
+        if ($key -eq "Return" -or $key -eq "Enter") {
+            $selection = $currentMenu[$Script:menuIndex]
             
-            Do-GameOver # ไปหน้ากรอกชื่อและ Leaderboard
+            # --- ตรรกะหน้าเมนูหลัก (MAIN) ---
+            if ($Script:menuState -eq "MAIN") {
+                if ($selection -eq "STORY MODE") { 
+                    $Script:menuState = "STORY"
+                    $Script:menuIndex = 0 
+                }
+                # --- [เพิ่มบรรทัดนี้ที่ขาดไป!] ---
+                elseif ($selection -eq "BATTLE MODE") { 
+                    $Script:menuState = "BATTLE"
+                    $Script:menuIndex = 0 
+                }
+                # ------------------------------
+                elseif ($selection -eq "ENDLESS MODE") { 
+                    $Script:gameMode = "Endless"
+                    $Script:gameStarted = $true
+                    $timer.Start()
+                }
+                elseif ($selection -eq "LEADERBOARD") { $Script:showLeaderboard = $true }
+                elseif ($selection -eq "EXIT") { $form.Close() }
+            }
+            # --- ตรรกะหน้าเลือก Chapter (STORY) ---
+            elseif ($Script:menuState -eq "STORY") {
+                if ($selection -match "CHAPTER 1") { 
+                    Reset-Session
+                    $Script:gameMode = "Chapter1"
+                    $Script:gameStarted = $true
+                    $timer.Start() 
+                }
+            }
+            # --- ตรรกะหน้าเลือกบอส (BATTLE) ---
+            elseif ($Script:menuState -eq "BATTLE") {
+                Reset-Session
+                if ($selection -eq "BACK") { 
+                    $Script:menuState = "MAIN"; $Script:menuIndex = 0 
+                } else {
+                    # ปรับชื่อให้ตรงกับระบบ Factory (เอาเว้นวรรคออก)
+                    $cleanName = $selection.Replace(" ", "")
+                    $Script:gameMode = "1v1_$cleanName"
+                    $Script:gameStarted = $true
+                    $timer.Start()
+                    Write-Host ">>> STARTING BATTLE: $Script:gameMode <<<" -ForegroundColor Green
+                }
+            }
+            $form.Invalidate()
             return
         }
-        # กรณี 1: ถ้าดู Leaderboard อยู่ -> ให้กลับไปหน้า Start Screen
-        elseif ($Script:showLeaderboard) {
+
+        if ($key -eq "Escape" -and $Script:menuState -ne "MAIN") {
+            $Script:menuState = "MAIN"; $Script:menuIndex = 0; $form.Invalidate()
+        }
+        return
+    }
+
+    # ==========================================
+    # CASE C: หน้า Leaderboard
+    # ==========================================
+    if ($Script:showLeaderboard) {
+        if ($key -eq "Return" -or $key -eq "Enter" -or $key -eq "Escape") {
             $Script:showLeaderboard = $false
             $Script:gameStarted = $false
-            $Script:gameOver = $false
-            $form.Invalidate() # บังคับวาดหน้าจอใหม่ทันที
-        } 
-        # กรณี 2: ถ้าอยู่ที่หน้า Start Screen -> ให้เริ่มเกม
-        elseif (-not $Script:gameStarted) { 
-            $Script:gameStarted = $true 
-            $timer.Start()  # <--- [สำคัญมาก] ต้องสั่ง Start ไม่งั้นเกมไม่เดิน!
+            $form.Invalidate()
+        }
+        return
+    }
+
+    # ==========================================
+    # CASE D: ในเกม (Gameplay)
+    # ==========================================
+    if ($Script:gameStarted) {
+        # --- [NEW] ระบบ Pause (ดักก่อนปุ่มอื่น) ---
+        if ($key -eq "Escape") {
+            $Script:isPaused = -not $Script:isPaused # สลับสถานะ หยุด/เล่น
+            $Script:pauseIndex = 0
+            return
+        }
+
+        # ถ้าเกมหยุดอยู่ ให้ใช้ปุ่มเลื่อนเมนูแทนปุ่มยิง
+        if ($Script:isPaused) {
+            if ($key -eq "Up" -or $key -eq "W") {
+                $Script:pauseIndex--
+                if ($Script:pauseIndex -lt 0) { $Script:pauseIndex = $Script:pauseItems.Count - 1 }
+            }
+            if ($key -eq "Down" -or $key -eq "S") {
+                $Script:pauseIndex++
+                if ($Script:pauseIndex -ge $Script:pauseItems.Count) { $Script:pauseIndex = 0 }
+            }
+            if ($key -eq "Return" -or $key -eq "Enter") {
+                $selection = $Script:pauseItems[$Script:pauseIndex]
+                
+                if ($selection -eq "RESUME") { 
+                    $Script:isPaused = $false 
+                }
+                elseif ($selection -eq "EXIT TO MENU") {
+                    $Script:isPaused = $false
+                    $Script:gameStarted = $false
+                    $timer.Stop() # หยุดเฟรมเกม
+
+                    # --- [เช็คกฎการถามคะแนนก่อนออก] ---
+                    # ถ้าเป็นโหมด Endless หรือโหมด Battle (1v1) ให้ถามชื่อเซฟคะแนนก่อนออก
+                    if ($Script:gameMode -eq "Endless" -or $Script:gameMode -match "1v1_") {
+                        Write-Host ">>> EXITING ENDLESS/BATTLE: RECORDING PROGRESS... <<<" -ForegroundColor Cyan
+                        Do-GameOver # เรียกหน้าต่างกรอกชื่อและพาไป Leaderboard
+                    } 
+                    else {
+                        # ถ้าเป็นโหมด Story (Chapter1) ให้ล้างค่าแล้วกลับหน้าเมนูเงียบๆ
+                        Reset-Session
+                        $Script:menuState = "MAIN"
+                        Write-Host ">>> STORY MODE EXITED. SESSION RESET. <<<" -ForegroundColor Gray
+                    }
+                }
+            }
+            $form.Invalidate(); return
+        }
+
+
+
+
+        # สลับอาวุธ (Q)
+        if ($key -eq "Q") {
+            if ($Script:inventory.Count -gt 1) {
+                $firstType = $Script:inventory[0]; $nextIdx = -1
+                for ($i = 0; $i -lt $Script:inventory.Count; $i++) {
+                    if ($Script:inventory[$i] -ne $firstType) { $nextIdx = $i; break }
+                }
+                if ($nextIdx -ne -1) {
+                    for ($j = 0; $j -lt $nextIdx; $j++) {
+                        $item = $Script:inventory[0]; $Script:inventory.RemoveAt(0); [void]$Script:inventory.Add($item)
+                    }
+                    [System.Media.SystemSounds]::Asterisk.Play()
+                }
+            }
+        }
+
+        # ใช้ไอเทม (E)
+        if ($key -eq "E" -and $Script:jammerTimer -le 0 -and $Script:inventory.Count -gt 0) {
+            $activeItem = $Script:inventory[0]
+            if ($activeItem -eq "Missile") { [void]$Script:bullets.Add([Missile]::new($Script:player.X + 5, $Script:player.Y)) }
+            elseif ($activeItem -eq "Laser") {
+                if (($Script:bullets | Where-Object { $_.GetType().Name -eq "PlayerLaser" }).Count -eq 0) {
+                    [void]$Script:bullets.Add([PlayerLaser]::new($Script:player))
+                }
+            }
+            elseif ($activeItem -eq "Nuke") { [void]$Script:bullets.Add([Nuke]::new($Script:player.X, $Script:player.Y)) }
+            elseif ($activeItem -eq "HolyBomb") { [void]$Script:bullets.Add([HolyBomb]::new($Script:player.X + 5, $Script:player.Y)) }
+            
+            $Script:inventory.RemoveAt(0)
+            [System.Media.SystemSounds]::Hand.Play()
+        }
+
+        # เมนูหยุดเกม (Escape)
+        if ($key -eq "Escape") {
+            $timer.Stop()
+            if ([System.Windows.Forms.MessageBox]::Show("Quit to Main Menu?", "Quit", 4, 32) -eq "Yes") {
+                $Script:gameStarted = $false; $Script:menuState = "MAIN"
+                $Script:enemies.Clear(); $Script:enemyBullets.Clear(); $Script:bullets.Clear()
+            } else { $timer.Start() }
         }
     }
-
-
-    # กด L ที่หน้า Start Screen เพื่อดู Leaderboard
-    if ($_.KeyCode -eq "L" -and -not $Script:gameStarted -and -not $Script:showLeaderboard) {
-        $Script:showLeaderboard = $true
-        $form.Invalidate()
-    }
-
-
-
 })
 $form.Add_KeyUp({
     $Script:keysPressed[$_.KeyCode.ToString()] = $false
@@ -306,19 +456,45 @@ $timer = New-Object System.Windows.Forms.Timer
 $timer.Interval = 16 # ~60 FPS
 
 $timer.Add_Tick({
-    # ถ้าปราบ Lucifer ได้แล้ว
+     # 1. กรณีเกมหยุด (Pause) -> วาดอย่างเดียว ห้ามทำอะไรต่อ
+    if ($Script:isPaused) {
+        $form.Invalidate() 
+        return 
+    }
+
+    # 2. กรณีปราบ Lucifer ได้แล้ว (Victory State)
     if ($Script:isLuciferDead) {
         if ($Script:victoryTimer -gt 0) {
             $Script:victoryTimer--
+            
+            # เมื่อป้ายประกาศชัยชนะโชว์จนครบเวลา (3 วินาที)
             if ($Script:victoryTimer -le 0) { 
-                $Script:showCredits = $true # จบ 3 วิแล้วค่อยเปิดเครดิต
+                if ($Script:gameMode -eq "Endless") {
+                    # --- [แก้ไขตรงนี้] สำหรับโหมด Endless: รีเซ็ตเพื่อเล่นต่อทันที ---
+                    $Script:isLuciferDead = $false
+                    $Script:realPrideDefeatedTotal = 0
+                    $Script:totalGluttonyKills = 0
+                    $Script:gluttonyStage = 0
+                    # ล้างกระสุนศัตรูที่ค้างจออยู่ให้สะอาด
+                    $Script:enemyBullets.Clear()
+                    $Script:enemies.Clear()
+                    
+                    Write-Host ">>> ENDLESS REBIRTH: BEGINNING NEXT CYCLE <<<" -ForegroundColor Green
+                } else {
+                    # สำหรับโหมด Story: เปิดหน้าเครดิตตามปกติ
+                    $Script:showCredits = $true 
+                    $Script:creditY = 600.0
+                }
             }
         }
-        $form.Invalidate() # สั่งวาดหน้าจอต่อไปเรื่อยๆ เพื่อให้เครดิตเลื่อน
-        return # ออกจาก Loop ตรงนี้เลย (ศัตรูและกระสุนจะหยุดนิ่งค้างสนาม)
+        $form.Invalidate() 
+        return # หยุดประมวลผลฟิสิกส์ระหว่างโชว์ป้าย Victory
     }
 
-    if (-not $Script:gameStarted -or $Script:gameOver) { return }
+    if (-not $Script:gameStarted -or $Script:gameOver -or $Script:isPaused) { 
+        if ($Script:isPaused) { $form.Invalidate() }
+        return 
+    }
 
     # --- A. Update Difficulty ---
     $diff = Get-GameDifficulty $Script:score
@@ -335,6 +511,16 @@ $timer.Add_Tick({
     Handle-PlayerInput
 
     # --- B. Spawn Enemies (ศัตรูธรรมดา) ---
+
+    # เช็คว่าอยู่ในโหมด 1v1 หรือไม่ (ชื่อโหมดจะขึ้นต้นด้วย 1v1)
+    $isDuelMode = $Script:gameMode -match "1v1_"
+    
+    # เงื่อนไขการเกิดลูกกระจ๊อก: ต้องไม่ใช่โหมดดวล และไม่มีบอสใหญ่อยู่
+    if (-not $isDuelMode -and -not $isGluttonyOut -and -not $hasGreed -and -not $isLuciferActive -and $Script:enemies.Count -lt 20) {
+        if ($Script:rnd.Next(0, 100) -lt $Script:spawnRate) {
+            [void]$Script:enemies.Add((New-EnemySpawn 500 $Script:level $Script:rnd))
+        }
+    }
     $isGluttonyOut = ($Script:enemies | Where-Object { $_.GetType().Name -eq "Gluttony" }).Count -gt 0
     $hasGreed = ($Script:enemies | Where-Object { $_.GetType().Name -eq "Greed" }).Count -gt 0
 
@@ -402,15 +588,13 @@ $timer.Add_Tick({
     # --- E. Handle Collisions ---
     $collisionResult = Invoke-GameCollisions $Script:player $Script:bullets $Script:enemies $Script:enemyBullets $form.ClientSize.Height $Script:items
 
-    # --- [NEW] ระบบสั่นจอ (Screen Shake) ---
+     # --- [แก้ไข] ระบบสั่นจอภายใน (Internal Shake) ---
     if ($collisionResult.ShakeIntensity -gt 0) {
         $intensity = $collisionResult.ShakeIntensity
-        # ดีดตำแหน่งหน้าต่างสุ่มตามความแรง
-        $form.Left += $Script:rnd.Next(-$intensity, $intensity)
-        $form.Top += $Script:rnd.Next(-$intensity, $intensity)
+        $Script:shakeOffset.X = $Script:rnd.Next(-$intensity, $intensity)
+        $Script:shakeOffset.Y = $Script:rnd.Next(-$intensity, $intensity)
     } else {
-        # ถ้าไม่มีการสั่น ให้พยายามจัดหน้าต่างกลับเข้าที่กึ่งกลาง (ถ้าต้องการ)
-        # หรือปล่อยไว้อย่างนั้นก็ได้ครับ
+        $Script:shakeOffset.X = 0; $Script:shakeOffset.Y = 0
     }
     # --- F. จัดการสถานะหลังการชน ---
     # ถ้าฟังก์ชันคืนค่า $true แปลว่าเลือดหมด ให้หยุดทำ Loop นี้ทันที (เหมือนคำสั่ง return เดิมของคุณ)
@@ -442,8 +626,9 @@ $form.Add_Paint({
             return
         }
 
-        if (-not $Script:gameStarted) {
-            Draw-StartScreen $g $form.Width $form.Height
+        # ใน AlienStrike.ps1 ส่วน Paint
+        if (-not $Script:gameStarted -and -not $Script:showLeaderboard) {
+            Draw-Menu $g $form.Width $form.Height
             return
         }
 

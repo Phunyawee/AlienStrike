@@ -27,32 +27,36 @@ function Invoke-GameCollisions ($player, $bullets, $enemies, $enemyBullets, $for
     $Script:blockHit = { if ($Script:defenseHits -gt 0) { $Script:defenseHits -= 1; return $true }; return $false }
 
     # ==========================================
-    # 2. GLOBAL NUKE SWEEP
+    # 1. GLOBAL NUKE CHECK (แก้ไขให้เก็บยอดคิลครบทุกตัว)
     # ==========================================
     $activeNuke = $bullets | Where-Object { $_.GetType().Name -eq "Nuke" -and $_.Exploded } | Select-Object -First 1
     if ($null -ne $activeNuke) {
-        $result.ShakeIntensity = 15 # สั่นจอแรงตอนนิวเคลียร์ลง
-        Write-Host ">>> NUKE DETONATED: CLEARING FIELD... <<<" -ForegroundColor Red
         for ($i = $enemies.Count - 1; $i -ge 0; $i--) {
             $e = $enemies[$i]; $eName = $e.GetType().Name; $nukeDead = $false
+            
             if ($eName -eq "Lucifer") {
-                foreach ($part in $e.Parts) {
-                    if (-not $part.IsDestroyed -and $part.TakeDamage(200)) {
-                        if ($part.Type -eq "Cannon") { $e.HP -= 4000 } else { $e.HP -= 1000 }
-                        Write-Host ">>> NUKE DESTROYED LUCIFER $($part.Type)! <<<" -ForegroundColor Yellow
-                    }
-                }
+                foreach ($part in $e.Parts) { if (-not $part.IsDestroyed -and $part.TakeDamage(200)) { if ($part.Type -eq "Cannon") { $e.HP -= 4000 } else { $e.HP -= 1000 } } }
                 $nukeDead = $e.TakeDamage(5) 
             }
             elseif ($eName -eq "RealPride") { $nukeDead = $e.TakeDamage(200) }
             elseif ($eName -eq "Gluttony")  { $nukeDead = $e.TakeDamage(50) }
-            else { if ($e -is [BaseEnemy]) 
-            { $nukeDead = $e.TakeDamage(99) 
-                $e.FlashTimer = 5
-            } else { $nukeDead = $true } }
+            else { 
+                if ($e -is [BaseEnemy]) { $nukeDead = $e.TakeDamage(99) } else { $nukeDead = $true }
+            }
 
             if ($nukeDead) {
+                # --- [จุดที่ต้องเพิ่ม] เก็บสถานะการตายทุกประเภทส่งกลับไป ---
                 if ($null -ne $e.ScoreValue) { $result.ScoreAdded += $e.ScoreValue } else { $result.ScoreAdded += 100 }
+                
+                if ($eName -eq "Gluttony") { $result.GluttonyKills += 1 }
+                elseif ($eName -eq "RealPride") { $result.RealPrideKilled = $true }
+                elseif ($eName -eq "Lucifer") { $result.LuciferKilled = $true }
+                elseif ($eName -eq "Lust") { $result.LustKills += 1 }
+                elseif ($eName -eq "Greed") { $result.GreedKills += 1 }
+                elseif ($eName -eq "Sloth") { $result.SlothKills += 1 }
+                elseif ($eName -eq "Wrath") { $result.WrathKills += 1 }
+
+                Write-Host ">>> NUKE ANNIHILATED: $eName <<<" -ForegroundColor Red
                 $enemies.RemoveAt($i)
             }
         }
@@ -138,7 +142,11 @@ function Invoke-GameCollisions ($player, $bullets, $enemies, $enemyBullets, $for
             elseif ($typeName -eq "Greed") { $result.GreedKills += 1 }
             elseif ($typeName -eq "Pride") { $result.PrideKilled = $true }
             elseif ($typeName -eq "RealPride") { $result.RealPrideKilled = $true }
-            elseif ($typeName -eq "Lucifer") { $result.LuciferKilled = $true }
+            elseif ($typeName -eq "Lucifer") 
+            { 
+                $result.LuciferKilled = $true 
+                Write-Host ">>> LUCIFER HAS BEEN DEFEATED! <<<" -ForegroundColor White
+            }
             elseif ($typeName -eq "Wrath") {
                 $result.WrathKills += 1
                 $Script:wrathKills++; if ($Script:wrathKills % 5 -eq 0) { [void]$enemies.Add([Envy]::new(225, -50, $player)) }

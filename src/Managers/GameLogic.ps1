@@ -109,7 +109,7 @@ function Update-ChapterOneProgression {
 
     if ($Script:level -gt $Script:currentTrackedLevel) {
         $Script:currentTrackedLevel = $Script:level
-        Write-Host ">>> LEVEL UP! SWARM INBOUND <<<" -ForegroundColor Green
+        Write-Host ">>> LEVEL UP: LUST SWARM INCOMING! <<<" -ForegroundColor Green
         for ($i = 0; $i -lt 5; $i++) {
             $dir = if ($i % 2 -eq 0) { 1 } else { -1 }
             $sx = if ($dir -eq 1) { -50 - ($i*40) } else { 550 + ($i*40) }
@@ -136,15 +136,65 @@ function Update-ChapterOneProgression {
 }
 
 function Check-BossSpawns {
+    # 1. ตรวจสอบสถานะบอสปัจจุบัน
+    $isGluttonyActive = ($Script:enemies | Where-Object { $_.GetType().Name -eq "Gluttony" }).Count -gt 0
+    $isGreedActive = ($Script:enemies | Where-Object { $_.GetType().Name -eq "Greed" }).Count -gt 0
+    $isLuciferActive = ($Script:enemies | Where-Object { $_.GetType().Name -eq "Lucifer" }).Count -gt 0
+    $isRealPrideActive = ($Script:enemies | Where-Object { $_.GetType().Name -eq "RealPride" }).Count -gt 0
+
+    # 2. เลือกโหมดการเล่น
     switch ($Script:gameMode) {
-        "Chapter1"    { Update-ChapterOneProgression }
-        "1v1_Lucifer" { 
-            $isLuciferActive = ($Script:enemies | Where-Object { $_.GetType().Name -eq "Lucifer" }).Count -gt 0
-            if (-not $isLuciferActive) { [void]$Script:enemies.Add((New-Sin "Lucifer")) }
+        
+        # --- โหมดเนื้อเรื่องปกติ ---
+        "Chapter1" { 
+            Update-ChapterOneProgression 
+        }
+
+        # --- [เพิ่มส่วนนี้!] โหมด Endless: วนลูปนรก ---
+        "Endless" {
+            # ถ้าปราบ Lucifer ได้แล้ว ให้รีเซ็ตลำดับบอสเพื่อเริ่มรอบใหม่ (แต่ไม่รีเซ็ตคะแนน/เวล)
+            if ($Script:isLuciferDead) {
+                Write-Host ">>> ENDLESS REBIRTH: RESETTING SIN CYCLE <<<" -ForegroundColor Green
+                $Script:isLuciferDead = $false
+                $Script:realPrideDefeatedTotal = 0
+                $Script:totalGluttonyKills = 0
+                $Script:gluttonyStage = 0
+                $Script:enemyBullets.Clear() # เคลียร์กระสุนค้างจอ
+            }
+            # เรียกใช้ Progression เดียวกับ Chapter 1 (ซึ่งตอนนี้ Lust อยู่บนสุดแล้ว)
+            Update-ChapterOneProgression 
+        }
+
+        # --- กลุ่มโหมดดวล 1v1 BATTLE ---
+        "1v1_LUCIFER" {
+            if (-not $isLuciferActive) { 
+                [void]$Script:enemies.Add((New-Sin "Lucifer" 210 80)) 
+                Write-Host ">>> DUEL START: LUCIFER <<<" -ForegroundColor Magenta
+            }
+        }
+
+        "1v1_REALPRIDE" {
+            if (-not $isRealPrideActive) { 
+                [void]$Script:enemies.Add((New-Sin "RealPride" 210 80)) 
+                Write-Host ">>> DUEL START: REAL PRIDE <<<" -ForegroundColor Yellow
+            }
+        }
+
+        "1v1_GLUTTONY" {
+            if (-not $isGluttonyActive) { 
+                [void]$Script:enemies.Add((New-Sin "Gluttony" 210 80)) 
+                Write-Host ">>> DUEL START: GLUTTONY <<<" -ForegroundColor Magenta
+            }
+        }
+
+        "1v1_GREED" {
+            if (-not $isGreedActive) { 
+                [void]$Script:enemies.Add((New-Sin "Greed" 210 150)) 
+                Write-Host ">>> DUEL START: GREED <<<" -ForegroundColor Yellow
+            }
         }
     }
 }
-
 # ==========================================
 # 3. CORE LOGIC: ระบบการชนและประมวลผล
 # ==========================================
@@ -154,7 +204,7 @@ function Handle-PostCollision ($collisionResult) {
     $isLuciferActive = ($Script:enemies | Where-Object { $_.GetType().Name -eq "Lucifer" }).Count -gt 0
 
     if ($collisionResult.GluttonyKills -gt 0) { 
-        Add-To-Inventory "Nuke" 1
+        Add-To-Inventory "Nuke" 5
         $Script:totalGluttonyKills += $collisionResult.GluttonyKills
         Write-Host ">>> GLUTTONY DEFEATED ($Script:totalGluttonyKills / 3) <<<" -ForegroundColor Magenta
     }
@@ -242,7 +292,7 @@ function Handle-PostCollision ($collisionResult) {
     if ($collisionResult.ScoreAdded -gt 0) { $Script:score += $collisionResult.ScoreAdded }
     $isLuciferActive = ($Script:enemies | Where-Object { $_.GetType().Name -eq "Lucifer" }).Count -gt 0
 
-    if ($collisionResult.GluttonyKills -gt 0) { Add-To-Inventory "Nuke" 1; $Script:totalGluttonyKills += $collisionResult.GluttonyKills }
+    if ($collisionResult.GluttonyKills -gt 0) { Add-To-Inventory "Nuke" 5; $Script:totalGluttonyKills += $collisionResult.GluttonyKills }
     if ($collisionResult.RealPrideKilled) { 
         $Script:realPrideDefeatedTotal++; $Script:totalGluttonyKills = 0
         [void]$Script:enemyBullets.Add([SovereignPulse]::new($Script:player.Y + 5))

@@ -1,3 +1,239 @@
+## [4.4.0] - 2026-03-14
+### "The Endless Rebirth & Tactical Pocket"
+
+Version 4.4.0 consolidates several of the most complex structural and gameplay-management features so far. This update focuses on **seamless Endless Mode continuity** and a new **arsenal management system** that allows players to plan their combat strategy more effectively.
+
+### Version 4.4 Focus
+- **Endless Mode Continuity** — Seamless boss loop cycles
+- **Strategic Exit Logic** — Mode-aware score saving system
+- **Arsenal Pocket UI** — A 3-slot item queue system for tactical planning
+- **Internal Screen Shake** — Impact-based camera shake without moving the program window
+
+---
+
+## ➕ Added
+
+### Endless Loop Engine
+In **Endless Mode**, defeating **Lucifer** now triggers a full **rebirth cycle of the Seven Sins**.
+
+The system immediately resets the enemy progression back to minor enemies while the player **retains all score, level, and weapons**.
+
+This creates a true **infinite combat loop** without interrupting gameplay flow.
+
+---
+
+### Pocket Arsenal UI (3-Slot)
+The HUD item system has been redesigned into a **three-slot tactical pocket**.
+
+- **Active Slot**  
+  Large primary slot with `[E]` usage indicator.
+
+- **Queue Slots**  
+  Two secondary slots displaying the upcoming weapons that will rotate in when pressing `[Q]`.
+
+- **Internal Count**  
+  Item quantities are now displayed **inside the icon frame** for a cleaner interface.
+
+---
+
+### Internal Screen Shake
+A new screen shake system implemented using **render coordinate translation (`TranslateTransform`)**.
+
+Large impact events such as:
+- **Nuke explosions**
+- **Fatal laser hits**
+
+now produce camera shake **without moving the actual Windows program window**, resulting in a more immersive impact effect.
+
+---
+
+## 🔄 Changed
+
+### Exit-to-Save Logic
+Pause Menu exit behavior now depends on the current mode:
+
+- **Endless / Battle Mode**  
+  Pressing **Exit** will immediately open the **name entry screen** to record the accumulated score.
+
+- **Story Mode**  
+  Pressing **Exit** resets the session and returns to the main menu **without saving score**, preventing score farming exploits.
+
+---
+
+### Total Session Reset
+The `Reset-Session` function has been upgraded to perform a **complete memory reset**, including:
+
+- Pause state
+- Boss spawn counters
+- Session variables
+
+This ensures a **clean state** whenever changing modes or starting a new run.
+
+---
+
+### Add-To-Inventory Refactor
+The inventory function now supports specifying **item quantity (`Amount`)** in a single command.
+
+This enables smoother handling of **large ammo drops from bosses**.
+
+---
+
+## 🐞 Fixed
+
+### Victory Logic Loop
+Fixed a freeze occurring after defeating **Lucifer**.
+
+Instead of stopping the **game timer**, the system now pauses **physics processing**, allowing the credit sequence to continue scrolling normally.
+
+---
+
+### Lust Spawn Inconsistency
+Fixed an issue where **Lust squadrons** failed to spawn in **Endless Mode cycles beyond the second loop**.
+
+This was resolved by resetting the internal **level tracking counter**.
+
+---
+
+### Global Nuke Kill Tracking
+The **Nuke system** now correctly records boss eliminations and reports them back to the **Director system** with **100% accuracy**.
+
+---
+
+## 🛠️ Final Technical Summary (v4.4.0)
+
+| Enemy Type | Unique Mechanic | Disruption Class |
+|------------|-----------------|------------------|
+| Lust | Directional Inversion | Movement |
+| Gluttony | Shield Devour | Resource |
+| Greed | Inventory Erasure | Arsenal |
+| Sloth | Disruption Pulse | Input (Item E) |
+| Wrath | Scatter Shot | Density |
+| Envy | Weapon Jam | Offensive (Main Gun) |
+| Pride | Hitscan Beam | Precision |
+| RealPride | Absolute Annihilation | Fatal / Enrage |
+| Lucifer | Sovereign Domination | Multi-Phase Boss |
+
+---
+
+> **"The sins will never stop coming, but neither will your will to survive.  
+> Reset. Reload. Rebirth."**
+
+
+
+
+## [4.3.0] - 2026-03-14
+### "The Grand Director & Arcade Interface"
+
+Version 4.3.0 focuses on elevating the **player experience** to match the feel of classic console-era games. This update introduces a **cursor-driven main menu**, multiple gameplay modes, and a smooth **in-house pause system**, replacing the traditional Windows pop-up behavior.
+
+### Version 4.3 Focus
+- **Navigation System** — Cursor-based main menu navigation using directional input
+- **Multi-Mode Engine** — Support for Story Mode, Battle Mode (1v1), and Endless Mode
+- **Custom Pause Logic** — A fully integrated pause menu replacing Windows dialog interruptions
+- **Dynamic Content** — Expanded celestial visuals including planetary rings and space backgrounds
+
+---
+
+## ➕ Added
+
+### GameBoy-Style Main Menu
+A retro-inspired menu system controlled with **W / S arrow navigation**, featuring responsive **tick sound feedback** and clear category separation.
+
+Available modes:
+
+- **STORY MODE**  
+  Follow the narrative progression through chapters  
+  *(Starting with Chapter 1: The 7 Sins)*
+
+- **BATTLE MODE**  
+  Engage in **1v1 duels** against selected bosses for practice and experimentation.
+
+- **ENDLESS MODE**  
+  A survival challenge where combat loops indefinitely without a final stage.
+
+---
+
+### Custom Pause Menu (`Esc`)
+A fully integrated pause system that overlays the screen with a **semi-transparent dark filter**, presenting:
+
+- **RESUME**
+- **EXIT TO MENU**
+
+The system operates smoothly without freezing the game or triggering Windows pop-up dialogs.
+
+---
+
+### Advanced Celestial Assets
+Expanded background visuals featuring procedurally varied planets:
+
+- **Single-ring planets** *(Saturn-style)*
+- **Cross-ring planets** *(X-Ring formations)*
+
+Each planet is generated with **randomized color palettes and size variations**.
+
+---
+
+## 🔄 Changed
+
+### Director & Factory Refactor
+Boss spawning logic has been fully separated into the **Sin Factory** system.
+
+Bosses can now be spawned simply by referencing their name, reducing code complexity by approximately **50%** and improving scalability for future content.
+
+---
+
+### Arena Integrity Rules
+Score recording rules have been refined:
+
+- In **Story Mode**, exiting through the Pause Menu will **not record a score**, preventing leaderboard exploitation.
+- In **Battle Mode**, exiting will immediately redirect players to the **Hall of Fame screen**.
+
+---
+
+### HUD Mode Display
+The right-side **Sidebar HUD** now displays the current **Game Mode** being played.
+
+Examples:
+- `STORY: CH 1`
+- `BOSS RUSH`
+
+---
+
+## 🐞 Fixed
+
+### Infinite Spawning Glitch
+Fixed an issue where bosses could repeatedly spawn in **1v1 Battle Mode**, resulting in the infamous **"Army of Pride" bug**.
+
+### Divide by Zero (HUD)
+Resolved an error caused by dividing score values by a **zero target value** during the initialization phase of Battle Mode.
+
+### Input Overlap
+Fixed an issue where **Enter/Return inputs** could trigger multiple actions between the main menu and the game start screen.
+
+### Immortal Ghosting
+Fixed a bug where the **Immortal status** allowed players to pass through the **Cataclysm Wave**.
+
+`Cataclysm` now acts as a **true catastrophic event**, bypassing all defensive states.
+
+---
+
+## 📊 Updated Elite Class Table (v4.3.0)
+
+| Sin Class | Technical Mechanic | Play Mode Availability |
+|-----------|--------------------|------------------------|
+| Lucifer | Sovereign Domination | Story / Battle / Endless |
+| RealPride | Absolute Annihilation | Story / Battle / Endless |
+| Gluttony | Shield Devour | Story / Battle / Endless |
+| Greed | Inventory Erasure | Story / Battle / Endless |
+| Lust / Sloth | Movement / Input Lockdown | Story / Endless |
+
+---
+
+> **"The stage is set, the modes are ready.  
+> Choose your sin, and let the duel begin."**
+
+
+
 ## [4.2.0] - 2026-03-14
 ### "The Architect & Impact Update"
 

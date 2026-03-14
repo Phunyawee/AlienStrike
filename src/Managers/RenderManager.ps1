@@ -28,7 +28,6 @@ $Global:GameCache = @{
         Cyan   = [System.Drawing.Brushes]::Cyan
     }
 }
-
 function Draw-StartScreen ($g, $width, $height) {
     $center = New-Object System.Drawing.StringFormat
     $center.Alignment = "Center"
@@ -37,7 +36,6 @@ function Draw-StartScreen ($g, $width, $height) {
     $g.DrawString("Press ENTER to Start", $Global:GameFonts.SubText, [System.Drawing.Brushes]::Yellow, ($width/2), 280, $center)
     $g.DrawString("[ L ] View Leaderboard", $Global:GameFonts.Small, [System.Drawing.Brushes]::LightGray, ($width/2), 320, $center)
 }
-
 function Draw-Leaderboard ($g, $width, $height) {
     $scores = try { Get-HighScores } catch { @() }
 
@@ -82,7 +80,6 @@ function Draw-Leaderboard ($g, $width, $height) {
     
     $g.DrawString("Press ENTER to Return", $Global:GameFonts.Text, [System.Drawing.Brushes]::DarkGray, ($width/2), 520, $center)
 }
-
 # --- เพิ่มพารามิเตอร์ $enemies เข้าไปในฟังก์ชัน Draw-HUD ---
 function Draw-HUD ($g, $score, $level, $lives, $inventory, $buffs, $debuffs, $targetScore, $enemies) {
     $fontSmall = New-Object System.Drawing.Font("Consolas", 10, [System.Drawing.FontStyle]::Bold)
@@ -101,13 +98,32 @@ function Draw-HUD ($g, $score, $level, $lives, $inventory, $buffs, $debuffs, $ta
     $g.DrawString("LEVEL $level", $fontSmall, [System.Drawing.Brushes]::White, ($sidebarX + 15), 75)
     
     $g.FillRectangle([System.Drawing.Brushes]::DarkSlateGray, ($sidebarX + 15), 95, 170, 6)
-    $progress = [math]::Min(($score / $targetScore), 1.0)
+    
+    # เช็คกันหารด้วยศูนย์ (Divide by zero protection)
+    if ($null -ne $targetScore -and $targetScore -gt 0) {
+        $progress = [math]::Min(($score / $targetScore), 1.0)
+        $g.FillRectangle([System.Drawing.Brushes]::Lime, ($sidebarX + 15), 95, (170 * $progress), 6)
+    }
+
     $g.FillRectangle([System.Drawing.Brushes]::Lime, ($sidebarX + 15), 95, (170 * $progress), 6)
 
     $g.DrawString("LIVES", $fontSmall, [System.Drawing.Brushes]::Gray, ($sidebarX + 15), 115)
     for ($l = 0; $l -lt $lives; $l++) {
         $g.FillEllipse([System.Drawing.Brushes]::Red, ($sidebarX + 15 + ($l * 25)), 135, 18, 18)
     }
+
+    # --- เพิ่มส่วนบอก MODE (ใน Sidebar) ---
+    $g.DrawString("GAME MODE", $fontSmall, [System.Drawing.Brushes]::Gray, ($sidebarX + 15), 170)
+    
+    $modeText = switch ($Script:gameMode) {
+        "Chapter1"    { "STORY: CH 1" }
+        "Endless"     { "ENDLESS" }
+        "1v1_Lucifer" { "BOSS RUSH" }
+        default       { $Script:gameMode }
+    }
+    
+    # วาดชื่อโหมดเป็นสีเขียว Lime
+    $g.DrawString($modeText, $fontSmall, [System.Drawing.Brushes]::Lime, ($sidebarX + 15), 185)
 
     # --- 3. [NEW] วาดบอสบาร์ของ LUCIFER (ถ้าบอสออกมาแล้ว) ---
     $lucifer = $enemies | Where-Object { $_.GetType().Name -eq "Lucifer" } | Select-Object -First 1
@@ -137,23 +153,51 @@ function Draw-HUD ($g, $score, $level, $lives, $inventory, $buffs, $debuffs, $ta
     }
 
     # --- 4. ระบบ Inventory (Sidebar) ---
-    $invY = 430
-    $g.DrawString("WEAPON [Q:Swap]", $fontSmall, [System.Drawing.Brushes]::Gray, ($sidebarX + 15), $invY)
+    # --- [NEW] ระบบ Inventory 3-Slot Pocket ---
+    $invY = 410
+    $g.DrawString("POCKET ARSENAL", $fontSmall, [System.Drawing.Brushes]::Gray, ($sidebarX + 15), $invY)
+    
     if ($inventory.Count -gt 0) {
-        $activeType = $inventory[0]
-        $count = ($inventory | Where-Object { $_ -eq $activeType }).Count
-        $rect = New-Object System.Drawing.Rectangle(($sidebarX + 15), ($invY + 20), 50, 50)
-        $activeBrush = [System.Drawing.Brushes]::DarkCyan
-        if ($activeType -eq "Laser") { $activeBrush = [System.Drawing.Brushes]::LimeGreen }
-        elseif ($activeType -eq "Nuke") { $activeBrush = [System.Drawing.Brushes]::OrangeRed }
-        elseif ($activeType -eq "HolyBomb") { [System.Drawing.Brushes]::White } # สีขาวสำหรับ H
-        else { [System.Drawing.Brushes]::DarkCyan }
+        # หาประเภทอาวุธที่ต่างกัน 3 อันแรกเพื่อโชว์คิว
+        $uniqueQueue = @()
+        foreach($item in $inventory) {
+            if ($uniqueQueue.Count -lt 3 -and $item -notin $uniqueQueue) { $uniqueQueue += $item }
+        }
 
-        $g.FillRectangle($activeBrush, $rect)
-        $g.DrawRectangle([System.Drawing.Pen]::new([System.Drawing.Color]::White, 2), $rect)
-        $txt = if ($activeType -eq "Laser") { "L" } elseif ($activeType -eq "Nuke") { "N" } elseif ($activeType -eq "HolyBomb") { "H" } else { "M" }
-        $g.DrawString($txt, $fontLarge, [System.Drawing.Brushes]::White, ($sidebarX + 27), ($invY + 31))
-        $g.DrawString("x$count", $fontLarge, [System.Drawing.Brushes]::Yellow, ($sidebarX + 70), ($invY + 31))
+        for ($i = 0; $i -lt 3; $i++) {
+            $slotSize = if ($i -eq 0) { 50 } else { 35 } # ช่องหลักใหญ่กว่า
+            $posX = $sidebarX + 15
+            $posY = $invY + 20 + ($i * 55)
+            if ($i -gt 0) { $posY -= 10 } # ขยับช่องรองให้ชิดขึ้น
+
+            if ($i -lt $uniqueQueue.Count) {
+                $type = $uniqueQueue[$i]
+                $count = ($inventory | Where-Object { $_ -eq $type }).Count
+                
+                # กำหนดสีตามประเภท
+                $colorName = switch($type) { "Laser" {"LimeGreen"}; "Nuke" {"OrangeRed"}; "HolyBomb" {"White"}; default {"DarkCyan"} }
+                $brush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromName($colorName))
+                
+                # วาด Slot
+                $rect = New-Object System.Drawing.Rectangle($posX, $posY, $slotSize, $slotSize)
+                $g.FillRectangle($brush, $rect)
+                $g.DrawRectangle([System.Drawing.Pens]::White, $rect)
+
+                # วาดตัวย่อ (M, L, N, H)
+                $txt = $type.Substring(0,1)
+                $f = if($i -eq 0){$fontLarge} else {$fontSmall}
+                $g.DrawString($txt, $f, [System.Drawing.Brushes]::Black, ($posX + ($slotSize/4)), ($posY + ($slotSize/5)))
+
+                # วาดจำนวนไว้ในกรอบ (มุมขวาล่าง)
+                $g.DrawString($count.ToString(), $Global:GameFonts.Icon, [System.Drawing.Brushes]::Yellow, ($posX + $slotSize - 18), ($posY + $slotSize - 15))
+
+                if ($i -eq 0) {
+                    $g.DrawString("<- ACTIVE [E]", $fontSmall, [System.Drawing.Brushes]::Lime, ($posX + 60), ($posY + 15))
+                }
+            } else {
+                $g.DrawRectangle([System.Drawing.Pens]::DimGray, $posX, $posY, $slotSize, $slotSize)
+            }
+        }
     }
 
     # --- 5. Buffs & Debuffs ---
@@ -207,9 +251,10 @@ function Draw-HUD ($g, $score, $level, $lives, $inventory, $buffs, $debuffs, $ta
         }
     }
 }
-
 # --- แก้ไขฟังก์ชัน Draw-Gameplay ให้ส่ง $enemies ไปด้วย ---
 function Draw-Gameplay ($g, $player, $bullets, $enemies, $enemyBullets, $score, $level, $lives, $targetScore, $buffs, $debuffs, $inventory) {
+    # สั่งให้กราฟิกขยับตามค่าการสั่น
+    $g.TranslateTransform($Script:shakeX, $Script:shakeY)
     # 1. วาดผู้เล่น
     $showPlayer = $true
     if ($Script:immortalTimer -gt 0 -and ($Script:immortalTimer % 10) -lt 5) { $showPlayer = $false }
@@ -227,10 +272,14 @@ function Draw-Gameplay ($g, $player, $bullets, $enemies, $enemyBullets, $score, 
         $g.DrawEllipse($shieldPen, ($player.X - 10), ($player.Y - 10), 41, 41)
     }
 
+    # วาดเมนูหยุดเกมทับหน้าสุด
+    if ($Script:isPaused) {
+        Draw-PauseMenu $g $score # ส่งค่าไปวาด
+    }
+    $g.ResetTransform()
     # 4. วาด HUD
     Draw-HUD $g $score $level $lives $inventory $buffs $debuffs $targetScore $enemies
 }
-
 # --- ระบบพื้นหลังอวกาศ (v4.1.1: Saturn & X-Rings Edition) ---
 function Draw-Background ($g, $width, $height, $level) {
     # 1. วาดดวงดาว (Starfield)
@@ -296,8 +345,6 @@ function Draw-Background ($g, $width, $height, $level) {
     }
 }
 
-
-
 function Draw-Credits ($g, $width, $height) {
     # 1. ถมพื้นหลังสีดำโปร่งแสงทับหน้าจอ
     $overlay = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(200, 0, 0, 0))
@@ -353,5 +400,61 @@ function Draw-Credits ($g, $width, $height) {
         if (([DateTime]::Now.Millisecond % 1000) -gt 500) {
             $g.DrawString("- PRESS [ENTER] TO CONTINUE -", $textF, [System.Drawing.Brushes]::Lime, ($width/2), 540, $center)
         }
+    }
+}
+
+function Draw-Menu ($g, $width, $height) {
+    $titleF = New-Object System.Drawing.Font("Impact", 40)
+    $menuF = New-Object System.Drawing.Font("Consolas", 18, [System.Drawing.FontStyle]::Bold)
+    $center = New-Object System.Drawing.StringFormat; $center.Alignment = "Center"
+    
+    # วาดชื่อเกม
+    $g.DrawString("ALIEN STRIKE", $titleF, [System.Drawing.Brushes]::Cyan, ($width/2), 100, $center)
+    $g.DrawString($Script:menuState, [System.Drawing.Font]::new("Arial", 10), [System.Drawing.Brushes]::Gray, ($width/2), 160, $center)
+
+    # เลือกรายการเมนูตามสถานะ
+    $items = if ($Script:menuState -eq "MAIN") { $Script:mainMenuItems } 
+             elseif ($Script:menuState -eq "STORY") { $Script:storyItems }
+             else { $Script:battleItems }
+    
+    $startY = 250
+    for ($i = 0; $i -lt $items.Count; $i++) {
+        $color = if ($i -eq $Script:menuIndex) { [System.Drawing.Brushes]::Yellow } else { [System.Drawing.Brushes]::White }
+        $text = $items[$i]
+        
+        # วาด Cursor (สามเหลี่ยม)
+        if ($i -eq $Script:menuIndex) {
+            $cursorX = ($width / 2) - 160
+            $g.DrawString(">", $menuF, [System.Drawing.Brushes]::Lime, $cursorX, ($startY + ($i * 45)))
+        }
+
+        $g.DrawString($text, $menuF, $color, ($width/2), ($startY + ($i * 45)), $center)
+    }
+
+    $g.DrawString("[ESC] Back / [ENTER] Select", [System.Drawing.Font]::new("Arial", 9), [System.Drawing.Brushes]::DarkGray, ($width/2), 550, $center)
+}
+
+
+function Draw-PauseMenu ($g, $width, $height) {
+    # 1. ถมสีดำโปร่งแสงทับสนามรบ
+    $overlay = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(150, 0, 0, 0))
+    $g.FillRectangle($overlay, 0, 0, 500, 600) # บังเฉพาะ Play Area
+
+    $pauseF = New-Object System.Drawing.Font("Impact", 30)
+    $itemF = New-Object System.Drawing.Font("Consolas", 16, [System.Drawing.FontStyle]::Bold)
+    $center = New-Object System.Drawing.StringFormat; $center.Alignment = "Center"
+
+    # 2. วาดคำว่า PAUSED
+    $g.DrawString("PAUSED", $pauseF, [System.Drawing.Brushes]::White, 250, 200, $center)
+
+    # 3. วาดรายการเมนู
+    for ($i = 0; $i -lt $Script:pauseItems.Count; $i++) {
+        $color = if ($i -eq $Script:pauseIndex) { [System.Drawing.Brushes]::Yellow } else { [System.Drawing.Brushes]::Gray }
+        $text = $Script:pauseItems[$i]
+        
+        if ($i -eq $Script:pauseIndex) {
+            $g.DrawString(">", $itemF, [System.Drawing.Brushes]::Lime, 150, (300 + ($i * 40)))
+        }
+        $g.DrawString($text, $itemF, $color, 250, (300 + ($i * 40)), $center)
     }
 }
