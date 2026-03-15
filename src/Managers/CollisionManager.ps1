@@ -32,6 +32,9 @@ function Invoke-GameCollisions ($player, $bullets, $enemies, $enemyBullets, $for
     $activeNuke = $bullets | Where-Object { $_.GetType().Name -eq "Nuke" -and $_.Exploded } | Select-Object -First 1
     if ($null -ne $activeNuke) {
         for ($i = $enemies.Count - 1; $i -ge 0; $i--) {
+            # [จุดแก้ที่ 1] กันบั๊ก Index Out of Range จาก Nuke
+            if ($i -ge $enemies.Count) { continue } 
+
             $e = $enemies[$i]; $eName = $e.GetType().Name; $nukeDead = $false
             
             if ($eName -eq "Lucifer") {
@@ -88,6 +91,8 @@ function Invoke-GameCollisions ($player, $bullets, $enemies, $enemyBullets, $for
         }
 
         for ($j = $bullets.Count - 1; $j -ge 0; $j--) {
+            if ($j -ge $bullets.Count) { continue }
+
             $b = $bullets[$j]; $bName = $b.GetType().Name; $hitBox = $b.GetBounds()
             $currentDmg = if ($bName -eq "HolyBomb") { 5 } else { 1 }
 
@@ -95,7 +100,7 @@ function Invoke-GameCollisions ($player, $bullets, $enemies, $enemyBullets, $for
                 $partHit = $false
                 foreach ($part in $e.Parts) {
                     if (-not $part.IsDestroyed -and $part.GetBounds($e.X, $e.Y).IntersectsWith($hitBox)) {
-                        if ($bName -eq "Missile") { $b.Explode() }
+                        if ($bName -eq "Missile" -or $bName -eq "HomingMissile") { $b.Explode() }
                         if ($part.Type -eq "Turret" -and $e.Phase -lt 1) { 
                              if ($bName -ne "PlayerLaser") { $bullets.RemoveAt($j) }; $partHit = $true; break 
                         }
@@ -104,33 +109,53 @@ function Invoke-GameCollisions ($player, $bullets, $enemies, $enemyBullets, $for
                             if ($part.Type -eq "Cannon") { $e.HP -= 4000 } else { $e.HP -= 1000 }
                             Write-Host ">>> LUCIFER $($part.Type) DESTROYED! <<<" -ForegroundColor Yellow
                         }
-                        if ($bName -ne "PlayerLaser" -and $bName -ne "Nuke" -and $bName -ne "Missile") { $bullets.RemoveAt($j) }
+                        # แก้ไขตรงนี้: เพิ่ม -and $bName -ne "HomingMissile"
+                        if ($bName -ne "PlayerLaser" -and $bName -ne "Nuke" -and $bName -ne "Missile" -and $bName -ne "HomingMissile") { 
+                            $bullets.RemoveAt($j) 
+                        }
                         $partHit = $true; break
                     }
                 }
                 if ($partHit) { continue }
                 if ($e.GetBounds().IntersectsWith($hitBox)) {
                     if ($e.Phase -ge 2 -or $bName -eq "HolyBomb") {
-                        if ($bName -eq "Missile") { $b.Explode() }
-                        $bossDmg = if($bName -eq "HolyBomb"){800} elseif($bName -eq "Nuke"){400} elseif($bName -eq "Missile"){50} elseif($bName -eq "PlayerLaser"){2} else {1}
+                        # 1. สั่งระเบิด (M และ T)
+                        if ($bName -eq "Missile" -or $bName -eq "HomingMissile") { $b.Explode() }
+                        
+                        # 2. คิดดาเมจ
+                        $bossDmg = if($bName -eq "HolyBomb"){800} elseif($bName -eq "Nuke"){400} elseif($bName -eq "Missile"){50} elseif($bName -eq "HomingMissile"){75} elseif($bName -eq "PlayerLaser"){2} else {1}
                         $isDead = $e.TakeDamage($bossDmg)
-                        if ($bName -ne "PlayerLaser" -and $bName -ne "Missile") { $bullets.RemoveAt($j) }
-                        break
+                        
+                        # 3. ลบกระสุน "ยกเว้น" พวกอาวุธทะลวง/ระเบิด
+                        if ($bName -notin @("PlayerLaser", "Nuke", "Missile", "HomingMissile")) { 
+                            $bullets.RemoveAt($j) 
+                        }
+                        break 
                     } else {
-                        if ($bName -ne "PlayerLaser") { $bullets.RemoveAt($j) }; break
+                        # ยิงติดโล่ Phase (ลบทิ้งยกเว้นเลเซอร์)
+                        if ($bName -ne "PlayerLaser") { $bullets.RemoveAt($j) }
+                        break
                     }
                 }
                 continue
             }
 
             if ($e.GetBounds().IntersectsWith($hitBox)) {
-                if ($bName -eq "Missile") { $b.Explode() }
-                if ($bName -ne "PlayerLaser" -and $bName -ne "Nuke" -and $bName -ne "Missile") { $bullets.RemoveAt($j) }
+                # 1. สั่งระเบิด (M และ T)
+                if ($bName -eq "Missile" -or $bName -eq "HomingMissile") { $b.Explode() }
+                
+                # 2. ลบกระสุน "ยกเว้น" พวกอาวุธทะลวง/ระเบิด
+                if ($bName -notin @("PlayerLaser", "Nuke", "Missile", "HomingMissile")) { 
+                        $bullets.RemoveAt($j) 
+                    }
+
+                # 3. คิดดาเมจ
                 if ($e.PsObject.Methods.Match("TakeDamage").Count -gt 0) { 
-                    $isDead = $e.TakeDamage($currentDmg) 
-                    $e.FlashTimer = 3 
+                    $isDead = $e.TakeDamage($currentDmg); $e.FlashTimer = 3 
                 } else { $isDead = $true }
-                if ($bName -ne "Missile" -and $bName -ne "PlayerLaser") { break }
+
+                # 4. ไม่สั่ง break ถ้าเป็นอาวุธทะลวง
+                if ($bName -notin @("PlayerLaser", "Nuke", "Missile", "HomingMissile")) { break }
             }
         }
 
@@ -189,6 +214,9 @@ function Invoke-GameCollisions ($player, $bullets, $enemies, $enemyBullets, $for
     # 6. ENEMY PROJECTILES & DEBUFFS
     # ==========================================
     for ($i = $enemyBullets.Count - 1; $i -ge 0; $i--) {
+
+        if ($i -ge $enemyBullets.Count) { continue }
+
         $eb = $enemyBullets[$i]; $bulletName = $eb.GetType().Name
         if ($bulletName -eq "SlothBomb" -and $eb.State -eq 3) {
             $wave = $eb.GetShockwave(); if ($wave) { [void]$enemyBullets.Add($wave) }; $enemyBullets.RemoveAt($i); continue
@@ -209,6 +237,16 @@ function Invoke-GameCollisions ($player, $bullets, $enemies, $enemyBullets, $for
             if ($bulletName -eq "SirenBullet")   { $result.ApplySiren = $true;   $enemyBullets.RemoveAt($i); continue }
             if ($bulletName -eq "GreedArrow")   { $result.ApplyGreed = $true;   $enemyBullets.RemoveAt($i); continue }
             if ($bulletName -eq "SlothShockwave") { $result.ApplyJammer = $true; continue }
+            # --- [เพิ่ม] เช็คมิสไซล์ศัตรู ---
+            if ($bulletName -eq "EnemyMissile") {
+                if ($eb.IsExploding) {
+                    # ถ้าโดนวงระเบิด -> หักเลือด (Fatal Hit)
+                    $result.IsPlayerHit = $true; return $result
+                } else {
+                    # ถ้าโดนแค่ตัวลูกมิสไซล์ตอนยังไม่ระเบิด -> ให้มันระเบิดทันที
+                    $eb.Explode(); continue
+                }
+            }
             $result.IsPlayerHit = $true; return $result
         }
         if ($eb.Y -gt $formHeight) { $enemyBullets.RemoveAt($i) }

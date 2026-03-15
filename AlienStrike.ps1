@@ -58,6 +58,8 @@ function Reset-Session {
     $Script:showCredits = $false
     $Script:isLuciferDead = $false
     $Script:victoryTimer = 0
+    $Script:chapterTwoWave = 0
+    $Script:waveDelayTimer = 0
 
     # 2. ล้างลิสต์วัตถุทั้งหมด
     $Script:enemies.Clear()
@@ -69,6 +71,7 @@ function Reset-Session {
     $Script:inventory.Clear()
     Add-To-Inventory "Missile" 5
     Add-To-Inventory "Laser" 1
+    Add-To-Inventory "Homing" 5
 
     # 4. รีเซ็ตตัวแปรนับยอดบอสและการสปอน (แก้ปัญหา Lust ไม่เกิด)
     $Script:score = 0
@@ -150,7 +153,8 @@ function Do-GameOver {
     # ทดสอบ: แจกมิสไซล์ 5 อัน และ เลเซอร์ 1 อัน
     Add-To-Inventory "Missile" 5
     Add-To-Inventory "Laser" 1
-    
+    Add-To-Inventory "Homing" 5
+
     # รีเซ็ตค่าคะแนนและเลเวล
     $Script:score = 0
     $Script:nextPrideScoreTarget = 5000 # เป้าหมายคะแนนแรกที่ Pride จะเกิด
@@ -188,7 +192,8 @@ $Script:gameStarted = $false
 $Script:menuState = "MAIN"
 $Script:menuIndex = 0
 $Script:mainMenuItems = @("STORY MODE", "BATTLE MODE", "ENDLESS MODE", "LEADERBOARD", "EXIT")
-$Script:storyItems = @("CHAPTER 1: THE 7 SINS", "COMING SOON...")
+$Script:storyItems = @("CHAPTER 1: THE 7 SINS", "CHAPTER 2: THE FALLEN ANGEL", "COMING SOON...")
+$Script:chapterTwoWave = 0 # ตัวนับระลอกของ Chapter 2
 $Script:battleItems = @("LUCIFER", "REAL PRIDE", "GLUTTONY", "GREED", "BACK") # รายชื่อบอส
 
 $Script:bullets = [System.Collections.ArrayList]::new()
@@ -205,7 +210,8 @@ $Script:pauseItems = @("RESUME", "EXIT TO MENU")
 $Script:inventory = [System.Collections.ArrayList]::new()
 # ตอนเริ่มเกม แจกให้ก่อนเลย 5 อัน
 Add-To-Inventory "Missile" 5
-Add-To-Inventory "Laser" 1
+Add-To-Inventory "Laser" 1 
+Add-To-Inventory "Homing" 5
 
 $Script:score = 0
 $Script:targetScore = 750 # <--- เพิ่มบรรทัดนี้ (ค่าเริ่มต้นของ Level 1)
@@ -317,6 +323,10 @@ $form.Add_KeyDown({
                     $Script:gameMode = "Chapter1"
                     $Script:gameStarted = $true
                     $timer.Start() 
+                }
+                elseif ($selection -match "CHAPTER 2") { 
+                    $Script:gameMode = "Chapter2"; $Script:gameStarted = $true; $timer.Start() 
+                    Write-Host ">>> STARTING CHAPTER 2: THE FALLEN ANGEL <<<" -ForegroundColor Cyan
                 }
             }
             # --- ตรรกะหน้าเลือกบอส (BATTLE) ---
@@ -440,7 +450,14 @@ $form.Add_KeyDown({
             }
             elseif ($activeItem -eq "Nuke") { [void]$Script:bullets.Add([Nuke]::new($Script:player.X, $Script:player.Y)) }
             elseif ($activeItem -eq "HolyBomb") { [void]$Script:bullets.Add([HolyBomb]::new($Script:player.X + 5, $Script:player.Y)) }
-            
+            elseif ($activeItem -eq "Homing") {
+                # สั่งยิง HomingMissile (ชื่อคลาสต้องตรงกับในไฟล์ .ps1)
+                [void]$Script:bullets.Add([HomingMissile]::new($Script:player.X + 5, $Script:player.Y))
+                $Script:inventory.RemoveAt(0)
+                [System.Media.SystemSounds]::Hand.Play()
+            }
+
+
             $Script:inventory.RemoveAt(0)
             [System.Media.SystemSounds]::Hand.Play()
         }
@@ -524,6 +541,7 @@ $timer.Add_Tick({
 
     # 1. รวบรวมสถานะสนามรบ (เช็คครั้งเดียวใช้ได้ทั้งบล็อก)
     $isDuelMode = $Script:gameMode -match "1v1_"
+    $isChapter2 = $Script:gameMode -eq "Chapter2"
     $isLuciferActive = ($Script:enemies | Where-Object { $_.GetType().Name -eq "Lucifer" }).Count -gt 0
     $isRealPrideActive = ($Script:enemies | Where-Object { $_.GetType().Name -eq "RealPride" }).Count -gt 0
     $isGluttonyOut = ($Script:enemies | Where-Object { $_.GetType().Name -eq "Gluttony" }).Count -gt 0
@@ -531,8 +549,7 @@ $timer.Add_Tick({
 
     # 2. กฎการสปอนศัตรูทั่วไป: 
     # ห้ามเกิดถ้า: (เป็นโหมดดวล) หรือ (มีบอสใหญ่อยู่) หรือ (ศัตรูเต็มจอ 20 ตัว)
-    $canSpawnMinions = (-not $isDuelMode -and -not $isLuciferActive -and -not $isRealPrideActive -and -not $isGluttonyOut -and -not $hasGreed)
-
+    $canSpawnMinions = (-not $isDuelMode -and -not $isChapter2 -and -not $isLuciferActive -and -not $isRealPrideActive -and -not $isGluttonyOut -and -not $hasGreed)
     if ($canSpawnMinions -and $Script:enemies.Count -lt 20) {
         # สุ่มเลขตาม SpawnRate (เช็คแค่ครั้งเดียวต่อเฟรม)
         if ($Script:rnd.Next(0, 100) -lt $Script:spawnRate) {
@@ -607,8 +624,11 @@ $timer.Add_Tick({
         if ($null -ne $eb -and $eb.PSObject -ne $null) { $eb.Update() }
     }
     # --- E. Handle Collisions ---
-    $collisionResult = Invoke-GameCollisions $Script:player $Script:bullets $Script:enemies $Script:enemyBullets $form.ClientSize.Height $Script:items
-
+    try {
+        $collisionResult = Invoke-GameCollisions $Script:player $Script:bullets $Script:enemies $Script:enemyBullets $form.ClientSize.Height $Script:items
+    } catch {
+        Write-Warning "Collision skipped for 1 frame due to sync issue."
+    }
      # --- [แก้ไข] ระบบสั่นจอภายใน (Internal Shake) ---
     if ($collisionResult.ShakeIntensity -gt 0) {
         $intensity = $collisionResult.ShakeIntensity

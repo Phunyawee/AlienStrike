@@ -91,15 +91,22 @@ function Handle-PostCollision ($collisionResult) {
 
     # ระบบตายและการฟื้นคืนชีพ
     if ($collisionResult.IsPlayerHit) {
-        $Script:lives--; if ($Script:lives -le 0) { Do-GameOver; return $true }
+        $Script:lives--
+        if ($Script:lives -le 0) { Do-GameOver; return $true }
         
         $Script:player.X = 225; $Script:player.Y = 500
+        
+        # --- [แก้ไขจุดนี้] กฎอมตะสำหรับ Chapter 2 ---
+        $isChapter2 = $Script:gameMode -eq "Chapter2"
         $isRP = ($Script:enemies | Where-Object { $_.GetType().Name -eq "RealPride" }).Count -gt 0
         
-        if ($isRP -or $isLuciferActive -or $collisionResult.IsFatalHit) {
-            $Script:defenseHits = 50; $Script:immortalTimer = 180
-            Write-Host ">>> ARENA RESURRECTION <<<" -ForegroundColor Yellow
+        # ถ้าอยู่ใน Chapter 2 หรือสู้บอสใหญ่ ให้ใช้ระบบฟื้นคืนชีพแบบไม่ล้างสนาม
+        if ($isChapter2 -or $isRP -or $isLuciferActive -or $collisionResult.IsFatalHit) {
+            $Script:defenseHits = 50
+            $Script:immortalTimer = 180 # อมตะ 3 วินาที
+            Write-Host ">>> CHAPTER 2 RESURRECTION: SYSTEM STABILIZING... <<<" -ForegroundColor Yellow
         } else {
+            # ตายปกติใน Chapter 1 หรือ Endless (ล้างสนาม)
             $Script:enemies.Clear(); $Script:enemyBullets.Clear(); $Script:bullets.Clear(); $Script:items.Clear()
         }
     }

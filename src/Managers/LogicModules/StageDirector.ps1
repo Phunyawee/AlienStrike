@@ -17,6 +17,8 @@ function Check-BossSpawns {
             Update-ChapterOneProgression 
         }
 
+        "Chapter2" { Update-ChapterTwoProgression }
+
         # --- [เพิ่มส่วนนี้!] โหมด Endless: วนลูปนรก ---
         "Endless" {
             # ถ้าปราบ Lucifer ได้แล้ว ให้รีเซ็ตลำดับบอสเพื่อเริ่มรอบใหม่ (แต่ไม่รีเซ็ตคะแนน/เวล)
@@ -148,3 +150,105 @@ function Update-ChapterOneProgression {
     }
 }
 
+# --- ฟังก์ชันสร้างฝูงบิน Delta (ลำดับ Layer: น้ำเงินหลัง แดงหน้า) ---
+function Spawn-DeltaFormation ([float]$centerX, [float]$targetY) {
+    # 1. ลูกน้องแถวหลังสุด (น้ำเงิน 2 ลำบน)
+    [void]$Script:enemies.Add([Watcher]::new($centerX, -100, $centerX - 45, $targetY - 45, "Minion"))
+    [void]$Script:enemies.Add([Watcher]::new($centerX, -100, $centerX + 45, $targetY - 45, "Minion"))
+
+    # 2. ลูกน้องแถวกลาง (น้ำเงิน 2 ลำกลาง)
+    [void]$Script:enemies.Add([Watcher]::new($centerX, -100, $centerX - 25, $targetY + 5, "Minion"))
+    [void]$Script:enemies.Add([Watcher]::new($centerX, -100, $centerX + 25, $targetY + 5, "Minion"))
+
+    # 3. หัวหน้า (แดง - แอดหน้าสุด)
+    [void]$Script:enemies.Add([Watcher]::new($centerX, -100, $centerX, $targetY, "Leader"))
+}
+
+$Script:chapterTwoWave = 0
+$Script:waveDelayTimer = 0 # ตัวนับเวลาถอยหลังก่อนปล่อยชุดใหม่
+$Script:subWaveTriggered = $false
+
+function Update-ChapterTwoProgression {
+    $activeEnemies = $Script:enemies | Where-Object { $_.Y -lt 1000 }
+    
+    if ($activeEnemies.Count -gt 0) { 
+        # ลอจิก Sub-Wave ของ Wave 3 (เหมือนเดิม)
+        if ($Script:chapterTwoWave -eq 3 -and -not $Script:subWaveTriggered) {
+            $orbits = $activeEnemies | Where-Object { $_.Type -eq "Orbit" }
+            if ($orbits.Count -le 2) { # ปรับให้เหลือ 2 ลำค่อยเรียกวงใหม่
+                $Script:subWaveTriggered = $true
+                $cx = 230; $cy = 150
+                for ($i = 0; $i -lt 4; $i++) { # ลดเหลือ 4 ลำ
+                    $w = [Watcher]::new($cx, $cy, $cx, $cy, "Orbit")
+                    $w.Angle = (($i * 90) + 45) * ([math]::PI / 180)
+                    $w.OrbitCX = $cx; $w.OrbitCY = $cy
+                    [void]$Script:enemies.Add($w)
+                }
+                [void]$Script:enemies.Add([Watcher]::new(550, 180, 0, 0, "Ace"))
+            }
+        }
+        $Script:waveDelayTimer = 30; return 
+    }
+    
+    if ($Script:waveDelayTimer -gt 0) { $Script:waveDelayTimer--; return }
+
+    $Script:chapterTwoWave++
+    $Script:subWaveTriggered = $false
+    Write-Host ">>> CHAPTER 2: STARTING WAVE $Script:chapterTwoWave <<<" -ForegroundColor Cyan
+    
+    switch ($Script:chapterTwoWave) {
+        1 { Spawn-DeltaFormation 230 150 }
+        2 { 
+            for($i=0;$i-lt 4;$i++) {
+                [void]$Script:enemies.Add([Watcher]::new(-50, 100, (40 + $i*35), (80 + $i*20), "Minion"))
+                [void]$Script:enemies.Add([Watcher]::new(460, 100, (420 - $i*35), (80 + $i*20), "Minion"))
+            }
+        }
+        3 { 
+            $cx = 250; $cy = 150
+            for ($i = 0; $i -lt 5; $i++) {
+                $w = [Watcher]::new($cx, $cy, $cx, $cy, "Orbit")
+                $w.Angle = ($i * 72) * ([math]::PI / 180); $w.OrbitCX = $cx; $w.OrbitCY = $cy
+                [void]$Script:enemies.Add($w)
+            }
+            [void]$Script:enemies.Add([Watcher]::new(-100, 120, 0, 0, "Ace"))
+        }
+        4 { 
+            # [เนิฟ Wave 4] ส่งค่า "Passive" ไปให้ลูกน้อง
+            Spawn-Pyramid 80 100 0   "Passive"
+            Spawn-Pyramid 230 100 30  "Passive" # เพิ่มดีเลย์การยิงให้ห่างกันมากขึ้น
+            Spawn-Pyramid 380 100 60  "Passive"
+        }
+        5 {
+            # [NEW] Wave 5: Twin Columns (กำแพงคู่)
+            for($i=0;$i-lt 5;$i++) {
+                [void]$Script:enemies.Add([Watcher]::new(100, -50, 100, (50 + $i*60), "Minion"))
+                [void]$Script:enemies.Add([Watcher]::new(350, -50, 350, (50 + $i*60), "Minion"))
+            }
+            Write-Host ">>> WAVE 5: THE TWIN COLUMNS <<<" -ForegroundColor Yellow
+        }
+        6 {
+            # [NEW] Wave 6: Ace Squadron (ฝูงบินรบพิเศษ)
+            [void]$Script:enemies.Add([Watcher]::new(-100, 100, 0, 0, "Ace"))
+            [void]$Script:enemies.Add([Watcher]::new(600, 150, 0, 0, "Ace"))
+            [void]$Script:enemies.Add([Watcher]::new(-100, 200, 0, 0, "Ace"))
+            Write-Host ">>> WAVE 6: ACE INTERCEPTORS <<<" -ForegroundColor Red
+        }
+        default {
+            Write-Host ">>> CHAPTER 2 RESTARTING... <<<" -ForegroundColor Yellow
+            $Script:chapterTwoWave = 0 
+        }
+    }
+}
+
+# --- ปรับปรุงฟังก์ชัน Spawn-Pyramid ให้รองรับโหมด Passive ---
+function Spawn-Pyramid ([float]$centerX, [float]$targetY, [int]$shootOffset = 0, [string]$minionBehavior = "Minion") {
+    $leader = [Watcher]::new($centerX, -150, $centerX, $targetY, "Leader")
+    $leader.ActionTimer = $shootOffset 
+    [void]$Script:enemies.Add($leader)
+
+    # ลูกน้องจะได้รับพฤติกรรมตามที่สั่ง (เช่น Passive คือบินอย่างเดียวไม่ยิง)
+    [void]$Script:enemies.Add([Watcher]::new($centerX - 35, -150, $centerX - 40, $targetY + 45, $minionBehavior))
+    [void]$Script:enemies.Add([Watcher]::new($centerX, -150, $centerX, $targetY + 45, $minionBehavior))
+    [void]$Script:enemies.Add([Watcher]::new($centerX + 35, -150, $centerX + 40, $targetY + 45, $minionBehavior))
+}

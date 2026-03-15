@@ -1,3 +1,120 @@
+## [5.0.0] - 2026-03-15
+### "Chapter 2: The Fallen Angel & The Homing Protocol"
+
+Version **5.0.0** marks a major evolution of the game's core design, transitioning from purely **procedural spawning** into a structured **scripted wave progression system**.  
+This update also introduces **advanced guided weaponry**, deeper **atmospheric space rendering**, and a fully stabilized **session reset architecture**.
+
+---
+
+### Version 5.0 Focus
+
+**Scripted Progression**  
+Enemy waves now appear in organized **formation-based combat patterns** rather than random spawns.
+
+**Advanced Physics**  
+Introduces **homing weapon logic** with directional projectile rotation and proximity-based detonation.
+
+**Atmospheric Rendering**  
+Enhanced cosmic backgrounds and planetary visuals provide greater depth and immersion.
+
+**Operational Stability**  
+The **Reset Session system** has been rebuilt to ensure a fully clean memory reset during gameplay transitions.
+
+---
+
+## ➕ Added
+
+### The Watchers Formation (Chapter 2)
+
+A new class of **organized aerial formations** has entered the battlefield.  
+Enemies now attack in **tactical flight formations** instead of falling directly from above.
+
+- **Delta Formation**  
+  A triangular attack pattern led by a missile-launching command unit.
+
+- **Finger-Four Formation**  
+  Twin assault groups approaching from opposite flanks.
+
+- **Orbit & Ace**  
+  A rotating sweep formation across the center of the screen, featuring a special **Ace fighter** moving at **double speed**.
+
+- **Triple Pyramid**  
+  A full frontal combat wall consisting of **12 enemy units**.
+
+---
+
+### Homing Missile (Item T)
+
+Introduces a new weapon: **Tracker**
+
+- Icon: **[ T ]**
+- Visual: Yellow triangular missile with an orange thruster trail
+- Equipped with **Auto-Targeting** and **Proximity Fuse**
+
+The projectile dynamically curves toward the nearest target and detonates with an **AOE blast radius of 150px**.
+
+---
+
+### Celestial Variations
+
+Expanded space environment visuals with new planetary types:
+
+- **Saturn Type** — Single-ring gas giant  
+- **X-Rings Type** — Crossed orbital rings
+
+These additions enhance the **depth and cinematic quality** of the space battlefield.
+
+---
+
+## 🔄 Changed
+
+### From Scores to Waves
+
+In **Chapter 2**, score is now used **purely for statistics and records**.  
+Enemy progression is now driven by **Clear-to-Spawn Logic**, meaning the next wave appears only after the previous formation has been eliminated.
+
+---
+
+### Enhanced Internal Shake
+
+The screen shake system now operates **exclusively within the Play Area** using **TranslateTransform coordinate offsets**.
+
+This prevents the **program window itself from shifting position**, ensuring a more stable visual experience.
+
+---
+
+### HUD 3.0 Alignment
+
+The **Pocket Arsenal** interface has been redesigned:
+
+- Horizontal **3-slot layout**
+- Located at the bottom of the **Sidebar**
+- Item quantities are now displayed in **clear black numerals inside the icon frame**
+
+---
+
+## 🐞 Fixed
+**Index Out of Range (Nuke/Homing)**  
+Added defensive checks within **CollisionManager** to prevent invalid list removals when multiple **Nuke or Homing explosions** occur simultaneously.
+
+---
+
+## 🚀 Technical Overview (v5.0.0)
+
+| Weapon Class | Icon | Tech Type | Target |
+|---------------|------|-----------|--------|
+| Tracker | [ T ] | Homing Projectile | Single / AOE |
+| Holy Bomb | [ H ] | Holy / Armor Piercing | Boss Core |
+| Nuke | [ N ] | Global Wipe | Field Clear |
+| Laser | [ L ] | Continuous Hitscan | Lane Clear |
+
+---
+
+> *"The sins are behind you. The Fallen Angels are in front of you.  
+> Your arsenal is ready. Welcome to Chapter 2."*
+
+
+
 ## [4.4.4] - 2026-03-15
 ### "The Duelist's Refinement"
 
