@@ -1,3 +1,85 @@
+## [5.0.1] - 2026-03-15
+### "The Performance Sentinel Update"
+
+Version **5.0.1** focuses on refining the **Collision Engine** for maximum performance, eliminating frame lag during high-object-density combat while also resolving critical **index management errors** that previously threatened runtime stability.
+
+---
+
+### Version 5.0.1 Focus
+
+**Optimization**  
+Improved object-processing speed by ensuring immediate memory release when entities are removed.
+
+**Index Safety**  
+Prevents **"Index was out of range"** errors through a fully standardized **backward iteration loop system**.
+
+**Explosion Integrity**  
+Ensures heavy weapon explosions (**Missiles / Homing**) complete their visual and damage cycles even when objects are removed during collision events.
+
+---
+
+## 🔄 Changed
+
+### Backward Iteration Standard
+
+All `for` loops within **CollisionManager.ps1** now iterate **from back to front** (`Count - 1 → 0`).  
+
+This guarantees safe list modification when objects are removed during collision processing.
+
+---
+
+### Bullet Culling Refinement
+
+Improved projectile cleanup logic in the main engine:
+
+- Added explosion-state validation (`Y = -2000`)
+- Ensures **Missile** and **HomingMissile** objects remain active until their **explosion animation fully completes**
+- Prevents premature deletion during heavy combat
+
+---
+
+## 🐞 Fixed
+
+**Index Out of Range (Fatal Error)**  
+Resolved a crash occurring when **Nuke** or other **AOE weapons** destroyed multiple enemies simultaneously.  
+
+Added an **Index Guard system** to validate list size before accessing elements.
+
+---
+
+**Invisible Homing Explosion**  
+Fixed a bug where **Tracker (Homing Missile)** impacts would disappear instantly without triggering the explosion effect.  
+
+`HomingMissile` objects are now protected from deletion during the initial explosion trigger.
+
+---
+
+**Sub-Part Collision Desync**  
+Improved collision priority for **Lucifer's modular boss structure**.
+
+- Projectiles now correctly damage **wings or weapon parts first**
+- Core damage is prevented until the correct **boss phase** is reached
+- Eliminates unintended bullet penetration through boss components
+
+---
+
+## 🛠️ Technical Damage Profile (Stabilized)
+
+| Weapon Type | Target: Boss Core | Target: Boss Parts | Target: Minions |
+|--------------|------------------|-------------------|----------------|
+| Holy Bomb [H] | 800 Damage | 50 Damage | 5 Damage |
+| Nuke [N] | 400 Damage | 200 Damage | Instant Kill |
+| Homing [T] | 75 Damage | 50 Damage | 5 Damage |
+| Missile [M] | 50 Damage | 1 Damage | 1 Damage |
+| Laser [L] | 2 Damage / Frame | 1 Damage / Frame | Instant Kill |
+
+---
+
+> *"The engine is now lean, mean, and crash-proof.  
+> Lucifer's end is just one clean shot away."*
+
+
+
 ## [5.0.0] - 2026-03-15
 ### "Chapter 2: The Fallen Angel & The Homing Protocol"
 

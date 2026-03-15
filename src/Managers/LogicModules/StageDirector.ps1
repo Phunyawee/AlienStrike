@@ -234,6 +234,24 @@ function Update-ChapterTwoProgression {
             [void]$Script:enemies.Add([Watcher]::new(-100, 200, 0, 0, "Ace"))
             Write-Host ">>> WAVE 6: ACE INTERCEPTORS <<<" -ForegroundColor Red
         }
+        7 { 
+            Write-Host ">>> WAVE 7: LEFT GRID ASSAULT <<<" -ForegroundColor Cyan
+            Spawn-GridFormation 50 100 
+        }
+        8 { 
+            Write-Host ">>> WAVE 8: RIGHT GRID ASSAULT <<<" -ForegroundColor Cyan
+            Spawn-GridFormation 300 100 
+        }
+        9 {
+            Write-Host ">>> WAVE 9: TWIN GRID REINFORCED <<<" -ForegroundColor Yellow
+            Spawn-GridFormation 50 80
+            Spawn-GridFormation 300 80
+        }
+        10 {
+            Write-Host ">>> WAVE 10: THE GRAND A-FORMATION (NO ESCAPE) <<<" -ForegroundColor Red
+            Spawn-AFormation
+        }
+        
         default {
             Write-Host ">>> CHAPTER 2 RESTARTING... <<<" -ForegroundColor Yellow
             $Script:chapterTwoWave = 0 
@@ -251,4 +269,34 @@ function Spawn-Pyramid ([float]$centerX, [float]$targetY, [int]$shootOffset = 0,
     [void]$Script:enemies.Add([Watcher]::new($centerX - 35, -150, $centerX - 40, $targetY + 45, $minionBehavior))
     [void]$Script:enemies.Add([Watcher]::new($centerX, -150, $centerX, $targetY + 45, $minionBehavior))
     [void]$Script:enemies.Add([Watcher]::new($centerX + 35, -150, $centerX + 40, $targetY + 45, $minionBehavior))
+}
+
+# --- ฟังก์ชันสร้าง Grid 9 ลำ (สี่เหลี่ยม 3x3) ---
+function Spawn-GridFormation ([float]$startX, [float]$targetY) {
+    for ($row = 0; $row -lt 3; $row++) {
+        for ($col = 0; $col -lt 3; $col++) {
+            $tx = $startX + ($col * 50)
+            $ty = $targetY + ($row * 50)
+            [void]$Script:enemies.Add([Watcher]::new($tx, -100, $tx, $ty, "Minion"))
+        }
+    }
+}
+
+# --- ฟังก์ชันสร้างมหาขบวนบิน A-Star (Wave 10) ---
+function Spawn-AFormation {
+    $cx = 230.0; $cy = 80.0
+    # 1. ยอดพีระมิด (แดง - หัวหน้า)
+    [void]$Script:enemies.Add([Watcher]::new($cx, -100, $cx, $cy, "Leader", $true))
+
+    # 2. ขาซ้ายและขวา (น้ำเงิน 8 ลำ)
+    for ($i = 1; $i -le 4; $i++) {
+        $offX = $i * 40; $offY = $i * 50
+        [void]$Script:enemies.Add([Watcher]::new($cx, -100, ($cx - $offX), ($cy + $offY), "Minion", $true))
+        [void]$Script:enemies.Add([Watcher]::new($cx, -100, ($cx + $offX), ($cy + $offY), "Minion", $true))
+    }
+
+    # 3. คานกลาง (น้ำเงิน 3 ลำ)
+    [void]$Script:enemies.Add([Watcher]::new($cx, -100, $cx - 40, $cy + 100, "Minion", $true))
+    [void]$Script:enemies.Add([Watcher]::new($cx, -100, $cx, $cy + 100, "Minion", $true))
+    [void]$Script:enemies.Add([Watcher]::new($cx, -100, $cx + 40, $cy + 100, "Minion", $true))
 }

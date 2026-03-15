@@ -440,27 +440,41 @@ $form.Add_KeyDown({
         }
 
         # ใช้ไอเทม (E)
-        if ($key -eq "E" -and $Script:jammerTimer -le 0 -and $Script:inventory.Count -gt 0) {
-            $activeItem = $Script:inventory[0]
-            if ($activeItem -eq "Missile") { [void]$Script:bullets.Add([Missile]::new($Script:player.X + 5, $Script:player.Y)) }
-            elseif ($activeItem -eq "Laser") {
-                if (($Script:bullets | Where-Object { $_.GetType().Name -eq "PlayerLaser" }).Count -eq 0) {
-                    [void]$Script:bullets.Add([PlayerLaser]::new($Script:player))
-                }
-            }
-            elseif ($activeItem -eq "Nuke") { [void]$Script:bullets.Add([Nuke]::new($Script:player.X, $Script:player.Y)) }
-            elseif ($activeItem -eq "HolyBomb") { [void]$Script:bullets.Add([HolyBomb]::new($Script:player.X + 5, $Script:player.Y)) }
-            elseif ($activeItem -eq "Homing") {
-                # สั่งยิง HomingMissile (ชื่อคลาสต้องตรงกับในไฟล์ .ps1)
-                [void]$Script:bullets.Add([HomingMissile]::new($Script:player.X + 5, $Script:player.Y))
-                $Script:inventory.RemoveAt(0)
-                [System.Media.SystemSounds]::Hand.Play()
-            }
+    if ($key -eq "E" -and $Script:jammerTimer -le 0 -and $Script:inventory.Count -gt 0) {
+        $activeItem = $Script:inventory[0]
+        $fired = $false # ตั้งต้นว่ายังไม่ได้ยิง
 
+        if ($activeItem -eq "Missile") { 
+            [void]$Script:bullets.Add([Missile]::new($Script:player.X + 5, $Script:player.Y)) 
+            $fired = $true
+        }
+        elseif ($activeItem -eq "Laser") {
+            # เช็คไม่ให้ยิงเลเซอร์ซ้อน
+            if (($Script:bullets | Where-Object { $_.GetType().Name -eq "PlayerLaser" }).Count -eq 0) {
+                [void]$Script:bullets.Add([PlayerLaser]::new($Script:player))
+                $fired = $true
+            }
+        }
+        elseif ($activeItem -eq "Nuke") { 
+            [void]$Script:bullets.Add([Nuke]::new($Script:player.X, $Script:player.Y)) 
+            $fired = $true
+        }
+        elseif ($activeItem -eq "HolyBomb") { 
+            [void]$Script:bullets.Add([HolyBomb]::new($Script:player.X + 5, $Script:player.Y)) 
+            $fired = $true
+        }
+        elseif ($activeItem -eq "Homing") { # <--- ชื่อในกระเป๋า (String)
+            # สั่งสร้างวัตถุจากคลาส HomingMissile (ชื่อ Class จริง)
+            [void]$Script:bullets.Add([HomingMissile]::new($Script:player.X + 5, $Script:player.Y))
+            $fired = $true
+        }
 
+        # --- [จุดสำคัญ] สั่งลบของและเล่นเสียง "ครั้งเดียว" เมื่อมีการยิงเกิดขึ้นจริงเท่านั้น ---
+        if ($fired) {
             $Script:inventory.RemoveAt(0)
             [System.Media.SystemSounds]::Hand.Play()
         }
+    }
 
         # เมนูหยุดเกม (Escape)
         if ($key -eq "Escape") {
