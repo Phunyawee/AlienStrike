@@ -48,7 +48,7 @@ function Handle-PostCollision ($collisionResult) {
             Add-To-Inventory "Laser" 5; Add-To-Inventory "Missile" 5 
 
             # 2. [NEW] โอกาส 5% ดรอป Holy Bomb (อาวุธปราบมาร)
-            if ($Script:rnd.Next(1, 101) -le 100) {
+            if ($Script:rnd.Next(1, 101) -le 5) {
                 Add-To-Inventory "HolyBomb" 1
                 Write-Host ">>> HOLY BOMB ACQUIRED! THE LIGHT IS WITH YOU! <<<" -ForegroundColor White
             }

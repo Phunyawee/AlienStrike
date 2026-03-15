@@ -1,3 +1,99 @@
+## [4.4.4] - 2026-03-15
+### "The Duelist's Refinement"
+
+Version **4.4.4** focuses on refining the **1v1 gameplay experience**, particularly the duel against the final boss **Lucifer**, while also resolving several **critical bugs** that could cause the game to crash during intense combat scenarios.
+
+---
+
+### Version 4.4 Focus
+
+**Duel Mode Balancing**  
+Fine-tuned the difficulty of the 1v1 mode to ensure the fight remains challenging without becoming overly punishing.
+
+**Kernel Stability**  
+Resolved major runtime issues including **"Collection Modified"** and **"Null Expression"** errors within the main game loop.
+
+**Logic Cleanup**  
+Removed redundant enemy spawn logic from the main script to simplify and stabilize the spawning system.
+
+---
+
+## ➕ Added
+
+**Cheat Code [F2]**  
+Introduced a debug shortcut that instantly grants **Nuke x100** to the player's arsenal.  
+This feature is intended **for testing and stress-test scenarios only**.
+
+---
+
+## 🔄 Changed
+
+### Summoning Intelligence (1v1_LUCIFER)
+
+Reworked **Lucifer's summoning behavior** in duel mode to function more like a **"supply drop system"**.
+
+- **Dynamic Frequency**  
+  In duel mode, Lucifer now summons **Wrath** more frequently (**every 1.6 seconds**) to provide the player with additional ammunition.
+
+- **Minion Nerf (1v1 Only)**  
+  Wrath units summoned by Lucifer in duel mode now have:
+  - **3 HP**
+  - Reduced movement speed  
+
+  This allows players to collect dropped items more easily without disrupting their dodge rhythm against Lucifer's laser attacks.
+
+---
+
+### Spawn Engine Consolidation
+
+The general enemy spawning logic in **AlienStrike.ps1** has been merged into a **single, robust control block**, preventing:
+
+- Double-spawn issues  
+- Accidental enemy spawns during **1v1 duel mode**
+
+Duel mode now strictly allows **only the boss and its controlled summons**.
+
+---
+
+### Envy Duel Protection
+
+Updated **CollisionManager.ps1** to **suppress the automatic spawning of Envy** while the player is engaged in a **boss duel**, preserving the intended fairness of the encounter.
+
+---
+
+## 🐞 Fixed
+
+**Collection Modified Crash**  
+Resolved a crash caused when the boss summoned new enemies while the engine was iterating over the existing collection.  
+Fixed by introducing a **PendingList queue system** and **.ToArray() safe iteration**.
+
+**Null-Pointer Safety**  
+Added additional **null checks** during movement and firing calculations to prevent errors when objects are destroyed mid-frame.
+
+**Ghost Minion Fix**  
+Fixed an issue where certain **Wrath minions became indestructible** due to spawning inside Lucifer's hitbox.  
+Spawn positions are now offset to ensure proper collision detection.
+
+**Pause-Exit Memory Leak**  
+Resolved a state-lock issue where the game could remain stuck in **Pause/Victory state** when exiting to the main menu via **Reset-Session**.
+
+---
+
+## 🛡️ Final Boss Specification: Lucifer (v4.4.4)
+
+| Attribute | Normal Mode (Story) | Duel Mode (1v1) |
+|-----------|--------------------|----------------|
+| Summon Rate | 4.0 Seconds | 1.6 Seconds |
+| Summon HP | Original (Variable) | Fixed (3 HP) |
+| Arena Cleanliness | Minions Present | Boss & Summons Only |
+| Rewards | Standard Loot | High Frequency Replenish |
+
+---
+
+> *"A true King provides for his subjects, even if only to extend their suffering. Fight on, Pilot."*
+
+
+
 ## [4.4.3] - 2026-03-15
 # "The Visionary Layers & Rendering Refactor"
 

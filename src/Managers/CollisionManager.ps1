@@ -149,7 +149,16 @@ function Invoke-GameCollisions ($player, $bullets, $enemies, $enemyBullets, $for
             }
             elseif ($typeName -eq "Wrath") {
                 $result.WrathKills += 1
-                $Script:wrathKills++; if ($Script:wrathKills % 5 -eq 0) { [void]$enemies.Add([Envy]::new(225, -50, $player)) }
+                $Script:wrathKills++ 
+
+                # --- [แก้ไขจุดนี้] เพิ่มเงื่อนไขเช็คโหมดก่อนเสก Envy ---
+                # เช็คว่ายอดคิลครบ 5 และ "ต้องไม่ใช่โหมด 1v1"
+                $isDuelMode = $Script:gameMode -match "1v1_"
+
+                if ($Script:wrathKills % 5 -eq 0 -and -not $isDuelMode) { 
+                    [void]$enemies.Add([Envy]::new(225, -50, $player)) 
+                    Write-Host ">>> ENVY HAS ENTERED THE STAGE! <<<" -ForegroundColor Magenta
+                }
             }
             $enemies.RemoveAt($i)
         } elseif ($e.Y -gt $formHeight) { $enemies.RemoveAt($i) }

@@ -24,11 +24,15 @@ class Lucifer : BaseEnemy {
     }
 
     [void] UpdateWithPlayer([Object]$player) {
+        # --- [จุดแก้] เช็คว่าตัวแปรผู้เล่นต้องไม่ว่างจริงๆ ---
+        if ($null -eq $player -or $player.PSObject -eq $null) { return }
+
         if ($this.VisualHP -gt $this.HP) { $this.VisualHP = $this.HP }
         if ($this.SmoothHP -gt $this.VisualHP) { $this.SmoothHP -= 40 }
 
-        $this.X += ($player.X - 40 - $this.X) * 0.02
-        if ($this.Y -lt 100) { $this.Y += 0.5 }
+        # การคำนวณตำแหน่ง X ต้องใช้ตัวแปรที่รับเข้ามาโดยตรง
+        $this.X += ($player.X - 40.0 - $this.X) * 0.02
+        if ($this.Y -lt 100.0) { $this.Y += 0.5 }
 
         $activeCannons = ($this.Parts | Where-Object { $_.Type -eq "Cannon" -and -not $_.IsDestroyed }).Count
         $activeTurrets = ($this.Parts | Where-Object { $_.Type -eq "Turret" -and -not $_.IsDestroyed }).Count
@@ -60,7 +64,9 @@ class Lucifer : BaseEnemy {
             $this.ArmorActivated = $true # ล็อคทันที บรรทัดนี้จะไม่ทำงานอีกเลย
             Write-Host ">>> LUCIFER: FINAL ARMOR DEPLOYED! <<<" -ForegroundColor Cyan
         }
-        if ($this.HP -lt 7000) { $this.SummonTimer++ }
+        if ($Script:gameMode -eq "1v1_LUCIFER" -or $this.HP -lt 7000) { 
+            $this.SummonTimer++ 
+        }
         if ($this.Phase -ge 1) { $this.GluttonyTimer++ }
 
         $this.ChargeTimer += 0.016
@@ -69,19 +75,43 @@ class Lucifer : BaseEnemy {
 
     [Object] TryShoot([int]$level) {
         $results = [System.Collections.ArrayList]::new()
-        if ($this.SummonTimer -ge 180) {
+        
+        # --- 1. ปรับความถี่ตามโหมดการเล่น ---
+        $summonThreshold = if ($Script:gameMode -eq "1v1_LUCIFER") { 100 } else { 250 }
+
+        if ($this.SummonTimer -ge $summonThreshold) {
             $this.SummonTimer = 0
-            [void]$results.Add([Wrath]::new([float]($this.X + 40), [float]($this.Y + 100), 5))
+            
+            $spawnX = $this.X + $Script:rnd.Next(-150, 150)
+            $spawnY = $this.Y + 120 
+            
+            # --- [จุดแก้ไข: สร้าง Wrath และเนิฟค่าพลังถ้าเป็นโหมด 1v1] ---
+            # สร้าง Wrath โดยใช้ Level 1 (เพื่อให้ส่ายน้อยที่สุดและวิ่งช้าที่สุด)
+            $w = [Wrath]::new([float]$spawnX, [float]$spawnY, 1)
+
+            if ($Script:gameMode -eq "1v1_LUCIFER") {
+                $w.HP = 3      # เลือดเหลือแค่ 3 (ยิง 3 นัดแตก)
+                $w.MaxHP = 3   # ปรับ MaxHP ให้ตรงกันเพื่อให้หลอดเลือดวาดถูก
+                $w.Speed = 2   # ล็อคความเร็วให้ช้าลง จะได้เล็งง่ายๆ
+            }
+
+            [void]$results.Add($w)
+            Write-Host ">>> SUMMONED WEAKENED WRATH (HP:3) <<<" -ForegroundColor Gray
         }
+
+        # --- 2. ยิงกระสุนจากปืนเล็ก (Turret) ---
         if ($this.Phase -eq 1 -and ([math]::Floor($this.ChargeTimer * 60) % 90 -eq 0)) {
             foreach ($p in ($this.Parts | Where-Object { $_.Type -eq "Turret" -and -not $_.IsDestroyed })) {
                 [void]$results.Add([EnemyBullet]::new([float]($this.X + $p.RelX + 15), [float]($this.Y + $p.RelY + 20), 0, 15))
             }
         }
+
+        # --- 3. ยิงกระสุนม่วง (Gluttony Blast) ---
         if ($this.Phase -ge 1 -and $this.GluttonyTimer -ge 180) {
             $this.GluttonyTimer = 0
             [void]$results.Add([GluttonyBlast]::new([float]($this.X + 20), [float]($this.Y + 80), $this.PlayerRef))
         }
+
         if ($results.Count -gt 0) { return $results }
         return $null
     }

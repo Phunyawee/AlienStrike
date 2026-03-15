@@ -365,6 +365,12 @@ $form.Add_KeyDown({
             $Script:pauseIndex = 0
             return
         }
+        # --- [NEW] สูตรโกง: กดปุ่ม F2 เพื่อเสก Nuke 100 ลูก ---
+        if ($key -eq "F2") {
+            Add-To-Inventory "Nuke" 100
+            Write-Host ">>> CHEAT ACTIVATED: 100 NUKES ADDED! <<<" -ForegroundColor Red
+            [System.Media.SystemSounds]::Hand.Play()
+        }
 
         # ถ้าเกมหยุดอยู่ ให้ใช้ปุ่มเลื่อนเมนูแทนปุ่มยิง
         if ($Script:isPaused) {
@@ -512,42 +518,35 @@ $timer.Add_Tick({
     # --- ควบคุมผู้เล่น ---
     Handle-PlayerInput
 
-    # --- B. Spawn Enemies (ศัตรูธรรมดา) ---
+    # ==========================================
+    # --- B. Spawn Enemies (ฉบับแก้ไข: สะอาดและแม่นยำ) ---
+    # ==========================================
 
-    # เช็คว่าอยู่ในโหมด 1v1 หรือไม่ (ชื่อโหมดจะขึ้นต้นด้วย 1v1)
+    # 1. รวบรวมสถานะสนามรบ (เช็คครั้งเดียวใช้ได้ทั้งบล็อก)
     $isDuelMode = $Script:gameMode -match "1v1_"
-    
-    # เงื่อนไขการเกิดลูกกระจ๊อก: ต้องไม่ใช่โหมดดวล และไม่มีบอสใหญ่อยู่
-    if (-not $isDuelMode -and -not $isGluttonyOut -and -not $hasGreed -and -not $isLuciferActive -and $Script:enemies.Count -lt 20) {
-        if ($Script:rnd.Next(0, 100) -lt $Script:spawnRate) {
-            [void]$Script:enemies.Add((New-EnemySpawn 500 $Script:level $Script:rnd))
-        }
-    }
+    $isLuciferActive = ($Script:enemies | Where-Object { $_.GetType().Name -eq "Lucifer" }).Count -gt 0
+    $isRealPrideActive = ($Script:enemies | Where-Object { $_.GetType().Name -eq "RealPride" }).Count -gt 0
     $isGluttonyOut = ($Script:enemies | Where-Object { $_.GetType().Name -eq "Gluttony" }).Count -gt 0
     $hasGreed = ($Script:enemies | Where-Object { $_.GetType().Name -eq "Greed" }).Count -gt 0
 
-    $isLuciferActive = ($Script:enemies | Where-Object { $_.GetType().Name -eq "Lucifer" }).Count -gt 0
-    # เพิ่ม -and -not $isLuciferActive
-    if (-not $isGluttonyOut -and -not $hasGreed -and -not $isLuciferActive -and $Script:enemies.Count -lt 20) {
+    # 2. กฎการสปอนศัตรูทั่วไป: 
+    # ห้ามเกิดถ้า: (เป็นโหมดดวล) หรือ (มีบอสใหญ่อยู่) หรือ (ศัตรูเต็มจอ 20 ตัว)
+    $canSpawnMinions = (-not $isDuelMode -and -not $isLuciferActive -and -not $isRealPrideActive -and -not $isGluttonyOut -and -not $hasGreed)
+
+    if ($canSpawnMinions -and $Script:enemies.Count -lt 20) {
+        # สุ่มเลขตาม SpawnRate (เช็คแค่ครั้งเดียวต่อเฟรม)
         if ($Script:rnd.Next(0, 100) -lt $Script:spawnRate) {
             [void]$Script:enemies.Add((New-EnemySpawn 500 $Script:level $Script:rnd))
         }
     }
 
-    # ถ้ามี Gluttony หรือ Greed อยู่ในสนาม ลูกกระจ๊อกจะไม่เกิด
-    if (-not $isGluttonyOut -and -not $hasGreed -and $Script:enemies.Count -lt 20) {
-        if ($Script:rnd.Next(0, 100) -lt $Script:spawnRate) {
-            [void]$Script:enemies.Add((New-EnemySpawn 500 $Script:level $Script:rnd))
-        }
-    }
-
-     # --- [เพิ่ม] อัปเดตตำแหน่งไอเทมที่ดรอป ---
+    # --- อัปเดตตำแหน่งไอเทมที่ดรอป (Defense D) ---
     for ($i = $Script:items.Count - 1; $i -ge 0; $i--) {
         $it = $Script:items[$i]
         $it.Update()
+        # ถ้าตกจอให้ลบทิ้ง
         if ($it.Y -gt 650) { $Script:items.RemoveAt($i) }
     }
-
 
     # --- C. Update Bullets ---
     for ($i = $Script:bullets.Count - 1; $i -ge 0; $i--) {
@@ -562,31 +561,51 @@ $timer.Add_Tick({
     }
 
     # --- D. Update Entities Movement (เคลื่อนที่ศัตรู & กระสุนศัตรู) ---
-    foreach ($e in $Script:enemies) { 
-        
-        # [แก้ไขตรงนี้] แยกประเภทศัตรูก่อนอัปเดตการเดิน
-        if ($e -is [BaseEnemy]) {
-            # ถ้าเป็นกลุ่ม 7 บาป (มีระบบมองเห็น Player)
-            $e.UpdateWithPlayer($Script:player) 
-        } else {
-            # ถ้าเป็นศัตรูธรรมดา [Enemy]
-            $e.Update() 
-        }
-        
-        # ส่วนการยิงเหมือนเดิม
-        $shotResult = $e.TryShoot($Script:level)
-        
-        if ($null -ne $shotResult) { 
-            if ($shotResult -is [System.Collections.IEnumerable]) {
-                foreach ($b in $shotResult) {[void]$Script:enemyBullets.Add($b)}
+    $pendingEnemies = [System.Collections.ArrayList]::new()
+
+    # ใช้ .ToArray() เพื่อป้องกัน Error "Collection was modified" 100%
+    foreach ($e in $Script:enemies.ToArray()) { 
+        # เช็คว่าตัวตนของศัตรูยังอยู่จริงไหม
+        if ($null -eq $e -or $e.PSObject -eq $null) { continue }
+
+        try {
+            # 1. อัปเดตการเคลื่อนที่ (ต้องมั่นใจว่ามี Player เสมอ)
+            if ($e -is [BaseEnemy]) {
+                if ($null -ne $Script:player) { 
+                    $e.UpdateWithPlayer($Script:player) 
+                } else { $e.Update() }
             } else {
-                [void]$Script:enemyBullets.Add($shotResult)
+                $e.Update()
             }
+            
+            # 2. เช็คการยิง/เสก (ดักจับค่า Null แฝง)
+            $shotResult = $e.TryShoot($Script:level)
+            
+            if ($null -ne $shotResult) { 
+                # จัดการผลลัพธ์ให้เป็นลิสต์เสมอเพื่อความปลอดภัย
+                $itemsToAdd = if ($shotResult -is [System.Collections.IEnumerable] -and $shotResult -isnot [string]) { $shotResult } else { ,$shotResult }
+                
+                foreach ($item in $itemsToAdd) {
+                    if ($null -eq $item) { continue }
+                    if ($item -is [BaseEnemy]) { [void]$pendingEnemies.Add($item) }
+                    else { [void]$Script:enemyBullets.Add($item) }
+                }
+            }
+        } catch {
+            # ถ้าตัวไหนพัง ให้ข้ามไปเลย ไม่ต้องหยุดเกม
+            continue
         }
     }
 
-    foreach ($eb in $Script:enemyBullets) { $eb.Update() }
+    # 3. เทรวมศัตรูใหม่
+    if ($pendingEnemies.Count -gt 0) {
+        $Script:enemies.AddRange($pendingEnemies)
+    }
 
+    # 4. อัปเดตกระสุนศัตรู (เช็ค Null)
+    foreach ($eb in $Script:enemyBullets.ToArray()) { 
+        if ($null -ne $eb -and $eb.PSObject -ne $null) { $eb.Update() }
+    }
     # --- E. Handle Collisions ---
     $collisionResult = Invoke-GameCollisions $Script:player $Script:bullets $Script:enemies $Script:enemyBullets $form.ClientSize.Height $Script:items
 
