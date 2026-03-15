@@ -1,3 +1,155 @@
+## [5.1.0] - 2026-03-15
+### "The Laboratory & Celestial Engineering"
+
+Version **5.1.0** introduces a dedicated **weapon testing environment** and deeper combat balancing tools.  
+This update also debuts a new **mini-boss class**, expands the **UI navigation system**, and upgrades the physics behavior of guided projectiles.
+
+---
+
+### Version 5.1 Focus
+
+**Simulation Mode**  
+A dedicated **Laboratory environment** for isolated monster testing and combat experiments.
+
+**Advanced UI Systems**  
+Introduces a **scrollable menu system** with directional indicators for navigating larger option lists.
+
+**Complex Boss AI**  
+Debut of the **Nephilim Class**, featuring multi-phase destruction mechanics and regenerative weapon systems.
+
+**Projectile Overhaul**  
+Guided projectiles now feature **dynamic directional rotation**, visually aligning missile orientation with flight trajectory.
+
+---
+
+## ➕ Added
+
+### The Simulation Lab (Simulation Mode)
+
+A new mode accessible from the **Main Menu** designed specifically for **weapon testing and combat experimentation**.
+
+- Players can duel bosses **1v1**
+- Bosses **auto-respawn immediately** after defeat
+- Score display is replaced with **"N/A"** to clearly distinguish the mode from Story progression
+
+---
+
+### New Boss: Nephilim Class (`Nephilim.ps1`)
+
+A technical mini-boss featuring a **target chain destruction sequence**:
+
+**Laser Gun → Orbital Blades → Mother Core**
+
+- **Regen Blades**  
+  The boss regenerates spinning blades and launches them toward the player as **homing projectiles** every **1.5 seconds**.
+
+---
+
+### Scrolling Menu Interface
+
+Introduced a menu system capable of handling **large option lists (10+)**.
+
+- Maximum **6 items visible at once**
+- Vertical **scroll navigation**
+- **Triangular indicators** show scroll direction
+
+---
+
+### Homing Missile Evolution (Tracker [T])
+
+The **Tracker** weapon has received a physics upgrade:
+
+- **Dynamic Rotation**  
+  Missile heads now smoothly rotate to match their turning direction while tracking targets.
+
+- **Explosion Radius Increased** by **50%**
+
+- **Boss Damage Rebalanced**  
+  Deals **50–75 damage** to major bosses.
+
+---
+
+## 🔄 Changed
+
+### Shield Priority System (v2.0)
+
+Collision logic has been refined for shield interactions.
+
+- As long as the player has **shield points (D > 0)**:
+  - **All debuffs are completely blocked**
+  - The shield absorbs **1 shield point per hit**
+
+---
+
+### Shield Shredders (New Weapon Category)
+
+Certain enemy attacks now specialize in **destroying shields**:
+
+- **Gluttony Blast**
+  - Removes **50% of shield capacity**
+  - Heals the boss
+
+- **Nephilim Blade**
+  - Removes **50 shield points instantly**
+
+---
+
+### Arena Integrity (Simulation Mode)
+
+Upon death in **Simulation Mode**:
+
+- Player instantly **respawns**
+- Gains **3 seconds of invulnerability**
+- The battlefield **remains intact** to allow uninterrupted testing
+
+---
+
+### Main Menu Polishing
+
+Improved spacing and **visual padding** for main menu headings and options to achieve a cleaner layout.
+
+---
+
+## 🐞 Fixed
+
+**Siren Debuff Inconsistency**  
+Resolved an issue where directional inversion debuffs could fail to trigger due to shield collision priority absorbing the event incorrectly.
+
+---
+
+**RealPride Null-Pointer Crash**  
+Fixed a crash in **Simulation Mode** where the boss attempted to read player coordinates before the player object was fully initialized.
+
+---
+
+**Overload Ambiguity Error**  
+Resolved **"Multiple ambiguous overloads"** errors when generating **fonts and triangular UI shapes** in **PowerShell 5.1**.
+
+---
+
+**Inventory Grouping Safety**  
+Improved logic for the **E key item trigger**:
+
+- Items are now removed **only after a successful fire event**
+- Prevents accidental loss of inventory items.
+
+---
+
+## 📊 Technical Boss Specification: Nephilim
+
+| Part | HP | Status | Effect on Destruction |
+|-----|----|--------|----------------------|
+| Laser Gun | 400 | Vulnerable (Phase 0) | Disables Fatal Beam |
+| Orbital Blades | 200 (x2) | Vulnerable (Phase 1) | Disables Blade Throw |
+| Mother Core | 500 | Vulnerable (Phase 2) | Boss Defeated |
+
+---
+
+> *"Testing is the difference between a pilot and a survivor.  
+> Enter the lab, master the Tracker, and conquer the Nephilim."*
+
+
+
 ## [5.0.1] - 2026-03-15
 ### "The Performance Sentinel Update"
 

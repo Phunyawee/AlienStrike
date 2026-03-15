@@ -12,6 +12,10 @@ class RealPride : BaseEnemy {
     }
 
     [void] UpdateWithPlayer([Object]$player) {
+        # --- [จุดแก้ 1] กันแครช: ถ้าไม่มีผู้เล่น ให้หยุดทำงานทันที ---
+        if ($null -eq $player -or $player.PSObject -eq $null) { return }
+        $this.PlayerRef = $player 
+
         # --- 1. Entry: พุ่งลงมาจากฟ้า (Smooth Entry) ---
         if ($this.Y -lt 80) {
             $this.Y += (80 - $this.Y) * 0.1 + 1 # ค่อยๆ ชะลอเมื่อถึงจุดหยุด
@@ -98,11 +102,16 @@ class RealPride : BaseEnemy {
         }
 
         # 4. วาดเป้าเล็งที่ยานผู้เล่น
-        if ($this.TargetOnPlayer -and $this.State -lt 2) {
-            $pTarget = New-Object System.Drawing.Pen([System.Drawing.Color]::Red, 3)
-            $g.DrawEllipse($pTarget, [float]($this.PlayerRef.X - 5), [float]($this.PlayerRef.Y - 5), 31.0, 31.0)
+        # --- [จุดแก้ 2] เช็ค PlayerRef ก่อนวาดเป้าเล็ง ---
+        if ($this.TargetOnPlayer -and $this.State -lt 2 -and $null -ne $this.PlayerRef) {
+            try {
+                $pL = New-Object System.Drawing.Pen([System.Drawing.Color]::Red, 3)
+                $pX = [float]$this.PlayerRef.X; $pY = [float]$this.PlayerRef.Y
+                $g.DrawEllipse($pL, ($pX - 5.0), ($pY - 5.0), 31.0, 31.0)
+                $g.DrawLine($pL, ($pX+10.0), ($pY-15.0), ($pX+10.0), ($pY+35.0))
+                $g.DrawLine($pL, ($pX-15.0), ($pY+10.0), ($pX+35.0), ($pY+10.0))
+            } catch {}
         }
-
         $font = New-Object System.Drawing.Font("Consolas", 10, [System.Drawing.FontStyle]::Bold)
         $g.DrawString("FATAL ENTITY HP: $($this.HP)", $font, [System.Drawing.Brushes]::Red, [float]$this.X, [float]($this.Y - 20))
     }

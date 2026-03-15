@@ -16,14 +16,14 @@ class HomingMissile : Bullet {
     [void] Explode() {
         if (-not $this.IsExploding) {
             $this.IsExploding = $true
-            # เก็บจุดกึ่งกลางเดิมไว้
             $cx = $this.X + ($this.Width / 2.0)
             $cy = $this.Y + ($this.Height / 2.0)
             
-            $this.Width = 100  # ปรับขนาดวงระเบิดให้เล็กลงตามสั่ง (100px)
-            $this.Height = 100
-            $this.X = $cx - 50.0 # จัดให้ศูนย์กลางอยู่ที่เดิม
-            $this.Y = $cy - 50.0
+            # --- [แก้ไข] ขยายวงระเบิดเป็น 150px ---
+            $this.Width = 150 
+            $this.Height = 150
+            $this.X = $cx - 75.0
+            $this.Y = $cy - 75.0
             
             $this.RealVX = 0; $this.RealVY = 0
         }
