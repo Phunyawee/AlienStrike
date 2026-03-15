@@ -4,8 +4,17 @@ A classic vertical space shooter game built entirely using **PowerShell** and **
 
 This project demonstrates how Object-Oriented Programming (OOP) principles can be applied in PowerShell scripting to create a functional real-time game loop with collision detection, entity management, and state handling.
 
-
 <details open>
+<summary><b>Version 5.0.0</b></summary>
+<br>
+
+| Start Screen | Story | Gameplay |
+|:---:|:---:|:---:|
+| <img src="./Images/v5/start_screen.png" width="250" alt="Start Screen"> | <img src="./Images/v5/story.png" width="250" alt="Story / Chapter 2 Introduction"> | <img src="./Images/v5/gameplay.png" width="250" alt="Gameplay Action"> |
+
+</details>
+
+<details>
 <summary><b>Version 4.0.0</b></summary>
 <br>
 
