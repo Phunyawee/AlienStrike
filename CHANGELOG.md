@@ -1,5 +1,5 @@
 ## [5.1.0] - 2026-03-15
-### "The Laboratory & Celestial Engineering"
+### " "
 
 Version **5.1.0** introduces a dedicated **weapon testing environment** and deeper combat balancing tools.  
 This update also debuts a new **mini-boss class**, expands the **UI navigation system**, and upgrades the physics behavior of guided projectiles.

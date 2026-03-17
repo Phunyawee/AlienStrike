@@ -21,6 +21,7 @@ $LoadOrder = @(
     "src\Entities\Enemies\Sins\*.ps1",           # ค่อยโหลดบอสที่เหลือ (เช่น Nephilim)
     "src\Managers\*.ps1",
     "src\Managers\LogicModules\*.ps1",
+    "src\Managers\CollisionModules\*.ps1",
     "src\Managers\RenderModules\*.ps1"
 )
 
@@ -604,11 +605,11 @@ $timer.Add_Tick({
     # --- C. Update Bullets ---
     for ($i = $Script:bullets.Count - 1; $i -ge 0; $i--) {
         $b = $Script:bullets[$i]
+        if ($null -eq $b) { $Script:bullets.RemoveAt($i); continue }
         $b.Update()
         
-        # แก้ตรงนี้: ถ้าเป็นเลเซอร์ ห้ามลบด้วยเงื่อนไขขอบบน (-20)
-        # หรือปรับตัวเลขให้ลึกขึ้นเป็น -700 เพื่อรองรับความยาวเลเซอร์
-        if ($b.Y -lt -700 -or $b.Y -gt 1000) { 
+        # ลบกระสุนเมื่อ: ตกจอ หรือ ถูกดีดทิ้งจากการชน (Y = -2000)
+        if ($b.Y -lt -700 -or $b.Y -gt 1000 -or $b.Y -eq -2000) { 
             $Script:bullets.RemoveAt($i) 
         }
     }
@@ -660,11 +661,11 @@ $timer.Add_Tick({
         if ($null -ne $eb -and $eb.PSObject -ne $null) { $eb.Update() }
     }
     # --- E. Handle Collisions ---
-    try {
+    #ry {
         $collisionResult = Invoke-GameCollisions $Script:player $Script:bullets $Script:enemies $Script:enemyBullets $form.ClientSize.Height $Script:items
-    } catch {
-        Write-Warning "Collision skipped for 1 frame due to sync issue."
-    }
+    # } catch {
+    #     Write-Warning "Collision skipped for 1 frame due to sync issue."
+    # }
      # --- [แก้ไข] ระบบสั่นจอภายใน (Internal Shake) ---
     if ($collisionResult.ShakeIntensity -gt 0) {
         $intensity = $collisionResult.ShakeIntensity

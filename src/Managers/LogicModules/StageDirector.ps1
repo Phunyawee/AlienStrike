@@ -81,6 +81,10 @@ function Check-BossSpawns {
 }
 
 function Update-ChapterOneProgression {
+    if ($Script:gameMode -notin @("Chapter1", "Endless")) { 
+        return 
+    }
+
     $isLuciferActive = ($Script:enemies | Where-Object { $_.GetType().Name -eq "Lucifer" }).Count -gt 0
     $isRealPrideActive = ($Script:enemies | Where-Object { $_.GetType().Name -eq "RealPride" }).Count -gt 0
     $isGluttonyActive = ($Script:enemies | Where-Object { $_.GetType().Name -eq "Gluttony" }).Count -gt 0
@@ -137,13 +141,17 @@ function Update-ChapterOneProgression {
         $Script:nextPrideScoreTarget += 100000 
     }
 
+    # 1. เช็ค Level Up (Lust Swarm)
     if ($Script:level -gt $Script:currentTrackedLevel) {
         $Script:currentTrackedLevel = $Script:level
-        Write-Host ">>> LEVEL UP: LUST SWARM INCOMING! <<<" -ForegroundColor Green
-        for ($i = 0; $i -lt 5; $i++) {
-            $dir = if ($i % 2 -eq 0) { 1 } else { -1 }
-            $sx = if ($dir -eq 1) { -50 - ($i*40) } else { 550 + ($i*40) }
-            [void]$Script:enemies.Add([Lust]::new($sx, 50 + ($i*20), $dir))
+        # ปล่อย Lust เฉพาะตอนที่ไม่มีบอสใหญ่
+        if (-not $isLuciferActive -and -not $isRealPrideActive) {
+            Write-Host ">>> CHAPTER 1: LUST SWARM INBOUND <<<" -ForegroundColor Green
+            for ($i = 0; $i -lt 5; $i++) {
+                $dir = if ($i % 2 -eq 0) { 1 } else { -1 }
+                $sx = if ($dir -eq 1) { -50 - ($i*40) } else { 550 + ($i*40) }
+                [void]$Script:enemies.Add([Lust]::new($sx, 50 + ($i*20), $dir))
+            }
         }
     }
 

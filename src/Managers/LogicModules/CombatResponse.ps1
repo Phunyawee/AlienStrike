@@ -8,8 +8,12 @@ function Handle-PostCollision ($collisionResult) {
 
     # จัดการการตายของ Gluttony
     if ($collisionResult.GluttonyKills -gt 0) { 
-        Add-To-Inventory "Nuke" 1; $Script:totalGluttonyKills += $collisionResult.GluttonyKills 
-        Write-Host ">>> GLUTTONY DEFEATED ($Script:totalGluttonyKills / 3) <<<" -ForegroundColor Magenta
+        Add-To-Inventory "Nuke" 1
+        # [แก้ไข] นับยอดคิลเฉพาะโหมดเนื้อเรื่อง/Endless เท่านั้น
+        if ($Script:gameMode -in @("Chapter1", "Endless")) {
+            $Script:totalGluttonyKills += $collisionResult.GluttonyKills
+            Write-Host ">>> GLUTTONY DEFEATED ($($Script:totalGluttonyKills)/3) <<<" -ForegroundColor Magenta
+        }
     }
 
     # จัดการการตายของ RealPride (Gatekeeper)
