@@ -96,22 +96,14 @@ class Watcher : BaseEnemy {
     [void] Draw([System.Drawing.Graphics]$g) {
         $color = if ($this.FlashTimer -gt 0) { [System.Drawing.Color]::White } else { $this.Color }
         $brush = New-Object System.Drawing.SolidBrush($color)
-        
-        # --- [แก้ไข] สร้างพิกัดแบบแยกตัวแปรและระบุชนิดชัดเจน ---
-        $bx = [float]$this.X; $by = [float]$this.Y
-        $bw = [float]$this.Width; $bh = [float]$this.Height
-
         $pts = [System.Drawing.PointF[]]::new(3)
-        $pts[0] = New-Object System.Drawing.PointF($bx, $by)
-        $pts[1] = New-Object System.Drawing.PointF(($bx + $bw), $by)
-        $pts[2] = New-Object System.Drawing.PointF(($bx + ($bw / 2.0)), ($by + $bh))
-        
+        $pts[0] = New-Object System.Drawing.PointF([float]$this.X, [float]$this.Y)
+        $pts[1] = New-Object System.Drawing.PointF([float]($this.X + $this.Width), [float]$this.Y)
+        $pts[2] = New-Object System.Drawing.PointF([float]($this.X + ($this.Width/2.0)), [float]($this.Y + $this.Height))
         $g.FillPolygon($brush, $pts)
-
         if ($this.HP -lt $this.MaxHP -and $this.HP -gt 0) {
-            $ratio = [float]($this.HP / $this.MaxHP)
-            $g.FillRectangle([System.Drawing.Brushes]::DarkRed, $bx, ($by - 8.0), $bw, 4.0)
-            $g.FillRectangle([System.Drawing.Brushes]::Lime, $bx, ($by - 8.0), ($bw * $ratio), 4.0)
+            $g.FillRectangle([System.Drawing.Brushes]::DarkRed, $this.X, $this.Y - 8, $this.Width, 4)
+            $g.FillRectangle([System.Drawing.Brushes]::Lime, $this.X, $this.Y - 8, ($this.Width * ($this.HP / $this.MaxHP)), 4)
         }
     }
 }

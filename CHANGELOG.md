@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 ## [5.1.0] - 2026-03-15
 ### " "
 
@@ -150,6 +151,8 @@ Improved logic for the **E key item trigger**:
 
 
 
+=======
+>>>>>>> parent of 05409eb (5.1.0 The Laboratory & Celestial Engineering)
 ## [5.0.1] - 2026-03-15
 ### "The Performance Sentinel Update"
 

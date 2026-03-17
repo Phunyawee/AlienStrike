@@ -109,82 +109,34 @@ function Draw-Credits ($g, $width, $height) {
     }
 }
 function Draw-Menu ($g, $width, $height) {
-    # 1. เตรียม Font แบบระบุสเปคชัดเจน (ห้ามใช้เลขลัด)
-    $titleF = New-Object System.Drawing.Font("Impact", 45)
-    $menuF  = New-Object System.Drawing.Font("Consolas", 18, [System.Drawing.FontStyle]::Bold)
-    $smallF = New-Object System.Drawing.Font("Arial", 10)
-    $hintF  = New-Object System.Drawing.Font("Arial", 9)
+    $titleF = New-Object System.Drawing.Font("Impact", 40)
+    $menuF = New-Object System.Drawing.Font("Consolas", 18, [System.Drawing.FontStyle]::Bold)
     $center = New-Object System.Drawing.StringFormat; $center.Alignment = "Center"
     
-    # 2. วาดชื่อเกมและหัวข้อ
-    $g.DrawString("ALIEN STRIKE", $titleF, [System.Drawing.Brushes]::Cyan, [float]($width/2), 100.0, $center)
+    # วาดชื่อเกม
+    $g.DrawString("ALIEN STRIKE", $titleF, [System.Drawing.Brushes]::Cyan, ($width/2), 100, $center)
+    $g.DrawString($Script:menuState, [System.Drawing.Font]::new("Arial", 10), [System.Drawing.Brushes]::Gray, ($width/2), 160, $center)
+
+    # เลือกรายการเมนูตามสถานะ
+    $items = if ($Script:menuState -eq "MAIN") { $Script:mainMenuItems } 
+             elseif ($Script:menuState -eq "STORY") { $Script:storyItems }
+             else { $Script:battleItems }
     
-    # --- [แก้ไข] ขยับลงมาที่ 185.0 (เดิม 160.0) เพื่อให้มีช่องไฟ ---
-    $stateText = if ($Script:menuState -eq "SIM") { "LABORATORY: TARGET SELECTION" } else { $Script:menuState }
-    $g.DrawString($stateText, $smallF, [System.Drawing.Brushes]::Gray, [float]($width/2), 185.0, $center)
-
-    # --- [แก้ไข] ขยับจุดเริ่มเมนูลงมาอีกนิดเป็น 280.0 (เดิม 250.0) ---
-    $startY = 280.0
-    
-    # 3. เลือกรายการเมนู
-    $items = switch ($Script:menuState) {
-        "MAIN"   { $Script:mainMenuItems }
-        "STORY"  { $Script:storyItems }
-        "BATTLE" { $Script:battleItems }
-        "SIM"    { $Script:simItems }
-        default  { $Script:mainMenuItems }
-    }
-
-    # --- ลอจิกการทำ Scrolling (แสดงแค่ 6 บรรทัด) ---
-    $maxVisible = 6
-    $startY = 250.0
-    $spacing = 45.0
-    
-    $viewStart = 0
-    if ($Script:menuIndex -ge $maxVisible) {
-        $viewStart = $Script:menuIndex - ($maxVisible - 1)
-    }
-    $viewEnd = [math]::Min($viewStart + $maxVisible - 1, $items.Count - 1)
-
-    # 4. วาดรายการที่อยู่ในขอบเขตการมองเห็น
-    $drawCount = 0
-    for ($i = $viewStart; $i -le $viewEnd; $i++) {
-        $isHovered = ($i -eq $Script:menuIndex)
-        $color = if ($isHovered) { [System.Drawing.Brushes]::Yellow } else { [System.Drawing.Brushes]::White }
-        $currentY = [float]($startY + ($drawCount * $spacing))
-
-        if ($isHovered) {
-            $g.DrawString(">", $menuF, [System.Drawing.Brushes]::Lime, [float]($width/2 - 160), $currentY)
+    $startY = 250
+    for ($i = 0; $i -lt $items.Count; $i++) {
+        $color = if ($i -eq $Script:menuIndex) { [System.Drawing.Brushes]::Yellow } else { [System.Drawing.Brushes]::White }
+        $text = $items[$i]
+        
+        # วาด Cursor (สามเหลี่ยม)
+        if ($i -eq $Script:menuIndex) {
+            $cursorX = ($width / 2) - 160
+            $g.DrawString(">", $menuF, [System.Drawing.Brushes]::Lime, $cursorX, ($startY + ($i * 45)))
         }
 
-        $g.DrawString($items[$i], $menuF, $color, [float]($width/2), $currentY, $center)
-        $drawCount++
+        $g.DrawString($text, $menuF, $color, ($width/2), ($startY + ($i * 45)), $center)
     }
 
-    # 5. วาดสัญลักษณ์บอกว่ามีรายการเหลือ (บน/ล่าง) ด้วยรูปทรงสามเหลี่ยม
-    $cx = [float]($width / 2.0)
-    $indicatorBrush = [System.Drawing.Brushes]::Gray
-
-    if ($viewStart -gt 0) { 
-        # วาดสามเหลี่ยมชี้ขึ้น
-        $upPts = [System.Drawing.PointF[]]::new(3)
-        $upPts[0] = New-Object System.Drawing.PointF($cx, [float]($startY - 35.0))
-        $upPts[1] = New-Object System.Drawing.PointF([float]($cx - 10), [float]($startY - 20.0))
-        $upPts[2] = New-Object System.Drawing.PointF([float]($cx + 10), [float]($startY - 20.0))
-        $g.FillPolygon($indicatorBrush, $upPts)
-    }
-    
-    if ($viewEnd -lt ($items.Count - 1)) { 
-        # วาดสามเหลี่ยมชี้ลง
-        $downY = [float]($startY + ($maxVisible * $spacing) + 10.0)
-        $downPts = [System.Drawing.PointF[]]::new(3)
-        $downPts[0] = New-Object System.Drawing.PointF([float]($cx - 10), $downY)
-        $downPts[1] = New-Object System.Drawing.PointF([float]($cx + 10), $downY)
-        $downPts[2] = New-Object System.Drawing.PointF($cx, [float]($downY + 15.0))
-        $g.FillPolygon($indicatorBrush, $downPts)
-    }
-
-    $g.DrawString("[W/S] Scroll  [ENTER] Select", $hintF, [System.Drawing.Brushes]::Gray, [float]($width/2), 560.0, $center)
+    $g.DrawString("[ESC] Back / [ENTER] Select", [System.Drawing.Font]::new("Arial", 9), [System.Drawing.Brushes]::DarkGray, ($width/2), 550, $center)
 }
 function Draw-PauseMenu ($g, $width, $height) {
     # 1. ถมสีดำโปร่งแสงทับสนามรบ

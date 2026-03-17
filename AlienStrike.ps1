@@ -4,24 +4,22 @@ $ErrorActionPreference = "Stop"
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
-# --- 1. Smart Auto-Loader (v5.0.2: Nephilim Dependency Fix) ---
+# --- 1. Smart Auto-Loader (v4.1.2: Strict Dependency Loading) ---
 
+# กำหนดลำดับการโหลดตาม "ความต้องการ" ของแต่ละ Class
 $LoadOrder = @(
-    "src\Entities\GameObject.ps1",
-    "src\Entities\Projectiles\Bullet.ps1",
+    "src\Entities\GameObject.ps1",           # 1. รากฐานสูงสุด
+    "src\Entities\Projectiles\Bullet.ps1",   # 2. กระสุนแม่
     "src\Entities\Projectiles\EnemyBullet.ps1",
-    "src\Entities\Projectiles\EnemyMissile.ps1", # โหลดมิสไซล์ก่อน
-    "src\Entities\Projectiles\*.ps1",            # โหลดกระสุนลูกทุกชนิด (รวม NephilimBlade)
-    "src\Entities\Enemies\BaseEnemy.ps1",
-    "src\Entities\Player.ps1",
-    "src\Entities\*.ps1",
-    "src\Entities\Enemies\Sins\LuciferPart.ps1",
-    "src\Entities\Enemies\Sins\Watcher.ps1",     # [จุดสำคัญ] ต้องโหลด Watcher ก่อนบอสตัวอื่น!
-    "src\Entities\Enemies\Sins\Wrath.ps1",
-    "src\Entities\Enemies\Sins\*.ps1",           # ค่อยโหลดบอสที่เหลือ (เช่น Nephilim)
-    "src\Managers\*.ps1",
-    "src\Managers\LogicModules\*.ps1",
-    "src\Managers\CollisionModules\*.ps1",
+    "src\Entities\Projectiles\*.ps1",       # 3. กระสุนลูกทุกชนิด (ต้องโหลดก่อนบอสที่ยิงมัน)
+    "src\Entities\Enemies\BaseEnemy.ps1",    # 4. ศัตรูแม่
+    "src\Entities\Player.ps1",               # 5. ผู้เล่น
+    "src\Entities\*.ps1",                    # 6. คลาสเสริม (DefenseDrop)
+    "src\Entities\Enemies\Sins\LuciferPart.ps1", # 7. ชิ้นส่วนบอส (ต้องโหลดก่อนตัวบอสใหญ่)
+    "src\Entities\Enemies\Sins\Wrath.ps1",       # 8. บอสที่ถูกบอสอื่นเรียกใช้
+    "src\Entities\Enemies\Sins\*.ps1",           # 9. บอสที่เหลือทั้งหมด
+    "src\Managers\*.ps1" ,                        # 10. ตัวจัดการ (โหลดหลังสุด)
+    "src\Managers\LogicModules\*.ps1" ,
     "src\Managers\RenderModules\*.ps1"
 )
 
@@ -193,9 +191,7 @@ $Script:shakeOffset = New-Object System.Drawing.Point(0, 0)
 $Script:gameStarted = $false
 $Script:menuState = "MAIN"
 $Script:menuIndex = 0
-$Script:mainMenuItems = @("STORY MODE", "BATTLE MODE", "SIMULATION", "LEADERBOARD", "EXIT")
-$Script:simItems = @("WATCHER", "WRATH", "ENVY", "LUST", "GREED", "SLOTH", "PRIDE", "REAL PRIDE", "GLUTTONY", "NEPHILIM", "LUCIFER", "BACK")
-$Script:selectedSimTarget = "" # เก็บชื่อตัวที่จะเสก
+$Script:mainMenuItems = @("STORY MODE", "BATTLE MODE", "ENDLESS MODE", "LEADERBOARD", "EXIT")
 $Script:storyItems = @("CHAPTER 1: THE 7 SINS", "CHAPTER 2: THE FALLEN ANGEL", "COMING SOON...")
 $Script:chapterTwoWave = 0 # ตัวนับระลอกของ Chapter 2
 $Script:battleItems = @("LUCIFER", "REAL PRIDE", "GLUTTONY", "GREED", "BACK") # รายชื่อบอส
@@ -279,12 +275,9 @@ $form.Add_KeyDown({
     # CASE B: หน้าเมนู (ปุ่มเลือกโหมด)
     # ==========================================
     if (-not $Script:gameStarted -and -not $Script:showLeaderboard) {
-         $currentMenu = switch ($Script:menuState) {
-            "MAIN"    { $Script:mainMenuItems }
-            "STORY"   { $Script:storyItems }
-            "BATTLE"  { $Script:battleItems }
-            "SIM"     { $Script:simItems } # <--- เพิ่มหน้าใหม่
-        }
+        $currentMenu = if ($Script:menuState -eq "MAIN") { $Script:mainMenuItems } 
+                       elseif ($Script:menuState -eq "STORY") { $Script:storyItems }
+                       else { $Script:battleItems } # สำหรับหน้า BATTLE
         
         if ($key -eq "Up" -or $key -eq "W") {
             $Script:menuIndex--
@@ -299,65 +292,57 @@ $form.Add_KeyDown({
             $form.Invalidate()
         }
 
-        # --- ลอจิกการกด Enter / Return เพื่อเลือกเมนู ---
+        # --- แก้ไขจุดนี้: ใช้ Return เพื่อให้กด Enter ติด ---
         if ($key -eq "Return" -or $key -eq "Enter") {
             $selection = $currentMenu[$Script:menuIndex]
             
-            # --- 1. หน้าเมนูหลัก (MAIN) ---
+            # --- ตรรกะหน้าเมนูหลัก (MAIN) ---
             if ($Script:menuState -eq "MAIN") {
                 if ($selection -eq "STORY MODE") { 
-                    $Script:menuState = "STORY"; $Script:menuIndex = 0 
+                    $Script:menuState = "STORY"
+                    $Script:menuIndex = 0 
                 }
+                # --- [เพิ่มบรรทัดนี้ที่ขาดไป!] ---
                 elseif ($selection -eq "BATTLE MODE") { 
-                    $Script:menuState = "BATTLE"; $Script:menuIndex = 0 
+                    $Script:menuState = "BATTLE"
+                    $Script:menuIndex = 0 
                 }
-                elseif ($selection -eq "SIMULATION") { # <--- เพิ่มทางเข้า SIM
-                    $Script:menuState = "SIM"; $Script:menuIndex = 0 
-                }
+                # ------------------------------
                 elseif ($selection -eq "ENDLESS MODE") { 
-                    Reset-Session
-                    $Script:gameMode = "Endless"; $Script:gameStarted = $true; $timer.Start() 
+                    $Script:gameMode = "Endless"
+                    $Script:gameStarted = $true
+                    $timer.Start()
                 }
                 elseif ($selection -eq "LEADERBOARD") { $Script:showLeaderboard = $true }
                 elseif ($selection -eq "EXIT") { $form.Close() }
             }
-            
-            # --- 2. หน้าเลือก Chapter (STORY) ---
+            # --- ตรรกะหน้าเลือก Chapter (STORY) ---
             elseif ($Script:menuState -eq "STORY") {
-                if ($selection -eq "BACK") { $Script:menuState = "MAIN"; $Script:menuIndex = 0 }
-                elseif ($selection -match "CHAPTER 1") { 
-                    Reset-Session; $Script:gameMode = "Chapter1"; $Script:gameStarted = $true; $timer.Start() 
+                if ($selection -match "CHAPTER 1") { 
+                    Reset-Session
+                    $Script:gameMode = "Chapter1"
+                    $Script:gameStarted = $true
+                    $timer.Start() 
                 }
                 elseif ($selection -match "CHAPTER 2") { 
-                    Reset-Session; $Script:gameMode = "Chapter2"; $Script:gameStarted = $true; $timer.Start() 
+                    $Script:gameMode = "Chapter2"; $Script:gameStarted = $true; $timer.Start() 
+                    Write-Host ">>> STARTING CHAPTER 2: THE FALLEN ANGEL <<<" -ForegroundColor Cyan
                 }
             }
-            
-            # --- 3. หน้าเลือกบอส (BATTLE) ---
+            # --- ตรรกะหน้าเลือกบอส (BATTLE) ---
             elseif ($Script:menuState -eq "BATTLE") {
-                if ($selection -eq "BACK") { $Script:menuState = "MAIN"; $Script:menuIndex = 0 }
-                else {
-                    Reset-Session
+                Reset-Session
+                if ($selection -eq "BACK") { 
+                    $Script:menuState = "MAIN"; $Script:menuIndex = 0 
+                } else {
+                    # ปรับชื่อให้ตรงกับระบบ Factory (เอาเว้นวรรคออก)
                     $cleanName = $selection.Replace(" ", "")
                     $Script:gameMode = "1v1_$cleanName"
-                    $Script:gameStarted = $true; $timer.Start()
-                }
-            }
-
-            # --- 4. [NEW] หน้าห้องทดสอบ (SIMULATION) ---
-            elseif ($Script:menuState -eq "SIM") {
-                if ($selection -eq "BACK") { $Script:menuState = "MAIN"; $Script:menuIndex = 0 }
-                else {
-                    # บันทึกชื่อตัวที่จะเทส แล้วเริ่มโหมด Simulation
-                    $Script:selectedSimTarget = $selection
-                    $Script:gameMode = "Simulation"
-                    Reset-Session
                     $Script:gameStarted = $true
                     $timer.Start()
-                    Write-Host ">>> SIMULATION START: $selection <<<" -ForegroundColor Cyan
+                    Write-Host ">>> STARTING BATTLE: $Script:gameMode <<<" -ForegroundColor Green
                 }
             }
-
             $form.Invalidate()
             return
         }
@@ -391,11 +376,6 @@ $form.Add_KeyDown({
             return
         }
         # --- [NEW] สูตรโกง: กดปุ่ม F2 เพื่อเสก Nuke 100 ลูก ---
-        if ($key -eq "F1") {
-            Add-To-Inventory "Missile" 100
-            Write-Host ">>> CHEAT ACTIVATED: 100 Missile ADDED! <<<" -ForegroundColor Red
-            [System.Media.SystemSounds]::Hand.Play()
-        }
         if ($key -eq "F2") {
             Add-To-Inventory "Nuke" 100
             Write-Host ">>> CHEAT ACTIVATED: 100 NUKES ADDED! <<<" -ForegroundColor Red
@@ -564,10 +544,7 @@ $timer.Add_Tick({
     # --- เช็คการเกิดของบอสพิเศษ (Lust / Pride) ---
     Check-BossSpawns
 
-    # ในโหมด Sim ไม่ต้องดรอปกล่อง Defense (ถ้าคุณอยากทดสอบแบบเพียวๆ)
-    if ($Script:gameMode -ne "Simulation") {
-        Check-ItemDrops
-    }
+    Check-ItemDrops
 
     # --- ควบคุมผู้เล่น ---
     Handle-PlayerInput
@@ -583,12 +560,12 @@ $timer.Add_Tick({
     $isRealPrideActive = ($Script:enemies | Where-Object { $_.GetType().Name -eq "RealPride" }).Count -gt 0
     $isGluttonyOut = ($Script:enemies | Where-Object { $_.GetType().Name -eq "Gluttony" }).Count -gt 0
     $hasGreed = ($Script:enemies | Where-Object { $_.GetType().Name -eq "Greed" }).Count -gt 0
-    $isSimMode = $Script:gameMode -eq "Simulation"
+
     # 2. กฎการสปอนศัตรูทั่วไป: 
     # ห้ามเกิดถ้า: (เป็นโหมดดวล) หรือ (มีบอสใหญ่อยู่) หรือ (ศัตรูเต็มจอ 20 ตัว)
-    $canSpawnMinions = (-not $isDuelMode -and -not $isChapter2 -and -not $isSimMode -and -not $isLuciferActive -and -not $isRealPrideActive)
-
+    $canSpawnMinions = (-not $isDuelMode -and -not $isChapter2 -and -not $isLuciferActive -and -not $isRealPrideActive -and -not $isGluttonyOut -and -not $hasGreed)
     if ($canSpawnMinions -and $Script:enemies.Count -lt 20) {
+        # สุ่มเลขตาม SpawnRate (เช็คแค่ครั้งเดียวต่อเฟรม)
         if ($Script:rnd.Next(0, 100) -lt $Script:spawnRate) {
             [void]$Script:enemies.Add((New-EnemySpawn 500 $Script:level $Script:rnd))
         }

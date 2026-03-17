@@ -4,24 +4,17 @@
 # 1. FACTORY & INVENTORY: โรงงานผลิตและระบบคลังแสง
 # ==========================================
 function New-Sin ([string]$name, [float]$x = 210, [float]$y = -150) {
-    switch ($name.ToUpper()) {
-        # --- ศัตรูทั่วไป ---
-        "MINION"     { return [Enemy]::new($x, $y, 3, [System.Drawing.Color]::Lime) } # คลาส Enemy เดิม
-        "WATCHER"    { return [Watcher]::new($x, $y, $x, 150, "Minion") }
-
-        # --- บอส 7 บาป และ Elite ---
-        "WRATH"      { return [Wrath]::new($x, $y, 5) }
-        "ENVY"       { return [Envy]::new($x, $y, $Script:player) }
-        "PRIDE"      { return [Pride]::new($x, $y) }
-        "LUST"       { return [Lust]::new($x, $y, 1) }
-        "SLOTH"      { return [Sloth]::new($x, $y, $x, 150, 0) }
-        "GREED"      { return [Greed]::new($x, $y, $Script:player) }
-        "GLUTTONY"   { return [Gluttony]::new($x, $y, $Script:player) }
-        "NEPHILIM"   { return [Nephilim]::new($x, $y, $Script:player) }
-        "REAL PRIDE"  { return [RealPride]::new($x, $y, $Script:player) }
-        "LUCIFER"    { return [Lucifer]::new($x, $y, $Script:player) }
-        
-        default      { return $null }
+    switch ($name) {
+        "Wrath"    { return [Wrath]::new($x, $y, 5) }
+        "Envy"     { return [Envy]::new($x, $y, $Script:player) }
+        "Pride"    { return [Pride]::new($x, $y) }
+        "Lust"     { return [Lust]::new($x, $y, 1) }
+        "Sloth"    { return [Sloth]::new($x, $y, $x, 150, 0) }
+        "Greed"    { return [Greed]::new($x, $y, $Script:player) }
+        "Gluttony" { return [Gluttony]::new($x, $y, $Script:player) }
+        "RealPride"{ return [RealPride]::new($x, $y, $Script:player) }
+        "Lucifer"  { return [Lucifer]::new($x, $y, $Script:player) }
+        default    { return $null }
     }
 }
 

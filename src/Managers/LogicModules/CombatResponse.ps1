@@ -44,10 +44,6 @@ function Handle-PostCollision ($collisionResult) {
         $Script:defenseHits += (10 * $collisionResult.GreedKills) 
         Write-Host ">>> SHIELD REINFORCED <<<" -ForegroundColor Cyan 
     }
-    if ($collisionResult.AceKills -gt 0) {
-        Add-To-Inventory "Homing" (3 * $collisionResult.AceKills)
-        Write-Host ">>> ELITE DOWN! RECEIVED 3x HOMING MISSILES <<<" -ForegroundColor Yellow
-    }
     
     if ($collisionResult.PrideKilled) { $Script:prideKills++ }
     
@@ -97,28 +93,24 @@ function Handle-PostCollision ($collisionResult) {
     }
     if ($Script:speedTimer -gt 0) { $Script:speedTimer-- }
 
-    # ==========================================
-    # 6. ตรวจสอบสถานะการตาย (Resurrection Logic)
-    # ==========================================
+    # ระบบตายและการฟื้นคืนชีพ
     if ($collisionResult.IsPlayerHit) {
         $Script:lives--
         if ($Script:lives -le 0) { Do-GameOver; return $true }
         
         $Script:player.X = 225; $Script:player.Y = 500
         
-        # --- [แก้ไขจุดนี้] เพิ่มเงื่อนไข Simulation ---
+        # --- [แก้ไขจุดนี้] กฎอมตะสำหรับ Chapter 2 ---
         $isChapter2 = $Script:gameMode -eq "Chapter2"
-        $isSimMode = $Script:gameMode -eq "Simulation" # <--- เช็คโหมดแล็บ
-        $isLuciferActive = ($Script:enemies | Where-Object { $_.GetType().Name -eq "Lucifer" }).Count -gt 0
         $isRP = ($Script:enemies | Where-Object { $_.GetType().Name -eq "RealPride" }).Count -gt 0
         
-        # ถ้าอยู่ในโหมดแล็บ, Chapter 2 หรือสู้บอสใหญ่ ให้ใช้กฎ "สู้ต่อ" ไม่ล้างสนาม
-        if ($isSimMode -or $isChapter2 -or $isRP -or $isLuciferActive -or $collisionResult.IsFatalHit) {
+        # ถ้าอยู่ใน Chapter 2 หรือสู้บอสใหญ่ ให้ใช้ระบบฟื้นคืนชีพแบบไม่ล้างสนาม
+        if ($isChapter2 -or $isRP -or $isLuciferActive -or $collisionResult.IsFatalHit) {
             $Script:defenseHits = 50
             $Script:immortalTimer = 180 # อมตะ 3 วินาที
-            Write-Host ">>> RESURRECTION: CONTINUING SIMULATION <<<" -ForegroundColor Cyan
+            Write-Host ">>> CHAPTER 2 RESURRECTION: SYSTEM STABILIZING... <<<" -ForegroundColor Yellow
         } else {
-            # ตายปกติใน Chapter 1 หรือ Endless (ล้างสนามรบใหม่)
+            # ตายปกติใน Chapter 1 หรือ Endless (ล้างสนาม)
             $Script:enemies.Clear(); $Script:enemyBullets.Clear(); $Script:bullets.Clear(); $Script:items.Clear()
         }
     }
