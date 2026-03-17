@@ -4,11 +4,10 @@
 # ==========================================
 function Check-BossSpawns {
     # 1. ตรวจสอบสถานะบอสปัจจุบัน
-    $isGluttonyActive = ($Script:enemies | Where-Object { $_.GetType().Name -eq "Gluttony" }).Count -gt 0
-    $isGreedActive = ($Script:enemies | Where-Object { $_.GetType().Name -eq "Greed" }).Count -gt 0
-    $isLuciferActive = ($Script:enemies | Where-Object { $_.GetType().Name -eq "Lucifer" }).Count -gt 0
-    $isRealPrideActive = ($Script:enemies | Where-Object { $_.GetType().Name -eq "RealPride" }).Count -gt 0
-
+     $isGluttonyActive = ($Script:enemies | Where-Object { $_ -ne $null -and $_ -is [Gluttony] }).Count -gt 0
+    $isGreedActive    = ($Script:enemies | Where-Object { $_ -ne $null -and $_ -is [Greed] }).Count -gt 0
+    $isLuciferActive  = ($Script:enemies | Where-Object { $_ -ne $null -and $_ -is [Lucifer] }).Count -gt 0
+    $isRealPrideActive = ($Script:enemies | Where-Object { $_ -ne $null -and $_ -is [RealPride] }).Count -gt 0
     # 2. เลือกโหมดการเล่น
     switch ($Script:gameMode) {
         
@@ -95,10 +94,11 @@ function Update-ChapterOneProgression {
 
     # --- 2. ตรรกะ RealPride (Gatekeeper) ---
     if ($isRealPrideActive) { 
-        $rp = $Script:enemies | Where-Object { $_.GetType().Name -eq "RealPride" } | Select-Object -First 1
-        if ($rp) { 
+        # กรองเฉพาะตัวที่เป็น RealPride จริงๆ และไม่เป็น Null
+        $rp = $Script:enemies | Where-Object { $_ -ne $null -and $_ -is [RealPride] } | Select-Object -First 1
+        if ($null -ne $rp) { 
             $rem = 15 - $rp.LaserCount
-            $Script:isCataclysmIncoming = ($rem -le 3) # เตือน Cataclysm เมื่อเหลือเลเซอร์ <= 3
+            $Script:isCataclysmIncoming = ($rem -le 3)
         }
         return 
     }
