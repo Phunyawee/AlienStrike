@@ -9,6 +9,9 @@ function New-Sin ([string]$name, [float]$x = 210, [float]$y = -150) {
         "REALPRIDE"  { return [RealPride]::new($x, $y, $Script:player) }
         "WRATH"      { return [Wrath]::new($x, $y, 5) }
         "ENVY"       { return [Envy]::new($x, $y, $Script:player) }
+           "WATCHER"    { return [Watcher]::new($x, $y, $x, 150.0, "Minion") }
+        
+        "MINION"     { return [Enemy]::new($x, $y, 3, [System.Drawing.Color]::Lime) }
         "PRIDE"      { return [Pride]::new($x, $y) }
         "LUST"       { return [Lust]::new($x, $y, 1) }
         "SLOTH"      { return [Sloth]::new($x, $y, $x, 150, 0) }

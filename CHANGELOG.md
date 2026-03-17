@@ -1,3 +1,207 @@
+## [5.3.0] - 2026-03-18 
+**"The Strict Phase & Laboratory Refinement"**
+
+Version 5.3.0 is a system-level update focused on perfecting **multi-part boss logic** and refining the **Simulation mode** into a more professional testing environment. It also resolves damage inconsistencies that previously allowed bosses to be defeated too easily.
+
+---
+
+### 🎯 Version 5.3 Focus
+
+- **Strict Phase Gating**  
+  Enforces a rigid, sequential destruction order for boss components  
+
+- **Target-Specific Balancing**  
+  Separates weapon damage balancing between major bosses (*Lucifer*) and mini-bosses (*Nephilim*)  
+
+- **Visual & UI Polishing**  
+  Introduces a scrolling menu system and a virtual grid laboratory background  
+
+- **Stability Core**  
+  Eliminates Null-pointer and Index Out of Range errors permanently  
+
+---
+
+### ➕ Added
+
+#### 🟢 The Virtual Grid (SIM Background)
+- A dedicated background for Simulation mode  
+- Features a neon-green hacker-style grid with animated scanning lines  
+- Creates a distinct “laboratory” atmosphere separate from the main game  
+
+- **Background Reset System**  
+  Automatically reverts to the space background when exiting Simulation via `gameStarted`  
+
+---
+
+#### ⚔️ Nephilim "Blade Overdrive"
+- Increased blade throw speed by **50%**  
+- Introduced **Staggered Throw System** (alternating blades every 1.5 seconds)  
+
+- **Fatal Blade Logic**  
+  - Locks onto the player once at launch  
+  - Deals **50 shield damage instantly**  
+  - If no shield → **instant death**  
+
+---
+
+### 🔄 Changed
+
+#### 🔗 Strict Targeting Chain (Nephilim)
+- New enforced attack order:
+  - **Laser Cannon → Blades → Core**
+
+- Player projectiles will:
+  - **Pass through** blades and core  
+  - Deal **no damage** unless prior components are destroyed  
+
+- **Weapon Class Requirement**
+  - Blade components only take damage from:
+    - Laser `[L]`
+    - Nuke `[N]`
+  - All other weapons will deflect without damage  
+
+---
+
+#### ⚖️ Advanced Boss Balancing
+- Nephilim now takes **50% reduced damage** compared to Lucifer  
+- Example:
+  - Nuke deals **200 damage** instead of 400  
+
+---
+
+#### 🧩 Modular Damage Logic
+- `Process-BossDamage` now returns structured objects:
+  - `{ Hit, Killed }`  
+- Prevents projectile logic from falling through into minion damage handling  
+
+---
+
+### 🐞 Fixed
+
+#### 🔵 Infinite Re-Armor Bug
+- Fixed Lucifer’s blue armor repeatedly reactivating below 1000 HP  
+- Implemented **ArmorActivated Lock**  
+
+#### ⚠️ Logic Fall-through
+- Fixed issue where bosses could die instantly from weak weapons  
+- Caused by logic incorrectly falling into standard enemy conditions  
+
+#### 🧪 Simulation Envy Glitch
+- Prevented Envy from spawning after excessive Wrath kills in Simulation  
+- Preserves intended **1v1 testing environment**  
+
+#### 👻 RealPride Null Crash
+- Added Null-check for player reference in boss modules  
+- Prevents crash during duel start or respawn  
+
+---
+
+### 📊 Updated Arsenal Damage Table (v5.3.0)
+
+| Weapon Type     | Dmg vs Lucifer Core | Dmg vs Nephilim Core | Dmg vs Sin Parts |
+|----------------|--------------------|----------------------|------------------|
+| Holy Bomb [H]  | 800                | 400                  | 50               |
+| Nuke [N]       | 400                | 200                  | 100–200          |
+| Homing [T]     | 75                 | 38                   | 50               |
+| Missile [M]    | 50                 | 25                   | Piercing         |
+| Laser [L]      | 2 / Frame          | 1 / Frame            | High DPS         |
+
+---
+
+> *"The lab is optimized, the targets are locked. The Fallen Angels must fall by the rules, or not at all."*
+
+
+
+## [5.2.0] - 2026-03-17  
+**"The Collision Kernel Overhaul"**
+
+Version 5.2.0 marks a major architectural shift in the **Collision Engine**, transitioning from a monolithic structure to a fully **modular system** under the new `CollisionModules` directory. This redesign enables maximum flexibility for expanding boss mechanics and weapon systems in future updates.
+
+---
+
+### 🎯 Version 5.2 Focus
+
+- **Modular Collision Logic**  
+  Collision handling is now separated by responsibility into dedicated modules  
+
+- **Strategic Hierarchy**  
+  Introduces clear priority between defensive systems (Shield) and fatal damage events  
+
+- **Engine Maintainability**  
+  Bugs can now be fixed and damage logic tuned per module without affecting the entire system  
+
+---
+
+### ➕ Added (Collision Modules)
+
+Introduced a new structure under `src\Managers\CollisionModules\`, consisting of six core modules:
+
+#### ☠️ UnstoppableThreats.ps1 *(Absolute Priority)*
+- Handles unavoidable, unblockable threats  
+- Example: **Cataclysm Wave**  
+- Bypasses all systems (Invincibility & Shields) → Forces immediate Game Over  
+
+#### 📦 ItemCollector.ps1 *(Resource Gathering)*
+- Processes collection of support items (**Defense Drops**)  
+- Separated from the damage loop to prevent HP calculation errors  
+
+#### 💥 ExplosionProcessor.ps1 *(AOE & Global Wipe)*
+- Central processor for **Nuke** and area-of-effect (AOE) damage  
+- Includes **Global Kill Tracking** for battlefield wipe reporting  
+
+#### 🧩 BossModuleSystem.ps1 *(Destructible Architecture)*
+- Handles destruction sequencing for multi-part bosses (e.g., *Lucifer*, *Nephilim*)  
+- Destroyed parts → Reduce core HP accordingly  
+
+#### 🎯 ProjectileProcessor.ps1 *(Primary Offense)*
+- Manages all player projectile collisions:
+  - Bullet, Missile, Homing, Laser, Holy Bomb  
+- Supports weapon-type-based damage distribution  
+
+#### 🛡️ PlayerDefenseSystem.ps1 *(Shield & Status)*
+- Core player defense handler  
+- Manages:
+  - Defense Shield  
+  - Debuffs  
+  - **Shield Shredder** weapon interactions  
+
+---
+
+### 🔄 Changed
+
+#### 🛡️ Shield Priority Protocol
+- Updated shield behavior:
+  - If **D > 0 (Shield active)**  
+    → Fully negates **Siren, Silence, and Jammer** effects  
+    → Shield is consumed instead of HP  
+- Exception:
+  - **Shredder-type weapons** bypass shields  
+
+#### 🚦 Collision Orchestration
+- `CollisionManager.ps1` is now an **Orchestrator**
+- Responsibilities:
+  - Distributes shared context to modules  
+  - Controls execution order based on processing layers  
+
+---
+
+### 🛠️ Modular Collision Overview
+
+| Module               | Primary Responsibility     | Key Interaction                    |
+|---------------------|--------------------------|-----------------------------------|
+| UnstoppableThreats  | Global Fatal Events      | Bypasses all Invincibility        |
+| ItemCollector       | Item Acquisition         | Increases Defense Shield          |
+| ExplosionProcessor  | Tactical Nuke / AOE      | Field Wipe & Massive Boss Damage  |
+| BossModuleSystem    | Structural Damage        | Part Destruction → Core HP Drop   |
+| ProjectileProcessor | Weapon Interaction       | Damage Calculation per Type       |
+| PlayerDefenseSystem | Survival & Buffs         | Shield Block & Status Negation    |
+
+---
+
+> *"The shell is cracked, the modules are free. The engine is no longer a monolith—it is a machine."*
+
+
+
 ## [5.1.1] - 2026-03-17  
 **"The Stability Protocol"**
 

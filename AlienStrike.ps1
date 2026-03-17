@@ -21,6 +21,7 @@ $LoadOrder = @(
     "src\Entities\Enemies\Sins\*.ps1",           # ค่อยโหลดบอสที่เหลือ (เช่น Nephilim)
     "src\Managers\*.ps1",
     "src\Managers\LogicModules\*.ps1",
+    "src\Managers\CollisionModules\*.ps1",
     "src\Managers\RenderModules\*.ps1"
 )
 
@@ -54,6 +55,7 @@ $scoreFile = "$PSScriptRoot\scores.json"
 
 function Reset-Session {
     # 1. ล้างสถานะ Pause และหน้าจอ (แก้ปัญหา Exit แล้วยัง Pause)
+   
     $Script:isPaused = $false
     $Script:gameStarted = $false
     $Script:showCredits = $false
@@ -398,6 +400,11 @@ $form.Add_KeyDown({
         if ($key -eq "F2") {
             Add-To-Inventory "Nuke" 100
             Write-Host ">>> CHEAT ACTIVATED: 100 NUKES ADDED! <<<" -ForegroundColor Red
+            [System.Media.SystemSounds]::Hand.Play()
+        }
+        if ($key -eq "F3") {
+            Add-To-Inventory "Laser" 100
+            Write-Host ">>> CHEAT ACTIVATED: 100 Laser ADDED! <<<" -ForegroundColor Red
             [System.Media.SystemSounds]::Hand.Play()
         }
 
