@@ -20,8 +20,8 @@ class HomingMissile : Bullet {
             $cx = $this.X + ($this.Width / 2.0)
             $cy = $this.Y + ($this.Height / 2.0)
             
-            $this.Width = 100  # ปรับขนาดวงระเบิดให้เล็กลงตามสั่ง (100px)
-            $this.Height = 100
+            $this.Width = 150  # ปรับขนาดวงระเบิดให้เล็กลงตามสั่ง (150px)
+            $this.Height = 150
             $this.X = $cx - 50.0 # จัดให้ศูนย์กลางอยู่ที่เดิม
             $this.Y = $cy - 50.0
             

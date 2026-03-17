@@ -4,10 +4,20 @@
 # ==========================================
 function Check-BossSpawns {
     # 1. ตรวจสอบสถานะบอสปัจจุบัน
-     $isGluttonyActive = ($Script:enemies | Where-Object { $_ -ne $null -and $_ -is [Gluttony] }).Count -gt 0
-    $isGreedActive    = ($Script:enemies | Where-Object { $_ -ne $null -and $_ -is [Greed] }).Count -gt 0
-    $isLuciferActive  = ($Script:enemies | Where-Object { $_ -ne $null -and $_ -is [Lucifer] }).Count -gt 0
-    $isRealPrideActive = ($Script:enemies | Where-Object { $_ -ne $null -and $_ -is [RealPride] }).Count -gt 0
+    $isGluttonyActive = ($Script:enemies | Where-Object { $_.GetType().Name -eq "Gluttony" }).Count -gt 0
+    $isGreedActive = ($Script:enemies | Where-Object { $_.GetType().Name -eq "Greed" }).Count -gt 0
+    $isLuciferActive = ($Script:enemies | Where-Object { $_.GetType().Name -eq "Lucifer" }).Count -gt 0
+    $isRealPrideActive = ($Script:enemies | Where-Object { $_.GetType().Name -eq "RealPride" }).Count -gt 0
+
+    if ($Script:gameMode -eq "Simulation") {
+        $activeEnemies = $Script:enemies | Where-Object { $_.Y -lt 1000 }
+        if ($activeEnemies.Count -eq 0) {
+            # เสกใหม่กลางจอ
+            [void]$Script:enemies.Add((New-Sin $Script:selectedSimTarget 230 100))
+        }
+        return # จบการทำงานของ Director ทันที ห้ามไปเช็ค Chapter อื่น!
+    }
+
     # 2. เลือกโหมดการเล่น
     switch ($Script:gameMode) {
         
@@ -61,6 +71,12 @@ function Check-BossSpawns {
                 Write-Host ">>> DUEL START: GREED <<<" -ForegroundColor Yellow
             }
         }
+        "Simulation" {
+            if ($Script:enemies.Count -eq 0) {
+                Write-Host ">>> RE-SPAWNING SIM TARGET: $Script:selectedSimTarget <<<" -ForegroundColor Gray
+                [void]$Script:enemies.Add((New-Sin $Script:selectedSimTarget 210 100))
+            }
+        }
     }
 }
 
@@ -94,11 +110,10 @@ function Update-ChapterOneProgression {
 
     # --- 2. ตรรกะ RealPride (Gatekeeper) ---
     if ($isRealPrideActive) { 
-        # กรองเฉพาะตัวที่เป็น RealPride จริงๆ และไม่เป็น Null
-        $rp = $Script:enemies | Where-Object { $_ -ne $null -and $_ -is [RealPride] } | Select-Object -First 1
-        if ($null -ne $rp) { 
+        $rp = $Script:enemies | Where-Object { $_.GetType().Name -eq "RealPride" } | Select-Object -First 1
+        if ($rp) { 
             $rem = 15 - $rp.LaserCount
-            $Script:isCataclysmIncoming = ($rem -le 3)
+            $Script:isCataclysmIncoming = ($rem -le 3) # เตือน Cataclysm เมื่อเหลือเลเซอร์ <= 3
         }
         return 
     }
@@ -258,6 +273,16 @@ function Update-ChapterTwoProgression {
         10 {
             Write-Host ">>> WAVE 10: THE GRAND A-FORMATION (NO ESCAPE) <<<" -ForegroundColor Red
             Spawn-AFormation
+        }
+        11 {
+            Write-Host ">>> WARNING: NEPHILIM CLASS SHIP DETECTED <<<" -ForegroundColor Red
+            # เสกบอส Nephilim ลงมา (พิกัด X=170 เพื่อให้ตัวกว้าง 160 อยู่กลางจอพอดี)
+            [void]$Script:enemies.Add((New-Sin "Nephilim" 170 -100))
+        }
+
+        12 {
+            Write-Host ">>> CHAPTER 2 COMPLETED! RETURNING TO PATROL... <<<" -ForegroundColor Yellow
+            $Script:chapterTwoWave = 0
         }
         
         default {

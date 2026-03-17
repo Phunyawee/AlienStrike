@@ -8,12 +8,8 @@ function Handle-PostCollision ($collisionResult) {
 
     # จัดการการตายของ Gluttony
     if ($collisionResult.GluttonyKills -gt 0) { 
-        Add-To-Inventory "Nuke" 1
-        # [แก้ไข] นับยอดคิลเฉพาะโหมดเนื้อเรื่อง/Endless เท่านั้น
-        if ($Script:gameMode -in @("Chapter1", "Endless")) {
-            $Script:totalGluttonyKills += $collisionResult.GluttonyKills
-            Write-Host ">>> GLUTTONY DEFEATED ($($Script:totalGluttonyKills)/3) <<<" -ForegroundColor Magenta
-        }
+        Add-To-Inventory "Nuke" 1; $Script:totalGluttonyKills += $collisionResult.GluttonyKills 
+        Write-Host ">>> GLUTTONY DEFEATED ($Script:totalGluttonyKills / 3) <<<" -ForegroundColor Magenta
     }
 
     # จัดการการตายของ RealPride (Gatekeeper)
@@ -43,6 +39,10 @@ function Handle-PostCollision ($collisionResult) {
     if ($collisionResult.GreedKills -gt 0) { 
         $Script:defenseHits += (10 * $collisionResult.GreedKills) 
         Write-Host ">>> SHIELD REINFORCED <<<" -ForegroundColor Cyan 
+    }
+    if ($collisionResult.AceKills -gt 0) {
+        Add-To-Inventory "Homing" (3 * $collisionResult.AceKills)
+        Write-Host ">>> ELITE DOWN! RECEIVED 3x HOMING MISSILES <<<" -ForegroundColor Yellow
     }
     
     if ($collisionResult.PrideKilled) { $Script:prideKills++ }
@@ -93,24 +93,28 @@ function Handle-PostCollision ($collisionResult) {
     }
     if ($Script:speedTimer -gt 0) { $Script:speedTimer-- }
 
-    # ระบบตายและการฟื้นคืนชีพ
+    # ==========================================
+    # 6. ตรวจสอบสถานะการตาย (Resurrection Logic)
+    # ==========================================
     if ($collisionResult.IsPlayerHit) {
         $Script:lives--
         if ($Script:lives -le 0) { Do-GameOver; return $true }
         
         $Script:player.X = 225; $Script:player.Y = 500
         
-        # --- [แก้ไขจุดนี้] กฎอมตะสำหรับ Chapter 2 ---
+        # --- [แก้ไขจุดนี้] เพิ่มเงื่อนไข Simulation ---
         $isChapter2 = $Script:gameMode -eq "Chapter2"
+        $isSimMode = $Script:gameMode -eq "Simulation" # <--- เช็คโหมดแล็บ
+        $isLuciferActive = ($Script:enemies | Where-Object { $_.GetType().Name -eq "Lucifer" }).Count -gt 0
         $isRP = ($Script:enemies | Where-Object { $_.GetType().Name -eq "RealPride" }).Count -gt 0
         
-        # ถ้าอยู่ใน Chapter 2 หรือสู้บอสใหญ่ ให้ใช้ระบบฟื้นคืนชีพแบบไม่ล้างสนาม
-        if ($isChapter2 -or $isRP -or $isLuciferActive -or $collisionResult.IsFatalHit) {
+        # ถ้าอยู่ในโหมดแล็บ, Chapter 2 หรือสู้บอสใหญ่ ให้ใช้กฎ "สู้ต่อ" ไม่ล้างสนาม
+        if ($isSimMode -or $isChapter2 -or $isRP -or $isLuciferActive -or $collisionResult.IsFatalHit) {
             $Script:defenseHits = 50
             $Script:immortalTimer = 180 # อมตะ 3 วินาที
-            Write-Host ">>> CHAPTER 2 RESURRECTION: SYSTEM STABILIZING... <<<" -ForegroundColor Yellow
+            Write-Host ">>> RESURRECTION: CONTINUING SIMULATION <<<" -ForegroundColor Cyan
         } else {
-            # ตายปกติใน Chapter 1 หรือ Endless (ล้างสนาม)
+            # ตายปกติใน Chapter 1 หรือ Endless (ล้างสนามรบใหม่)
             $Script:enemies.Clear(); $Script:enemyBullets.Clear(); $Script:bullets.Clear(); $Script:items.Clear()
         }
     }

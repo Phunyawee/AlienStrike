@@ -57,12 +57,16 @@ function Draw-HUD ($g, $score, $level, $lives, $inventory, $buffs, $debuffs, $ta
         # --- [NEW] วาดเกราะ Armor (ถ้าทำงานอยู่) ---
         if ($lucifer.ArmorHP -gt 0) {
             $armorW = [float](($lucifer.ArmorHP / 1000.0) * $barW)
-            # ใช้สีแดงตามที่ขอ (หรือแดงสลับฟ้าเพื่อให้เด่น)
-            $g.FillRectangle([System.Drawing.Brushes]::OrangeRed, $barX, $barY, $armorW, 14.0)
-            $g.DrawRectangle([System.Drawing.Pen]::new([System.Drawing.Color]::Red, 2), $barX, $barY, $barW, 14.0)
-            $g.DrawString("!!! ARMOR ACTIVE !!!", $fontSmall, [System.Drawing.Brushes]::Red, ($barX + 130), ($barY + 18))
+            
+            # เปลี่ยนจาก OrangeRed เป็น Cyan หรือ DeepSkyBlue (สีฟ้าสว่าง)
+            $g.FillRectangle([System.Drawing.Brushes]::DeepSkyBlue, $barX, $barY, $armorW, 14.0)
+            
+            # เปลี่ยนขอบจาก Red เป็น Blue หรือ White เพื่อให้ตัดกัน
+            $g.DrawRectangle([System.Drawing.Pen]::new([System.Drawing.Color]::Cyan, 2), $barX, $barY, $barW, 14.0)
+            
+            # เปลี่ยนสีข้อความเตือนเป็นสีฟ้า
+            $g.DrawString("!!! ARMOR ACTIVE !!!", $fontSmall, [System.Drawing.Brushes]::Cyan, ($barX + 130), ($barY + 18))
         }
-
         # --- [กู้คืน] วาดชื่อบอส ---
         $g.DrawString("LUCIFER - THE FALLEN KING", $fontSmall, [System.Drawing.Brushes]::White, $barX, ($barY + 18))
     }
