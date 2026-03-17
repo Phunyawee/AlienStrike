@@ -1,23 +1,40 @@
 function Invoke-GameCollisions ($player, $bullets, $enemies, $enemyBullets, $formHeight, $items) {
     $result = @{
         ScoreAdded   = 0; IsPlayerHit  = $false; IsFatalHit   = $false 
-        ApplySilence = $false; ApplySiren   = $false; ApplyJammer  = $false 
+        ApplySilence = $false; ApplySiren = $false; ApplyJammer  = $false 
         WrathKills   = 0; LustKills    = 0; SlothKills   = 0; GreedKills = 0 
         PrideKilled  = $false; GluttonyKills = 0; RealPrideKilled = $false 
-        LuciferKilled = $false; ShakeIntensity = 0 # <--- [NEW] เพิ่มตัวแปรสั่นจอ
+        LuciferKilled = $false; ShakeIntensity = 0 ;# <--- [NEW] เพิ่มตัวแปรสั่นจอ
+        AceKills = 0 
     }
 
-    # A. เช็คภัยพิบัติ (ข้ามทุกอย่าง ตายทันที)
-    Handle-UnstoppableThreats $player $enemyBullets $context
+    # ==========================================
+    # 1. UNSTOPPABLE THREATS (ข้ามระบบอมตะ)
+    # ==========================================
+    foreach ($eb in $enemyBullets) {
+        if ($eb.GetType().Name -eq "CataclysmWave") {
+            if ($eb.GetBounds().IntersectsWith($player.GetBounds())) {
+                $result.IsPlayerHit = $true
+                $Script:lives = 0 # บังคับตายจริง
+                Write-Host "!!! CATACLYSM HAS CONSUMED THE UNIVERSE !!!" -ForegroundColor Red
+                return $result # จบเกมทันที
+            }
+        }
+    }
 
-    # B. ถ้ายังอมตะอยู่ ให้ข้ามลอจิกดาเมจที่เหลือทั้งหมด
-    if ($Script:immortalTimer -gt 0) { return $context }
+    # --- ระบบ Immortal ปกติ (เช็คหลัง Cataclysm) ---
+    if ($Script:immortalTimer -gt 0) { return $result }
 
-    # C. เก็บไอเทม (Defense Drop)
-    Invoke-ItemCollection $player $items
+    $Script:blockHit = { if ($Script:defenseHits -gt 0) { $Script:defenseHits -= 1; return $true }; return $false }
 
-    # D. ระเบิดนิวเคลียร์ (Global Wipe)
-    Invoke-GlobalNuke $bullets $enemies $context
+    # ==========================================
+    # 1. GLOBAL NUKE CHECK (แก้ไขให้เก็บยอดคิลครบทุกตัว)
+    # ==========================================
+    $activeNuke = $bullets | Where-Object { $_.GetType().Name -eq "Nuke" -and $_.Exploded } | Select-Object -First 1
+    if ($null -ne $activeNuke) {
+        for ($i = $enemies.Count - 1; $i -ge 0; $i--) {
+            # [จุดแก้ที่ 1] กันบั๊ก Index Out of Range จาก Nuke
+            if ($i -ge $enemies.Count) { continue } 
 
             $e = $enemies[$i]; $eName = $e.GetType().Name; $nukeDead = $false
             
@@ -27,12 +44,24 @@ function Invoke-GameCollisions ($player, $bullets, $enemies, $enemyBullets, $for
             }
             elseif ($eName -eq "RealPride") { $nukeDead = $e.TakeDamage(200) }
             elseif ($eName -eq "Gluttony")  { $nukeDead = $e.TakeDamage(50) }
+            # ใน Global Nuke Check
+            elseif ($eName -eq "RealPride") { $nukeDead = $e.TakeDamage(200) }
+            elseif ($eName -eq "Nephilim") { $nukeDead = $e.TakeDamage(200) } # <--- เพิ่มตัวนี้
             else { 
                 if ($e -is [BaseEnemy]) { $nukeDead = $e.TakeDamage(99) } else { $nukeDead = $true }
             }
 
-    # F. ศัตรูยิงผู้เล่น (ระบบโล่ และ ดีบัฟ)
-    Invoke-PlayerDefense $player $enemies $enemyBullets $formHeight $context
+            if ($nukeDead) {
+                # --- [จุดที่ต้องเพิ่ม] เก็บสถานะการตายทุกประเภทส่งกลับไป ---
+                if ($null -ne $e.ScoreValue) { $result.ScoreAdded += $e.ScoreValue } else { $result.ScoreAdded += 100 }
+                
+                if ($eName -eq "Gluttony") { $result.GluttonyKills += 1 }
+                elseif ($eName -eq "RealPride") { $result.RealPrideKilled = $true }
+                elseif ($eName -eq "Lucifer") { $result.LuciferKilled = $true }
+                elseif ($eName -eq "Lust") { $result.LustKills += 1 }
+                elseif ($eName -eq "Greed") { $result.GreedKills += 1 }
+                elseif ($eName -eq "Sloth") { $result.SlothKills += 1 }
+                elseif ($eName -eq "Wrath") { $result.WrathKills += 1 }
 
                 Write-Host ">>> NUKE ANNIHILATED: $eName <<<" -ForegroundColor Red
                 $enemies.RemoveAt($i)
@@ -111,7 +140,7 @@ function Invoke-GameCollisions ($player, $bullets, $enemies, $enemyBullets, $for
                 if ($e.GetBounds().IntersectsWith($hitBox)) {
                     if ($e.Phase -ge 2 -or $bName -eq "HolyBomb") {
                         if ($bName -eq "Missile" -or $bName -eq "HomingMissile") { $b.Explode() }
-                        $bossDmg = if($bName -eq "HolyBomb"){800} elseif($bName -eq "Nuke"){400} elseif($bName -eq "Missile"){50} elseif($bName -eq "HomingMissile"){75} else {1}
+                        $bossDmg = if($bName -eq "HolyBomb"){800} elseif($bName -eq "Nuke"){400} elseif($bName -eq "Missile"){50} elseif($bName -eq "HomingMissile"){50} else {1}
                         $isDead = $e.TakeDamage($bossDmg)
                         if ($bName -notin @("PlayerLaser", "Nuke", "Missile", "HomingMissile") -and $j -lt $bullets.Count) { 
                             $bullets.RemoveAt($j) 
@@ -123,6 +152,57 @@ function Invoke-GameCollisions ($player, $bullets, $enemies, $enemyBullets, $for
                 }
                 continue
             }
+
+           # --- [ส่วนเช็ค Nephilim ใน CollisionManager] ---
+                if ($typeName -eq "Nephilim") {
+                    $hitBox = $b.GetBounds()
+                    
+                    # 1. เช็คชนปืนเลเซอร์กลาง (ต้องพังอันนี้ก่อนเพื่อน)
+                    if ($e.LaserHP -gt 0) {
+                        # --- [แก้ไข] ปรับพิกัดสี่เหลี่ยมเช็คชนให้ต่ำลงตามรูปวาดใหม่ (30 -> 45) ---
+                        $laserRect = [System.Drawing.RectangleF]::new($e.X + 55, $e.Y + 40, 50, 50)
+                        if ($laserRect.IntersectsWith($hitBox)) {
+                            $e.LaserHP -= $currentDmg
+                            $e.FlashTimer = 3
+                            if ($bName -ne "PlayerLaser") { $bullets.RemoveAt($j) }
+                        }
+                        continue 
+                    }
+                    # 2. เช็คชนใบพัด (หลังจากเลเซอร์พังแล้ว - Phase 1)
+                    if ($e.Phase -eq 1) {
+                        $hitPart = $false
+                        # กรงเล็บใบ้พัดซ้ายและขวา
+                        $lBladeRect = [System.Drawing.RectangleF]::new($e.X + 5, $e.Y - 45, 50, 50)
+                        $rBladeRect = [System.Drawing.RectangleF]::new($e.X + 105, $e.Y - 45, 50, 50)
+
+                        if ($e.LeftBladeHP -gt 0 -and $lBladeRect.IntersectsWith($hitBox)) {
+                            $e.LeftBladeHP -= $currentDmg; $hitPart = $true
+                        }
+                        elseif ($e.RightBladeHP -gt 0 -and $rBladeRect.IntersectsWith($hitBox)) {
+                            $e.RightBladeHP -= $currentDmg; $hitPart = $true
+                        }
+
+                        if ($hitPart) {
+                            $e.FlashTimer = 3
+                            if ($bName -ne "PlayerLaser") { $bullets.RemoveAt($j) }
+                            continue 
+                        }
+                        continue # ถ้าไม่โดนใบพัด กระสุนจะผ่านตัวแม่ไป (เพราะยังไม่ Phase 2)
+                    }
+
+                    # 3. เข้าตัวแม่ (Phase 2 - หลังจากใบพัดพังหมด)
+                    if ($e.Phase -eq 2) {
+                        if ($e.GetBounds().IntersectsWith($hitBox)) {
+                            $isDead = $e.TakeDamage($currentDmg)
+                            if ($bName -ne "PlayerLaser") { $bullets.RemoveAt($j) }
+                            break
+                        }
+                    }
+                    continue
+                }
+
+                 # --- ในลูปเช็คกระสุนศัตรูชนผู้เล่น ---
+         
 
             # --- เช็คศัตรูทั่วไป (Watcher ฯลฯ) ---
             if ($e.GetBounds().IntersectsWith($hitBox)) {
@@ -153,17 +233,18 @@ function Invoke-GameCollisions ($player, $bullets, $enemies, $enemyBullets, $for
                 $result.LuciferKilled = $true 
                 Write-Host ">>> LUCIFER HAS BEEN DEFEATED! <<<" -ForegroundColor White
             }
+            elseif ($typeName -eq "Watcher") {
+                if ($e.Type -eq "Ace") { 
+                    $result.AceKills += 1 # นับเฉพาะตัวแดง
+                }
+            }
             elseif ($typeName -eq "Wrath") {
                 $result.WrathKills += 1
                 $Script:wrathKills++ 
-
-                # --- [แก้ไขจุดนี้] เพิ่มเงื่อนไขเช็คโหมดก่อนเสก Envy ---
-                # เช็คว่ายอดคิลครบ 5 และ "ต้องไม่ใช่โหมด 1v1"
-                $isDuelMode = $Script:gameMode -match "1v1_"
-
-                if ($Script:wrathKills % 5 -eq 0 -and -not $isDuelMode) { 
+                
+                # --- [แก้ไข] ห้ามเสก Envy ถ้าอยู่ในโหมด Simulation ---
+                if ($Script:wrathKills % 5 -eq 0 -and $Script:gameMode -notin @("1v1_LUCIFER", "Simulation")) { 
                     [void]$enemies.Add([Envy]::new(225, -50, $player)) 
-                    Write-Host ">>> ENVY HAS ENTERED THE STAGE! <<<" -ForegroundColor Magenta
                 }
             }
             $enemies.RemoveAt($i)
@@ -173,6 +254,7 @@ function Invoke-GameCollisions ($player, $bullets, $enemies, $enemyBullets, $for
     # ==========================================
     # 5. BOSS FATAL ATTACKS
     # ==========================================
+    # --- 2. Fatal Beam Checks ---
     foreach ($boss in $enemies) {
         $bName = $boss.GetType().Name
         if ($bName -eq "RealPride" -and $boss.State -eq 2) {
@@ -189,46 +271,70 @@ function Invoke-GameCollisions ($player, $bullets, $enemies, $enemyBullets, $for
                 if ($beam.IntersectsWith($player.GetBounds())) { $result.IsPlayerHit = $true; $result.IsFatalHit = $true; $result.ShakeIntensity = 15 }
             }
         }
+         # [เพิ่ม] Nephilim Fatal Laser (Phase 0 เท่านั้น)
+        if ($bName -eq "Nephilim" -and $boss.Phase -eq 0 -and $boss.ChargeTimer -ge 2.5) {
+            $beam = [System.Drawing.RectangleF]::new(($boss.X + 65.0), [float]($boss.Y + 70), 30.0, 600.0)
+            if ($beam.IntersectsWith($player.GetBounds())) { $result.IsPlayerHit = $true; $result.IsFatalHit = $true }
+        }
     }
 
     # ==========================================
     # 6. ENEMY PROJECTILES & DEBUFFS
     # ==========================================
     for ($i = $enemyBullets.Count - 1; $i -ge 0; $i--) {
-
         if ($i -ge $enemyBullets.Count) { continue }
-
         $eb = $enemyBullets[$i]; $bulletName = $eb.GetType().Name
-        if ($bulletName -eq "SlothBomb" -and $eb.State -eq 3) {
-            $wave = $eb.GetShockwave(); if ($wave) { [void]$enemyBullets.Add($wave) }; $enemyBullets.RemoveAt($i); continue
+        if ($bulletName -eq "SlothBomb" -and $eb.State -eq 3) { # ... Sloth Logic ...
+             $wave = $eb.GetShockwave(); if ($wave) { [void]$enemyBullets.Add($wave) }; $enemyBullets.RemoveAt($i); continue
         }
-        if ($bulletName -eq "SovereignPulse" -and $eb.GetBounds().IntersectsWith($player.GetBounds())) {
-            if ($Script:defenseHits -gt 50) { $Script:defenseHits = 50 }; continue
-        }
+
         if ($eb.GetBounds().IntersectsWith($player.GetBounds())) {
-            if ($eb.SpeedY -eq 15) { $Script:defenseHits = [math]::Max(0, $Script:defenseHits - 5); $enemyBullets.RemoveAt($i); continue }
-            if ($bulletName -eq "GluttonyBlast") {
+            
+            # [A] กลุ่มพิเศษ: หักโล่ตามจำนวน (Shredders)
+            if ($bulletName -match "GluttonyBlast") {
                 $lost = if ($Script:defenseHits -ge 10) { [math]::Floor($Script:defenseHits * 0.5) } else { $Script:defenseHits }
                 $Script:defenseHits -= $lost
-                Write-Host ">>> GLUTTONY STOLE SHIELD: -$lost <<<" -ForegroundColor Magenta
-                $enemyBullets.RemoveAt($i); if ($lost -eq 0 -and $Script:defenseHits -eq 0) { $result.IsPlayerHit = $true }; continue
-            }
-            if (& $Script:blockHit) { $enemyBullets.RemoveAt($i); continue }
-            if ($bulletName -eq "SilenceBullet") { $result.ApplySilence = $true; $enemyBullets.RemoveAt($i); continue } 
-            if ($bulletName -eq "SirenBullet")   { $result.ApplySiren = $true;   $enemyBullets.RemoveAt($i); continue }
-            if ($bulletName -eq "GreedArrow")   { $result.ApplyGreed = $true;   $enemyBullets.RemoveAt($i); continue }
-            if ($bulletName -eq "SlothShockwave") { $result.ApplyJammer = $true; continue }
-            # --- [เพิ่ม] เช็คมิสไซล์ศัตรู ---
-            if ($bulletName -eq "EnemyMissile") {
-                if ($eb.IsExploding) {
-                    # ถ้าโดนวงระเบิด -> หักเลือด (Fatal Hit)
-                    $result.IsPlayerHit = $true; return $result
-                } else {
-                    # ถ้าโดนแค่ตัวลูกมิสไซล์ตอนยังไม่ระเบิด -> ให้มันระเบิดทันที
-                    $eb.Explode(); continue
+
+                # --- [เพิ่มส่วนนี้กลับเข้าไป] ตรรกะการฮีลบอส Gluttony ---
+                foreach ($boss in $enemies) {
+                    if ($boss.GetType().Name -eq "Gluttony") { 
+                        $boss.HP += $lost 
+                        Write-Host ">>> GLUTTONY CONSUMED $lost SHIELD POINTS! <<<" -ForegroundColor Magenta
+                    }
                 }
+                # --------------------------------------------------
+
+                $enemyBullets.RemoveAt($i)
+                if ($lost -eq 0 -and $Script:defenseHits -eq 0) { $result.IsPlayerHit = $true }
+                continue
             }
-            $result.IsPlayerHit = $true; return $result
+            if ($bulletName -match "NephilimBlade") {
+                $Script:defenseHits = [math]::Max(0, $Script:defenseHits - 50)
+                $enemyBullets.RemoveAt($i); if ($Script:defenseHits -eq 0) { Write-Host "SHIELD BROKEN!" -ForegroundColor Red }; continue
+            }
+            if ($eb.SpeedY -eq 15) { # กระสุน Lucifer Turret
+                $Script:defenseHits = [math]::Max(0, $Script:defenseHits - 5)
+                $enemyBullets.RemoveAt($i); continue
+            }
+
+            # [B] เช็คระบบโล่ปกติ (Block ทุกอย่างที่เหลือ)
+            # ถ้ามีโล่ จะหัก 1 แต้มและข้ามการเช็ค Effect ด้านล่างทันที!
+            if (& $Script:blockHit) { 
+                $enemyBullets.RemoveAt($i)
+                Write-Host ">>> ATTACK BLOCKED BY SHIELD <<<" -ForegroundColor Cyan
+                continue 
+            }
+
+            # [C] ผลกระทบเมื่อ "ไม่มีโล่" (Damage & Status)
+            if ($bulletName -match "SirenBullet") { $result.ApplySiren = $true }
+            elseif ($bulletName -match "SilenceBullet") { $result.ApplySilence = $true }
+            elseif ($bulletName -match "GreedArrow") { $result.ApplyGreed = $true }
+            elseif ($bulletName -match "SlothShockwave") { $result.ApplyJammer = $true; continue }
+            elseif ($bulletName -match "EnemyMissile") { if ($eb.IsExploding) { $result.IsPlayerHit = $true } else { $eb.Explode(); continue } }
+            else { $result.IsPlayerHit = $true }
+
+            if ($bulletName -ne "SlothShockwave") { $enemyBullets.RemoveAt($i) }
+            if ($result.IsPlayerHit) { return $result }
         }
         if ($eb.Y -gt $formHeight) { $enemyBullets.RemoveAt($i) }
     }
