@@ -13,10 +13,14 @@ function Draw-HUD ($g, $score, $level, $lives, $inventory, $buffs, $debuffs, $ta
 
     # --- 2. ข้อมูล Score / Level / Lives ---
     $g.DrawString("SCORE", $fontSmall, [System.Drawing.Brushes]::Gray, ($sidebarX + 15), 20)
-    $g.DrawString("$score", $fontLarge, [System.Drawing.Brushes]::Yellow, ($sidebarX + 15), 35)
-    $g.DrawString("LEVEL $level", $fontSmall, [System.Drawing.Brushes]::White, ($sidebarX + 15), 75)
     
-    $g.FillRectangle([System.Drawing.Brushes]::DarkSlateGray, ($sidebarX + 15), 95, 170, 6)
+    # [แก้ไข] ถ้าเป็นโหมด SIM ให้ขึ้น N/A
+    $scoreDisplay = if ($Script:gameMode -eq "Simulation") { "N/A" } else { $score.ToString("N0") }
+    $g.DrawString($scoreDisplay, $fontLarge, [System.Drawing.Brushes]::Yellow, ($sidebarX + 15), 35)
+
+    # ปรับหลอด Progress ให้เป็น 0 ตลอดในโหมด SIM
+    $progress = if ($Script:gameMode -eq "Simulation") { 0 } else { [math]::Min(($score / $targetScore), 1.0) }
+    $g.FillRectangle([System.Drawing.Brushes]::Lime, ($sidebarX + 15), 95, (170 * $progress), 6)
     if ($null -ne $targetScore -and $targetScore -gt 0) {
         $progress = [math]::Min(($score / $targetScore), 1.0)
         $g.FillRectangle([System.Drawing.Brushes]::Lime, ($sidebarX + 15), 95, (170 * $progress), 6)
@@ -38,22 +42,31 @@ function Draw-HUD ($g, $score, $level, $lives, $inventory, $buffs, $debuffs, $ta
     }
     $g.DrawString($modeText, $fontSmall, [System.Drawing.Brushes]::Lime, ($sidebarX + 15), 185)
 
-    # --- 4. LUCIFER BOSS BAR (ถ้ามี) ---
+    # --- วาดบอสบาร์ของ LUCIFER (ปรับปรุงใหม่) ---
     $lucifer = $enemies | Where-Object { $_.GetType().Name -eq "Lucifer" } | Select-Object -First 1
     if ($lucifer) {
         $barX = 50; $barY = 15; $barW = 400
         $g.FillRectangle([System.Drawing.Brushes]::DimGray, $barX, $barY, $barW, 14)
-        $smoothW = ($lucifer.SmoothHP / 20000) * $barW
-        $g.FillRectangle([System.Drawing.Brushes]::White, $barX, $barY, $smoothW, 14)
-        $visualW = ($lucifer.VisualHP / 20000) * $barW
-        $g.FillRectangle([System.Drawing.Brushes]::Red, $barX, $barY, $visualW, 14)
+        
+        # หลอดเลือดขาว (Smooth) และแดง (Visual)
+        $smoothW = [float](($lucifer.SmoothHP / 20000.0) * $barW)
+        $g.FillRectangle([System.Drawing.Brushes]::White, $barX, $barY, $smoothW, 14.0)
+        $visualW = [float](($lucifer.VisualHP / 20000.0) * $barW)
+        $g.FillRectangle([System.Drawing.Brushes]::Red, $barX, $barY, $visualW, 14.0)
+        
+        # --- [NEW] วาดเกราะ Armor (ถ้าทำงานอยู่) ---
         if ($lucifer.ArmorHP -gt 0) {
-            $armorW = ($lucifer.ArmorHP / 1000) * $barW
-            $g.FillRectangle([System.Drawing.Brushes]::DeepSkyBlue, $barX, $barY, $armorW, 14)
-            $g.DrawRectangle([System.Drawing.Pen]::new([System.Drawing.Color]::Cyan, 2), $barX, $barY, $barW, 14)
+            $armorW = [float](($lucifer.ArmorHP / 1000.0) * $barW)
+            # ใช้สีแดงตามที่ขอ (หรือแดงสลับฟ้าเพื่อให้เด่น)
+            $g.FillRectangle([System.Drawing.Brushes]::OrangeRed, $barX, $barY, $armorW, 14.0)
+            $g.DrawRectangle([System.Drawing.Pen]::new([System.Drawing.Color]::Red, 2), $barX, $barY, $barW, 14.0)
+            $g.DrawString("!!! ARMOR ACTIVE !!!", $fontSmall, [System.Drawing.Brushes]::Red, ($barX + 130), ($barY + 18))
         }
-    }
 
+        # --- [กู้คืน] วาดชื่อบอส ---
+        $g.DrawString("LUCIFER - THE FALLEN KING", $fontSmall, [System.Drawing.Brushes]::White, $barX, ($barY + 18))
+    }
+    
     # --- 5. POCKET ARSENAL (แนวนอน 3-Slot) ---
     $invY = 500  
     $g.DrawString("POCKET ARSENAL [Q]", $fontSmall, [System.Drawing.Brushes]::Gray, ($sidebarX + 15), ($invY - 20))
