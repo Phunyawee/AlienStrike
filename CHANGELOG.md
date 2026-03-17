@@ -1,4 +1,75 @@
-<<<<<<< HEAD
+## [5.1.1] - 2026-03-17  
+**"The Stability Protocol"**
+
+Version 5.1.1 is a critical stability hotfix focusing on **Engine Robustness** and **Object Synchronization**. This update eliminates "Ghost Signatures" (null-pointer crashes) that occurred during high-intensity boss encounters and ensures the Simulation Lab operates without failure.
+
+---
+
+### 🎯 Version 5.1.1 Focus
+
+#### 🏗️ Architectural Integrity
+- Transitioned from string-based type checking to **Strong Type Validation** (`-is [Class]`)  
+- Prevents engine crashes when handling de-spawning entities  
+
+#### 🏭 Entity Factory Synchronization
+- Standardized naming conventions across **Battle Mode** and **EntityManager**  
+- Ensures seamless boss summoning  
+
+---
+
+### 🐞 Fixed
+
+#### 👻 The "Ghost Pride" Null-Pointer Crash
+- Fixed an issue where **RealPride (Gatekeeper)** returned a null object  
+- Caused by string mismatch: `"REAL PRIDE"` vs `"REALPRIDE"` when summoned via Battle Mode  
+
+#### ⚙️ Collision Engine Desync
+- Fixed error: `"You cannot call a method on a null-valued expression"` in **StageDirector**  
+- Implemented **Safe-Type Checking** to filter null entities before processing boss logic  
+
+#### 🧠 Session Memory Leak
+- Resolved issue where `currentTrackedLevel` was not resetting after Game Over  
+- Previously caused **Lust Swarms** to fail in new sessions  
+
+#### 🚀 Homing Missile Firing Sequence
+- Fixed mapping issue in **Inventory Manager (E-Key)**  
+- `HomingMissile` class now correctly linked to `"Homing"` inventory string  
+
+---
+
+### 🔄 Changed
+
+#### 🧼 Factory Sanitization
+- **New-Sin factory** now supports:
+  - Case-insensitive matching  
+  - Automatic space stripping  
+- Examples:
+  - `"Real Pride"`  
+  - `"RealPride"`  
+  - `"realpride"`  
+  → All resolve to the same entity ID  
+
+#### ⚠️ Enhanced Warning System
+- **Cataclysm Warning (RealPride)** decoupled from main update loop  
+- Added **Pre-flight Null Check**  
+- Prevents UI crash if boss is destroyed during beam charge  
+
+---
+
+### ➕ Added
+
+#### 🛡️ Simulation Safety Net
+- Added **Null-Player Guard** in `UpdateWithPlayer` for all Sin-class bosses  
+- Prevents crash when boss targets a player that has been destroyed but not yet respawned  
+
+---
+
+> *"True power is not in the weapon, but in the stability of the hand that holds it."*  
+
+**Patch 5.1.1 deployed. The Lab is now 100% operational.**
+
+
+
 ## [5.1.0] - 2026-03-15
 ### " "
 
@@ -151,8 +222,6 @@ Improved logic for the **E key item trigger**:
 
 
 
-=======
->>>>>>> parent of 05409eb (5.1.0 The Laboratory & Celestial Engineering)
 ## [5.0.1] - 2026-03-15
 ### "The Performance Sentinel Update"
 
