@@ -1,3 +1,5 @@
+# src/Entities/Projectiles/GluttonyBlast.ps1
+
 class GluttonyBlast : EnemyBullet {
     GluttonyBlast([float]$x, [float]$y, [Object]$player) : base($x, $y, 0, 0) {
         $this.Width = 60

@@ -46,11 +46,17 @@ function Handle-PostCollision ($collisionResult) {
         $isAzazelActive = ($Script:enemies | Where-Object { $_.GetType().Name -eq "Azazel" }).Count -gt 0
         
         if ($isAzazelActive) {
-            # ถ้าอยู่ในด่านบอส แจก Laser 10 นัด (สำหรับสู้บอส)
-            Add-To-Inventory "Laser" (10 * $collisionResult.AceKills)
-            Write-Host ">>> BOSS REINFORCEMENTS WIPED: +10 LASER <<<" -ForegroundColor Green
+            # --- [เงื่อนไขใหม่] โอกาส 50% ได้ Red Laser 2 อัน ---
+            if ($Script:rnd.Next(1, 101) -le 50) {
+                for($i=0; $i -lt 2; $i++) { Add-To-Inventory "RedLaser" 1 }
+                Write-Host ">>> EXPERIMENTAL TECH ACQUIRED: 2 RED LASERS <<<" -ForegroundColor Red
+            } else {
+                # กรณี 50% ที่เหลือ ได้เลเซอร์ปกติ 10 นัด
+                Add-To-Inventory "Laser" (10 * $collisionResult.AceKills)
+                Write-Host ">>> BOSS REINFORCEMENTS WIPED: +10 LASER <<<" -ForegroundColor Green
+            }
         } else {
-            # ถ้าอยู่ในเวฟปกติ แจก Homing 3 นัด (ตามของเดิมที่คุณตั้งไว้)
+            # ถ้าอยู่ในเวฟปกติ (ไม่ใช่ Azazel) แจก Homing 3 นัดตามเดิม
             Add-To-Inventory "Homing" (3 * $collisionResult.AceKills)
             Write-Host ">>> ELITE DOWN: +3 HOMING MISSILES <<<" -ForegroundColor Yellow
         }

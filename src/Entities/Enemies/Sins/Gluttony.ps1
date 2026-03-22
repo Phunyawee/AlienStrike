@@ -1,3 +1,5 @@
+# src/Entities/Enemies/Sins/Gluttony.ps1
+
 class Gluttony : BaseEnemy {
     [int]$State = 0 
     [int]$ChargeTimer = 0

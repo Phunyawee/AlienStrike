@@ -1,3 +1,5 @@
+# src/Entities/Projectiles/Missile.ps1
+
 class Missile : Bullet {
     [int]$LifeTimer = 15 # ระยะเวลาที่ระเบิดจะแสดงผลบนจอ (เฟรม)
     [bool]$IsExploding = $false

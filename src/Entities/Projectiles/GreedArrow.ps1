@@ -1,3 +1,5 @@
+# src/Entities/Projectiles/GreedArrow.ps1
+
 class GreedArrow : EnemyBullet {
     GreedArrow([float]$x, [float]$y, [Object]$player) : base($x, $y, 0, 0) {
         $this.Width = 15; $this.Height = 15

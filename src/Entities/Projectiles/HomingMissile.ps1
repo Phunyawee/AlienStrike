@@ -1,3 +1,5 @@
+# src/Entities/Projectiles/HomingMissile.ps1
+
 class HomingMissile : Bullet {
     [Object]$Target = $null
     [float]$TurnSpeed = 0.18 # เลี้ยวคมขึ้นนิดนึง

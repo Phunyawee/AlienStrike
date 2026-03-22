@@ -29,16 +29,23 @@ function Invoke-WeaponDamage ($player, $bullets, $enemies, $context) {
             $hitBox = $b.GetBounds()
             if ($e.GetBounds().IntersectsWith($hitBox)) {
                 if ($bName -match "Missile|HomingMissile") { $b.Explode() }
-                if ($bName -notin @("PlayerLaser", "Nuke", "Missile", "HomingMissile")) { $b.Y = -2000 }
+                # แก้บรรทัดที่ลบกระสุนด้านล่าง TakeDamage
+                if ($bName -notmatch "Laser|Nuke|Missile|Homing") { $b.Y = -2000 }
                 
-                $dmg = if ($bName -eq "HomingMissile") { 5 } elseif ($bName -eq "HolyBomb") { 5 } else { 1 }
+                $mult = if ($b.PsObject.Properties.Match("DamageMultiplier").Count -gt 0) { $b.DamageMultiplier } else { 1.0 }
+
+                $dmg = if ($bName -eq "HomingMissile") { 5 } 
+                elseif ($bName -eq "HolyBomb") { 5 } 
+                elseif ($bName -match "Laser") { 1 * $mult } # <--- เลเซอร์แดงจะแรงขึ้นกับลูกกระจ๊อกด้วย
+                else { 1 }
+
                 try {
                     if ($e.PsObject.Methods.Match("TakeDamage").Count -gt 0) { 
                         $isDead = $e.TakeDamage($dmg); $e.FlashTimer = 3 
                     } else { $isDead = $true } # ศัตรูปกติไม่มี TakeDamage เลยตายทันที
                 } catch { $isDead = $true }
 
-                if ($bName -notin @("PlayerLaser", "Nuke", "Missile", "HomingMissile")) { break }
+                if ($bName -notmatch "Laser|Nuke|Missile|Homing")  { break }
             }
         }
         

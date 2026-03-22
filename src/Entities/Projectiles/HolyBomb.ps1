@@ -1,3 +1,5 @@
+# src/Entities/Projectiles/HolyBomb.ps1
+
 class HolyBomb : Bullet {
     HolyBomb([float]$x, [float]$y) : base($x, $y) {
         $this.Width = 25; $this.Height = 25

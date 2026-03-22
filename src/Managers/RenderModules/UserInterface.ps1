@@ -90,20 +90,22 @@ function Draw-HUD ($g, $score, $level, $lives, $inventory, $buffs, $debuffs, $ta
                 $type = $uniqueQueue[$i]
                 $count = ($inventory | Where-Object { $_ -eq $type }).Count
                 
-                # --- [NEW] กำหนดสีตามประเภทอาวุธ ---
+                # --- [แก้ไข] เพิ่ม RedLaser เข้าไปในระบบสีและไอคอน ---
                 $colorName = switch($type) { 
                     "Laser"    { "LimeGreen" }
+                    "RedLaser" { "Red" }        # <--- สีแดง
                     "Nuke"     { "OrangeRed" }
                     "HolyBomb" { "White" }
                     "Homing"   { "Yellow" }
                     default    { "DarkCyan" }
                 }
-                # --- [NEW] กำหนดตัวอักษรไอคอน ---
+                
                 $txt = switch($type) {
                     "Laser"    { "L" }
+                    "RedLaser" { "L+" }       # <--- L กำลังสอง
                     "Nuke"     { "N" }
                     "HolyBomb" { "H" }
-                    "Homing"   { "T" } # ใช้ T (Tracker)
+                    "Homing"   { "T" } 
                     default    { "M" }
                 }
 
@@ -120,16 +122,16 @@ function Draw-HUD ($g, $score, $level, $lives, $inventory, $buffs, $debuffs, $ta
                 }
                 
                 $f = if($i -eq 0){$fontLarge} else {$fontSmall}
-                $g.DrawString($txt, $f, [System.Drawing.Brushes]::Black, ($posX + ($slotSize/4)), ($posY + ($slotSize/6)))
-                # --- [แก้ไข] วาดเลขจำนวนเป็นสีดำ (มุมขวาล่างของกรอบ) ---
-                $g.DrawString($count.ToString(), $Global:GameFonts.Tiny, [System.Drawing.Brushes]::Black, ($posX + $slotSize - 16), ($posY + $slotSize - 14))
+                $g.DrawString($txt, $f, [System.Drawing.Brushes]::Black, ($posX + ($slotSize/4) - 2), ($posY + ($slotSize/6)))
+                
+                # จำนวนกระสุน
+                $g.DrawString($count.ToString(), $fontSmall, [System.Drawing.Brushes]::Black, ($posX + $slotSize - 16), ($posY + $slotSize - 14))
             } else {
                 $pEmpty = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(50, 255, 255, 255), 1)
                 $g.DrawRectangle($pEmpty, $posX, $posY, $slotSize, $slotSize)
             }
         }
     }
-
     # --- 6. ACTIVE BUFFS (กรองอาวุธออก) ---
     $bfY = 210
     $g.DrawString("ACTIVE BUFFS", $fontSmall, [System.Drawing.Brushes]::Gray, ($sidebarX + 15), $bfY)

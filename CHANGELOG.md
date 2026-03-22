@@ -1,3 +1,112 @@
+## [5.4.1] - 2026-03-22  
+**"The Redline Overdrive & Regex Refinement"**
+
+Version 5.4.1 is a hotfix and content update introducing the **Red Laser**, an experimental high-yield energy weapon designed to dismantle Azazel’s heavy armor.  
+It also resolves critical **"projectile vanishing"** issues by replacing strict string comparisons with flexible **pattern matching**.
+
+---
+
+### 🎯 Version 5.4.1 Focus
+
+- **High-Yield Weaponry**  
+  Debut of the **Red Laser**, delivering **200% damage output** compared to the standard laser.
+
+- **Dynamic Loot System**  
+  Conditional drops now allow elite enemies to provide specialized weapons depending on the current boss encounter.
+
+- **Collision Logic v2 (Regex Support)**  
+  Replaces rigid class-name checks with **pattern matching (`-notmatch "Laser"`)** to ensure future laser variants work correctly with boss hitboxes.
+
+---
+
+### ➕ Added
+
+#### 🔴 Red Player Laser [L+]
+
+- **Output**
+  - **200% base damage** (`DamageMultiplier = 2.0`)
+
+- **Visuals**
+  - High-intensity **red beam glow**
+  - Increased beam width (**18px**)
+
+- **HUD Icon**
+  - Displayed as **L+** to indicate an overclocked energy weapon.
+
+---
+
+#### 📦 Elite Drop: Experimental Tech
+
+- **Acquisition**
+  - Defeating a **Watcher (Ace)** while **Azazel** is active has a **50% chance** to drop **2 Red Laser units**.
+
+- **Strategic Purpose**
+  - Encourages players to eliminate elite escorts during boss encounters to gain a tactical advantage.
+
+---
+
+### 🔄 Changed
+
+#### 🛠️ Universal Collision Handling
+
+**Projectile Vanishing Fix**
+
+Updated boss collision systems to recognize **all laser variants**.
+
+Previous logic:
+```
+if ($bName -ne "PlayerLaser")
+```
+New logic:
+```
+if ($bName -notmatch "Laser")
+```
+
+This prevents upgraded laser weapons from being accidentally deleted when colliding with boss components.
+
+---
+
+#### 📊 Optimized HUD Support
+
+- **Encoding Fix**
+  - Replaced **L²** with **L+** to avoid character encoding issues across Windows systems.
+
+- **Visual Clarity**
+  - Red Laser inventory slots now feature a **distinct red background** in the Pocket Arsenal.
+
+---
+
+### 🐞 Fixed
+
+#### 🛡️ Azazel "Ghost Armor" Bug
+- Fixed an issue where **Red Laser beams disappeared instantly** when hitting Azazel’s **BigGun** and **SmallGun** parts.  
+- **Fix:** Synchronized the laser exclusion logic across all boss modules.
+
+---
+
+#### ⚡ Damage Multiplier Injection
+- Fixed an issue where **power-up damage scaling was not applied correctly**.
+
+**Fix Implementation**
+- Added `PsObject.Properties` checks to dynamically read `DamageMultiplier` from active projectiles during collision processing.
+
+---
+
+### 📊 Updated Arsenal Damage Table (v5.4.1)
+
+| Weapon Type | Icon | Damage / Hit | Multiplier | Special Property |
+|-------------|------|--------------|------------|------------------|
+| Player Laser | L | 2 | 1.0x | Continuous Beam |
+| Red Laser | L+ | 4 | 2.0x | Heavy Burn |
+| Nuke | N | 200–400 | 1.0x | Screen Clear |
+| Holy Bomb | H | 400–800 | 1.0x | Fatal Burst |
+
+---
+
+> *"The Ace is down, the Redline is active. Azazel’s armor is no longer an obstacle—it’s just a target waiting to be melted."*
+
+
+
 ## [5.4.0] - 2026-03-22  
 **"The War Bringer & Tactical Intelligence"**
 

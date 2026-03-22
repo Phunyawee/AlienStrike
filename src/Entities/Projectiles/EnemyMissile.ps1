@@ -1,3 +1,5 @@
+# src/Entities/Projectiles/EnemyMissile.ps1
+
 class EnemyMissile : EnemyBullet {
     [bool]$IsExploding = $false
     [int]$LifeTimer = 15

@@ -485,6 +485,13 @@ $form.Add_KeyDown({
                 $fired = $true
             }
         }
+        elseif ($activeItem -eq "RedLaser") { # <--- เพิ่มไอเทมใหม่
+            if (($Script:bullets | Where-Object { $_ -is [PlayerLaser] }).Count -eq 0) {
+                # สร้างเลเซอร์แดงแรง 2 เท่า
+                [void]$Script:bullets.Add([RedPlayerLaser]::new($Script:player))
+                $fired = $true
+            }
+        }
         elseif ($activeItem -eq "Nuke") { 
             [void]$Script:bullets.Add([Nuke]::new($Script:player.X, $Script:player.Y)) 
             $fired = $true
