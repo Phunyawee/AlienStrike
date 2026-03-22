@@ -1,3 +1,5 @@
+# src/Entities/Projectiles/NephilimBlade.ps1
+
 class NephilimBlade : EnemyBullet {
     [float]$RotationAngle = 0
     NephilimBlade([float]$x, [float]$y, [Object]$player) : base($x, $y, 0, 0) {

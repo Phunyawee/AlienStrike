@@ -1,4 +1,5 @@
-# AlienStrike\src\CollisionModules\PlayerDefenseSystem.ps1
+# \src\CollisionModules\PlayerDefenseSystem.ps1
+
 function Invoke-PlayerDefense ($player, $enemies, $enemyBullets, $formHeight, $context) {
     # 1. Fatal Boss Beams (ตายทันที ทะลุโล่)
     foreach ($boss in $enemies) {

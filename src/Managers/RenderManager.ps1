@@ -1,4 +1,4 @@
-# AlienStrike\src\Managers\RenderManager.ps1
+# \src\Managers\RenderManager.ps1
 
 Add-Type -AssemblyName System.Drawing
 

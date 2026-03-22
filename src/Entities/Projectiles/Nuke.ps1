@@ -1,3 +1,5 @@
+# src/Entities/Projectiles/Nuke.ps1
+
 class Nuke : Bullet {
     [bool]$Exploded = $false
     [int]$LifeTime = 2 # ค้างไว้ 2 เฟรมเพื่อให้ระบบตรวจจับดาเมจทัน

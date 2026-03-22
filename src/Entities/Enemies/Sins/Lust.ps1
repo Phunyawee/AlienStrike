@@ -1,3 +1,5 @@
+# src/Entities/Enemies/Sins/Lust.ps1
+
 class Lust : BaseEnemy {
     [float]$StartX
     [int]$DirectionX 

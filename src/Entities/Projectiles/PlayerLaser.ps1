@@ -1,3 +1,5 @@
+# src/Entities/Projectiles/PlayerLaser.ps1
+
 class PlayerLaser : Bullet {
     [int]$LifeTime = 60 
     [float]$DamageMultiplier = 1.0

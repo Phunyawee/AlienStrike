@@ -1,3 +1,5 @@
+# src/Entities/Projectiles/SlothBomb.ps1
+
 class SlothBomb : EnemyBullet {
     [int]$Timer = 0
     [int]$State = 0 

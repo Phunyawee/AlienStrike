@@ -1,4 +1,5 @@
 # src/Managers/LogicModules/StageDirector.ps1
+
 # ==========================================
 # 2. PROGRESSION: ผู้กำกับการแสดง (Director)
 # ==========================================

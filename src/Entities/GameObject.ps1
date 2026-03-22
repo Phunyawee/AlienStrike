@@ -1,3 +1,5 @@
+# src/Entities/GameObject.ps1
+
 class GameObject {
     [float]$X; [float]$Y
     [int]$Width; [int]$Height

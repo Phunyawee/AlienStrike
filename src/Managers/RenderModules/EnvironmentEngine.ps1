@@ -1,5 +1,5 @@
+# \src\Managers\RenderModules\EnvironmentEngine.ps1
 
-# AlienStrike\src\Managers\RenderModules\EnvironmentEngine.ps1
 # --- ระบบพื้นหลังอวกาศ (v4.1.1: Saturn & X-Rings Edition) ---
 function Draw-Background ($g, $width, $height, $level) {
     # ==========================================

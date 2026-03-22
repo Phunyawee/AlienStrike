@@ -1,3 +1,5 @@
+# src/Entities/Enemies/Sins/Sloth.ps1
+
 class Sloth : BaseEnemy {
     [int]$SlothState = 0 
     [int]$StateTimer = 0

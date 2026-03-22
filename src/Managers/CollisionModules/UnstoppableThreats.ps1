@@ -1,4 +1,5 @@
-# AlienStrike\src\CollisionModules\UnstoppableThreats.ps1
+# \src\CollisionModules\UnstoppableThreats.ps1
+
 function Handle-UnstoppableThreats ($player, $enemyBullets, $context) {
     foreach ($eb in $enemyBullets) {
         if ($null -eq $eb) { continue }

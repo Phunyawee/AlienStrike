@@ -1,4 +1,5 @@
-# AlienStrike\src\CollisionModules\ExplosionProcessor.ps1
+# \src\CollisionModules\ExplosionProcessor.ps1
+
 function Invoke-GlobalNuke ($bullets, $enemies, $context) {
     $activeNuke = $bullets | Where-Object { $_.GetType().Name -eq "Nuke" -and $_.Exploded } | Select-Object -First 1
     if ($null -ne $activeNuke) {

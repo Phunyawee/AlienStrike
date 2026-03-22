@@ -1,4 +1,4 @@
-# AlienStrike\src\HighScoreManager.ps1
+# \src\Managers\HighScoreManager.ps1
 
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing

@@ -1,4 +1,5 @@
-# AlienStrike\src\Managers\RenderModules\ScreenManager.ps1
+# \src\Managers\RenderModules\ScreenManager.ps1
+
 function Draw-StartScreen ($g, $width, $height) {
     $center = New-Object System.Drawing.StringFormat
     $center.Alignment = "Center"

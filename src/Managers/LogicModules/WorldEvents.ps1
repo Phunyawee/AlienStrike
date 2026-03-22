@@ -1,4 +1,5 @@
 # src/Managers/LogicModules/WorldEvents.ps1
+
 function Check-ItemDrops {
     $lucifer = $Script:enemies | Where-Object { $_.GetType().Name -eq "Lucifer" } | Select-Object -First 1
     

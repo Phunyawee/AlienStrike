@@ -1,4 +1,4 @@
-# AlienStrike\src\Managers\RenderModules\UserInterface.ps1
+# \src\Managers\RenderModules\UserInterface.ps1
 
 function Draw-HUD ($g, $score, $level, $lives, $inventory, $buffs, $debuffs, $targetScore, $enemies) {
     $fontSmall = New-Object System.Drawing.Font("Consolas", 10, [System.Drawing.FontStyle]::Bold)

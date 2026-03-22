@@ -1,3 +1,5 @@
+# src/Entities/DefenseDrop.ps1
+
 class DefenseDrop : GameObject {
     [int]$Speed = 6 # ความเร็วตามที่คุณสั่ง
     DefenseDrop([float]$x, [float]$y) : base($x, $y, 30, 30, [System.Drawing.Color]::Gold) {}

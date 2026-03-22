@@ -1,3 +1,5 @@
+# src/Entities/Enemies/Sins/LuciferPart.ps1
+
 class LuciferPart {
     [float]$RelX; [float]$RelY
     [int]$HP; [int]$MaxHP

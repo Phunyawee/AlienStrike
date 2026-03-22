@@ -1,3 +1,5 @@
+# src/Entities/Enemies/Sins/Lucifer.ps1
+
 class Lucifer : BaseEnemy {
     [float]$VisualHP; [float]$SmoothHP
     [int]$ArmorHP = 0

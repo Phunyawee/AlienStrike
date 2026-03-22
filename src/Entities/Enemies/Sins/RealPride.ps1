@@ -1,3 +1,5 @@
+# src/Entities/Enemies/Sins/RealPride.ps1
+
 class RealPride : BaseEnemy {
     [int]$State = 0 
     [float]$Timer = 0

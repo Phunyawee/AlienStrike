@@ -1,3 +1,5 @@
+# src/Entities/Projectiles/SilenceBullet.ps1
+
 class SilenceBullet : EnemyBullet {
     hidden [Object]$Target
     [bool]$IsTracking

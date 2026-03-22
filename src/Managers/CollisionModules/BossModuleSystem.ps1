@@ -1,4 +1,5 @@
-# AlienStrike\src\CollisionModules\BossModuleSystem.ps1
+# \src\CollisionModules\BossModuleSystem.ps1
+
 function Process-BossDamage ($e, $b, $context) {
     if ($null -eq $e -or $null -eq $b) { return @{ Hit = $false; Killed = $false } }
     

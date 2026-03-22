@@ -1,3 +1,5 @@
+# src/Entities/Projectiles/SovereignPulse.ps1
+
 class SovereignPulse : EnemyBullet {
     [int]$LifeTime = 30 
     SovereignPulse([float]$y) : base(0, $y, 0, 0) {

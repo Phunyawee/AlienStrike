@@ -1,4 +1,5 @@
 # src/Entities/Projectiles/AzazelProjectiles.ps1
+
 class AzazelTriangle : EnemyBullet {
     AzazelTriangle([float]$x, [float]$y, [float]$sx, [float]$sy) : base($x, $y, $sx, $sy) {
         $this.Width = 20; $this.Height = 20; $this.Color = [System.Drawing.Color]::OrangeRed

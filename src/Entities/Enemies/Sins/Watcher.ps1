@@ -1,3 +1,5 @@
+# src/Entities/Enemies/Sins/Watcher.ps1
+
 class Watcher : BaseEnemy {
     [int]$ActionState = 0 
     [float]$TargetX; [float]$TargetY

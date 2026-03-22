@@ -1,3 +1,5 @@
+# src/Entities/Enemies/Sins/Greed.ps1
+
 class Greed : BaseEnemy {
     [float]$Angle = 0
     [float]$CenterX; [float]$CenterY

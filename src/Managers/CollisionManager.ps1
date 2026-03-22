@@ -1,4 +1,4 @@
-# AlienStrike\src\CollisionManager.ps1
+# \src\Managers\CollisionManager.ps1
 function Invoke-GameCollisions ($player, $bullets, $enemies, $enemyBullets, $formHeight, $items) {
     # 1. เตรียมผลลัพธ์ (Shared Context)
     $context = @{

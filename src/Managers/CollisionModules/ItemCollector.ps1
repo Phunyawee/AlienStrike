@@ -1,4 +1,5 @@
-# AlienStrike\src\CollisionModules\ItemCollector.ps1
+# \src\CollisionModules\ItemCollector.ps1
+
 function Invoke-ItemCollection ($player, $items) {
     for ($k = $items.Count - 1; $k -ge 0; $k--) {
         $it = $items[$k]

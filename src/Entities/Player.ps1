@@ -1,3 +1,5 @@
+# src/Entities/Player.ps1
+
 class Player : GameObject {
     [int]$Cooldown = 0
     # ปรับขนาดยานให้เล็กลงเพื่อความพริ้ว

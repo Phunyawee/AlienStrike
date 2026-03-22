@@ -1,4 +1,5 @@
-# AlienStrike\src\CollisionModules\ProjectileProcessor.ps1
+# \src\CollisionModules\ProjectileProcessor.ps1
+
 function Invoke-WeaponDamage ($player, $bullets, $enemies, $context) {
     $enemySnapshot = $enemies.ToArray()
     $bulletSnapshot = $bullets.ToArray()

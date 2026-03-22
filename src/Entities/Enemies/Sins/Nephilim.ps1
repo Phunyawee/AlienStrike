@@ -1,3 +1,5 @@
+# src/Entities/Enemies/Sins/Nephilim.ps1
+
 class Nephilim : BaseEnemy {
     [int]$Phase = 0 
     [int]$LaserHP = 400 # ลดเหลือ 400
