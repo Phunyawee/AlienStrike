@@ -1,3 +1,113 @@
+## [5.4.0] - 2026-03-22  
+**"The War Bringer & Tactical Intelligence"**
+
+Version 5.4.0 introduces **Azazel**, the second Major Boss in the Sins series.  
+This update focuses on advanced multi-stage combat, weapon-specific resistances, and improved in-game feedback systems to guide players through complex mechanical encounters.
+
+---
+
+### 🎯 Version 5.4 Focus
+
+- **Advanced Boss Mechanics**  
+  Implementation of Azazel with dynamic sub-components and conditional weapon immunities.
+
+- **On-Screen Tactical Briefing**  
+  Real-time **Info Boxes** that provide boss-fight instructions without interrupting gameplay.
+
+- **Chapter 2 Expansion**  
+  Completion of the Chapter 2 narrative arc with a scripted encounter at **Wave 18**.
+
+---
+
+### ➕ Added
+
+#### 🛡️ Boss: Azazel *(The War Bringer)*
+
+- **Multi-Gun System**
+  - 4 Big Guns
+  - 2 Small Guns  
+  - Each weapon has its own HP pool.
+
+- **Weapon Resistance Layer**
+  - Sub-parts are **immune to heavy weapons**:
+    - Missile
+    - Nuke
+    - Holy Bomb  
+  - Must be destroyed using **Bullets or Lasers**.
+
+- **Triple Phase Progression**
+  - **Phase 0:** Heavy artillery barrage  
+  - **Phase 1:** Precision targeting  
+  - **Phase 2:** Core exposed + **Judgment Cannon** (fatal sweeping laser)
+
+---
+
+#### 📺 Tactical Info Box
+
+- **Intro Banner**
+  - A neon-bordered message window displayed for **3 seconds** when Azazel appears.
+
+- **Dynamic Feedback**
+  - Clearly explains weapon effectiveness (Parts vs Core) to reduce player confusion.
+
+---
+
+### 🔄 Changed
+
+#### 🎨 Visual Overhaul (Azazel)
+
+- **Mechanical Realism**
+  - Main cannon barrel color changed to **DimGray** for a heavier industrial look.
+
+- **Improved Hit Indicators**
+  - Boss parts now **flash white for 5 frames** when taking valid damage.
+
+---
+
+#### 🏗️ Stage Director Update (Chapter 2)
+
+- **Wave 18 Script Fix**
+  - The Stage Director now **clears all minor enemies** before spawning Azazel.  
+  - Ensures a fair **1v1 boss encounter**.
+
+---
+
+### 🐞 Fixed
+
+#### 🎯 Core Vulnerability Bug
+- Fixed an issue where Azazel’s Core remained invulnerable after all parts were destroyed.  
+- **Fix:** Updated `BossModuleSystem` phase checks to correctly detect **Phase 2 (Core Exposed)**.
+
+---
+
+#### 💣 Heavy Weapon Pass-through
+- Fixed missiles and nukes disappearing when hitting armored parts.  
+- **Fix:** Projectiles now trigger `Explode()` on impact with armor, providing visual feedback even if no damage is dealt.
+
+---
+
+#### 📏 Grenade Landing Precision
+- Adjusted `AzazelGrenade` drop logic to consistently land at **Y = 500**, ensuring its **two-stage explosion** occurs on the battlefield floor.
+
+---
+
+### 📊 Updated Arsenal Damage Table (v5.4.0)
+
+| Weapon Type | Vs Azazel Parts | Vs Azazel Core (P2) | Special Effect |
+|-------------|-----------------|---------------------|----------------|
+| Bullet [B]  | 1               | 1                   | Standard       |
+| Laser [L]   | 10              | 2                   | High DPS       |
+| Missile [M] | IMMUNE          | 25                  | Explodes on Armor |
+| Homing [T]  | IMMUNE          | 38                  | Explodes on Armor |
+| Nuke [N]    | IMMUNE          | 200                 | Piercing Armor |
+| Holy Bomb [H]| IMMUNE         | 400                 | Massive Burst  |
+
+---
+
+> *"The battlefield is no longer a place for luck. Azazel demands precision. Dismantle the machine, or be crushed by its judgment."*
+
+
+
 ## [5.3.0] - 2026-03-18 
 **"The Strict Phase & Laboratory Refinement"**
 
@@ -275,7 +385,7 @@ Version 5.1.1 is a critical stability hotfix focusing on **Engine Robustness** a
 
 
 ## [5.1.0] - 2026-03-15
-### " "
+### "The Laboratory & Celestial Engineering"
 
 Version **5.1.0** introduces a dedicated **weapon testing environment** and deeper combat balancing tools.  
 This update also debuts a new **mini-boss class**, expands the **UI navigation system**, and upgrades the physics behavior of guided projectiles.

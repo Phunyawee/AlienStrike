@@ -186,112 +186,6 @@ function Spawn-DeltaFormation ([float]$centerX, [float]$targetY) {
     # 3. หัวหน้า (แดง - แอดหน้าสุด)
     [void]$Script:enemies.Add([Watcher]::new($centerX, -100, $centerX, $targetY, "Leader"))
 }
-
-$Script:chapterTwoWave = 0
-$Script:waveDelayTimer = 0 # ตัวนับเวลาถอยหลังก่อนปล่อยชุดใหม่
-$Script:subWaveTriggered = $false
-
-function Update-ChapterTwoProgression {
-    $activeEnemies = $Script:enemies | Where-Object { $_.Y -lt 1000 }
-    
-    if ($activeEnemies.Count -gt 0) { 
-        # ลอจิก Sub-Wave ของ Wave 3 (เหมือนเดิม)
-        if ($Script:chapterTwoWave -eq 3 -and -not $Script:subWaveTriggered) {
-            $orbits = $activeEnemies | Where-Object { $_.Type -eq "Orbit" }
-            if ($orbits.Count -le 2) { # ปรับให้เหลือ 2 ลำค่อยเรียกวงใหม่
-                $Script:subWaveTriggered = $true
-                $cx = 230; $cy = 150
-                for ($i = 0; $i -lt 4; $i++) { # ลดเหลือ 4 ลำ
-                    $w = [Watcher]::new($cx, $cy, $cx, $cy, "Orbit")
-                    $w.Angle = (($i * 90) + 45) * ([math]::PI / 180)
-                    $w.OrbitCX = $cx; $w.OrbitCY = $cy
-                    [void]$Script:enemies.Add($w)
-                }
-                [void]$Script:enemies.Add([Watcher]::new(550, 180, 0, 0, "Ace"))
-            }
-        }
-        $Script:waveDelayTimer = 30; return 
-    }
-    
-    if ($Script:waveDelayTimer -gt 0) { $Script:waveDelayTimer--; return }
-
-    $Script:chapterTwoWave++
-    $Script:subWaveTriggered = $false
-    Write-Host ">>> CHAPTER 2: STARTING WAVE $Script:chapterTwoWave <<<" -ForegroundColor Cyan
-    
-    switch ($Script:chapterTwoWave) {
-        1 { Spawn-DeltaFormation 230 150 }
-        2 { 
-            for($i=0;$i-lt 4;$i++) {
-                [void]$Script:enemies.Add([Watcher]::new(-50, 100, (40 + $i*35), (80 + $i*20), "Minion"))
-                [void]$Script:enemies.Add([Watcher]::new(460, 100, (420 - $i*35), (80 + $i*20), "Minion"))
-            }
-        }
-        3 { 
-            $cx = 250; $cy = 150
-            for ($i = 0; $i -lt 5; $i++) {
-                $w = [Watcher]::new($cx, $cy, $cx, $cy, "Orbit")
-                $w.Angle = ($i * 72) * ([math]::PI / 180); $w.OrbitCX = $cx; $w.OrbitCY = $cy
-                [void]$Script:enemies.Add($w)
-            }
-            [void]$Script:enemies.Add([Watcher]::new(-100, 120, 0, 0, "Ace"))
-        }
-        4 { 
-            # [เนิฟ Wave 4] ส่งค่า "Passive" ไปให้ลูกน้อง
-            Spawn-Pyramid 80 100 0   "Passive"
-            Spawn-Pyramid 230 100 30  "Passive" # เพิ่มดีเลย์การยิงให้ห่างกันมากขึ้น
-            Spawn-Pyramid 380 100 60  "Passive"
-        }
-        5 {
-            # [NEW] Wave 5: Twin Columns (กำแพงคู่)
-            for($i=0;$i-lt 5;$i++) {
-                [void]$Script:enemies.Add([Watcher]::new(100, -50, 100, (50 + $i*60), "Minion"))
-                [void]$Script:enemies.Add([Watcher]::new(350, -50, 350, (50 + $i*60), "Minion"))
-            }
-            Write-Host ">>> WAVE 5: THE TWIN COLUMNS <<<" -ForegroundColor Yellow
-        }
-        6 {
-            # [NEW] Wave 6: Ace Squadron (ฝูงบินรบพิเศษ)
-            [void]$Script:enemies.Add([Watcher]::new(-100, 100, 0, 0, "Ace"))
-            [void]$Script:enemies.Add([Watcher]::new(600, 150, 0, 0, "Ace"))
-            [void]$Script:enemies.Add([Watcher]::new(-100, 200, 0, 0, "Ace"))
-            Write-Host ">>> WAVE 6: ACE INTERCEPTORS <<<" -ForegroundColor Red
-        }
-        7 { 
-            Write-Host ">>> WAVE 7: LEFT GRID ASSAULT <<<" -ForegroundColor Cyan
-            Spawn-GridFormation 50 100 
-        }
-        8 { 
-            Write-Host ">>> WAVE 8: RIGHT GRID ASSAULT <<<" -ForegroundColor Cyan
-            Spawn-GridFormation 300 100 
-        }
-        9 {
-            Write-Host ">>> WAVE 9: TWIN GRID REINFORCED <<<" -ForegroundColor Yellow
-            Spawn-GridFormation 50 80
-            Spawn-GridFormation 300 80
-        }
-        10 {
-            Write-Host ">>> WAVE 10: THE GRAND A-FORMATION (NO ESCAPE) <<<" -ForegroundColor Red
-            Spawn-AFormation
-        }
-        11 {
-            Write-Host ">>> WARNING: NEPHILIM CLASS SHIP DETECTED <<<" -ForegroundColor Red
-            # เสกบอส Nephilim ลงมา (พิกัด X=170 เพื่อให้ตัวกว้าง 160 อยู่กลางจอพอดี)
-            [void]$Script:enemies.Add((New-Sin "Nephilim" 170 -100))
-        }
-
-        12 {
-            Write-Host ">>> CHAPTER 2 COMPLETED! RETURNING TO PATROL... <<<" -ForegroundColor Yellow
-            $Script:chapterTwoWave = 0
-        }
-        
-        default {
-            Write-Host ">>> CHAPTER 2 RESTARTING... <<<" -ForegroundColor Yellow
-            $Script:chapterTwoWave = 0 
-        }
-    }
-}
-
 # --- ปรับปรุงฟังก์ชัน Spawn-Pyramid ให้รองรับโหมด Passive ---
 function Spawn-Pyramid ([float]$centerX, [float]$targetY, [int]$shootOffset = 0, [string]$minionBehavior = "Minion") {
     $leader = [Watcher]::new($centerX, -150, $centerX, $targetY, "Leader")
@@ -332,4 +226,103 @@ function Spawn-AFormation {
     [void]$Script:enemies.Add([Watcher]::new($cx, -100, $cx - 40, $cy + 100, "Minion", $true))
     [void]$Script:enemies.Add([Watcher]::new($cx, -100, $cx, $cy + 100, "Minion", $true))
     [void]$Script:enemies.Add([Watcher]::new($cx, -100, $cx + 40, $cy + 100, "Minion", $true))
+}
+
+$Script:chapterTwoWave = 0
+$Script:waveDelayTimer = 0 # ตัวนับเวลาถอยหลังก่อนปล่อยชุดใหม่
+$Script:subWaveTriggered = $false
+
+function Update-ChapterTwoProgression {
+    $activeEnemies = $Script:enemies | Where-Object { 
+        $_.Y -lt 1000 -and 
+        $_.X -gt -500 -and $_.X -lt 1200 -and 
+        ($null -eq $_.HP -or $_.HP -gt 0) -and
+        $_.GetType().Name -ne "Explode" # (เผื่อคุณมีคลาส Effect ระเบิดค้างอยู่)
+    }
+    
+    # 1. เช็คว่าศัตรูยังอยู่ หรือติดช่วงหน่วงเวลาไหม
+    if ($activeEnemies.Count -gt 0) { $Script:waveDelayTimer = 30; return }
+    if ($Script:waveDelayTimer -gt 0) { $Script:waveDelayTimer--; return }
+
+    $Script:chapterTwoWave++
+    $Script:subWaveTriggered = $false 
+
+    # ==========================================
+    # ลอจิกการเลือก Wave (1-11 คือคงที่, 12-17 คือสุ่ม)
+    # ==========================================
+    $currentAction = $Script:chapterTwoWave
+
+    # ถ้าอยู่ในช่วงสุ่ม (Wave 12 ถึง 17)
+    if ($Script:chapterTwoWave -ge 12 -and $Script:chapterTwoWave -le 17) {
+        # ถ้ายังไม่ได้สุ่ม ให้สุ่มเก็บไว้ 6 อันจาก 10 แบบแรก
+        if ($Script:chapterTwoRandomPool.Count -eq 0) {
+            for ($i=0; $i -lt 6; $i++) { $Script:chapterTwoRandomPool += $Script:rnd.Next(1, 11) }
+            Write-Host ">>> CHAPTER 2: RANDOM ASSAULT PREPARED <<<" -ForegroundColor Gray
+        }
+        # ดึงเลข Wave จาก Pool มาใช้ (เช่น รอบที่ 12 ดึง index 0)
+        $currentAction = $Script:chapterTwoRandomPool[$Script:chapterTwoWave - 12]
+        Write-Host ">>> CHAPTER 2: RANDOM WAVE ($($Script:chapterTwoWave - 11)/6) - TYPE $currentAction <<<" -ForegroundColor Magenta
+    }
+
+    # --- เริ่มปล่อยตัวละครตามลำดับ $currentAction ---
+    switch ($currentAction) {
+        1 { Spawn-DeltaFormation 230 150 }
+        2 { 
+            for($i=0;$i-lt 4;$i++) {
+                [void]$Script:enemies.Add([Watcher]::new(-50, 100, (40 + $i*35), (80 + $i*20), "Minion"))
+                [void]$Script:enemies.Add([Watcher]::new(460, 100, (420 - $i*35), (80 + $i*20), "Minion"))
+            }
+        }
+        3 { 
+            $cx = 250; $cy = 150
+            for ($i = 0; $i -lt 5; $i++) {
+                $w = [Watcher]::new($cx, $cy, $cx, $cy, "Orbit"); $w.Angle = ($i * 72) * ([math]::PI / 180); $w.OrbitCX = $cx; $w.OrbitCY = $centerY
+                [void]$Script:enemies.Add($w)
+            }
+            [void]$Script:enemies.Add([Watcher]::new(-100, 120, 0, 0, "Ace"))
+        }
+        4 { Spawn-Pyramid 80 100 0 "Passive"; Spawn-Pyramid 230 100 30 "Passive"; Spawn-Pyramid 380 100 60 "Passive" }
+        5 {
+            for($i=0;$i-lt 5;$i++) {
+                [void]$Script:enemies.Add([Watcher]::new(100, -50, 100, (50 + $i*60), "Minion"))
+                [void]$Script:enemies.Add([Watcher]::new(350, -50, 350, (50 + $i*60), "Minion"))
+            }
+        }
+        6 { 
+            [void]$Script:enemies.Add([Watcher]::new(-100, 100, 0, 0, "Ace"))
+            [void]$Script:enemies.Add([Watcher]::new(600, 150, 0, 0, "Ace"))
+            [void]$Script:enemies.Add([Watcher]::new(-100, 200, 0, 0, "Ace"))
+        }
+        7 { Spawn-GridFormation 50 100 }
+        8 { Spawn-GridFormation 300 100 }
+        9 { Spawn-GridFormation 50 80; Spawn-GridFormation 300 80 }
+        10 { Spawn-AFormation }
+        
+        # --- บอสตามพล็อตเรื่อง ---
+        11 { 
+            # Nephilim (ฟิกซ์ตำแหน่งที่ 11 เสมอ)
+            Write-Host ">>> WARNING: NEPHILIM CLASS DETECTED <<<" -ForegroundColor Red
+            [void]$Script:enemies.Add((New-Sin "Nephilim" 170 -100))
+        }
+
+         # --- [เพิ่ม] ระลอกที่ 18: เปิดตัวบอสใหญ่ Azazel ---
+        18 {
+            Write-Host "!!! WARNING: AZAZEL - THE WAR BRINGER HAS ARRIVED !!!" -ForegroundColor Red
+            # ล้างลูกกระจ๊อกออกให้หมดก่อนบอสมา
+            $minions = $Script:enemies | Where-Object { $_ -isnot [BaseEnemy] }
+            foreach ($m in $minions) { [void]$Script:enemies.Remove($m) }
+            
+            # เสก Azazel (พิกัด X=150 เพื่อให้ฐานกว้าง 200 อยู่กลางจอ 500 พอดี)
+            [void]$Script:enemies.Add((New-Sin "Azazel" 150 -150))
+        }
+
+        default {
+            # ถ้าเล่นจนจบ Azazel (Wave 19+) ให้รีเซ็ตหรือขึ้น Chapter 3
+            if ($Script:chapterTwoWave -gt 18) {
+                Write-Host ">>> CHAPTER 2 SCRIPT COMPLETED! <<<" -ForegroundColor Gold
+                $Script:chapterTwoWave = 0
+                $Script:chapterTwoRandomPool = @()
+            }
+        }
+    }
 }

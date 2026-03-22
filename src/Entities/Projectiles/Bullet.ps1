@@ -1,3 +1,4 @@
+# src/Entities/Projectiles/Bullet.ps1
 class Bullet : GameObject {
     [int]$Speed = 12
     [float]$SpeedX = 0  # เพิ่มความเร็วแกน X สำหรับยิงเฉียง (ค่าเริ่มต้นคือ 0 = ยิงตรง)

@@ -1,3 +1,4 @@
+# AlienStrike\src\CollisionModules\ProjectileProcessor.ps1
 function Invoke-WeaponDamage ($player, $bullets, $enemies, $context) {
     $enemySnapshot = $enemies.ToArray()
     $bulletSnapshot = $bullets.ToArray()
@@ -11,17 +12,20 @@ function Invoke-WeaponDamage ($player, $bullets, $enemies, $context) {
             if ($null -eq $b -or $b.Y -lt -1000) { continue }
             $bName = $b.GetType().Name
             
-            # --- [จุดแก้สำคัญ] เช็คดาเมจบอส และป้องกันการไหลลงข้างล่าง ---
-            if ($typeName -eq "Lucifer" -or $typeName -eq "Nephilim") {
+            # --- [จุดแก้ที่ 1] เพิ่ม Azazel เข้าไปในกลุ่มบอสที่ต้องแยกคำนวณ ---
+            if ($typeName -in @("Lucifer", "Nephilim", "Azazel")) {
                 $bossStatus = Process-BossDamage $e $b $context
                 if ($bossStatus.Hit) {
                     $isDead = $bossStatus.Killed
                     if ($isDead) { break } # ถ้าบอสตาย จบลูปกระสุนสำหรับบอสตัวนี้
-                    continue # ถ้าชนบอสแล้ว (แต่ไม่ตาย) ให้ข้ามไปเช็คกระสุนนัดถัดไปทันที ห้ามลงไปเช็ค Minion Logic!
+                    continue # ถ้าชนบอสแล้ว (แต่ไม่ตาย) ข้ามกระสุนนัดนี้ไปเลย
                 }
+                # ถ้าไม่ Hit (เช่น ยิงติดโล่ หรือทะลุ) ก็ให้ข้ามไปนัดถัดไป
+                # ห้ามปล่อยไหลลงไปหาลอจิกศัตรูทั่วไปเด็ดขาด!
+                continue 
             }
 
-            # --- 2. ลอจิกสำหรับศัตรูทั่วไป (จะทำงานเฉพาะเมื่อไม่ใช่บอส หรือไม่ชนบอสเท่านั้น) ---
+            # --- 2. ลอจิกสำหรับศัตรูทั่วไป (จะทำงานเฉพาะเมื่อไม่ใช่บอส 3 ตัวบน) ---
             $hitBox = $b.GetBounds()
             if ($e.GetBounds().IntersectsWith($hitBox)) {
                 if ($bName -match "Missile|HomingMissile") { $b.Explode() }
@@ -37,7 +41,8 @@ function Invoke-WeaponDamage ($player, $bullets, $enemies, $context) {
                 if ($bName -notin @("PlayerLaser", "Nuke", "Missile", "HomingMissile")) { break }
             }
         }
-        # การจัดการหลังศัตรูตาย
+        
+        # --- 3. การจัดการหลังศัตรูตาย ---
         if ($isDead) {
             if ($null -ne $e.ScoreValue) { $context.ScoreAdded += $e.ScoreValue } else { $context.ScoreAdded += 100 }
             
@@ -48,6 +53,9 @@ function Invoke-WeaponDamage ($player, $bullets, $enemies, $context) {
             elseif ($typeName -eq "Greed") { $context.GreedKills += 1 }
             elseif ($typeName -eq "Sloth") { $context.SlothKills += 1 }
             elseif ($typeName -eq "Pride") { $context.PrideKilled = $true }
+            # --- [จุดแก้ที่ 2] เพิ่มยอดคิลให้ Azazel ---
+            elseif ($typeName -eq "Azazel") { $context.AzazelKilled = $true } 
+            
             elseif ($typeName -eq "Watcher" -and $e.Type -eq "Ace") { $context.AceKills += 1 }
             elseif ($typeName -eq "Wrath") {
                 $context.WrathKills += 1

@@ -1,3 +1,4 @@
+# AlienStrike\src\CollisionManager.ps1
 function Invoke-GameCollisions ($player, $bullets, $enemies, $enemyBullets, $formHeight, $items) {
     # 1. เตรียมผลลัพธ์ (Shared Context)
     $context = @{
@@ -6,6 +7,7 @@ function Invoke-GameCollisions ($player, $bullets, $enemies, $enemyBullets, $for
         WrathKills     = 0; LustKills      = 0; SlothKills     = 0; GreedKills     = 0 
         PrideKilled    = $false; GluttonyKills  = 0; RealPrideKilled = $false 
         LuciferKilled  = $false; AceKills       = 0; ShakeIntensity = 0 
+        AzazelKilled   = $false
     }
 
     # A. เช็คภัยพิบัติ (ข้ามทุกอย่าง ตายทันที)

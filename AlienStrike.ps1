@@ -16,6 +16,7 @@ $LoadOrder = @(
     "src\Entities\Player.ps1",
     "src\Entities\*.ps1",
     "src\Entities\Enemies\Sins\LuciferPart.ps1",
+    "src\Entities\Enemies\Sins\AzazelPart.ps1",
     "src\Entities\Enemies\Sins\Watcher.ps1",     # [จุดสำคัญ] ต้องโหลด Watcher ก่อนบอสตัวอื่น!
     "src\Entities\Enemies\Sins\Wrath.ps1",
     "src\Entities\Enemies\Sins\*.ps1",           # ค่อยโหลดบอสที่เหลือ (เช่น Nephilim)
@@ -33,12 +34,12 @@ foreach ($pattern in $LoadOrder) {
     # ดึงไฟล์ตาม Pattern และเรียงลำดับให้แน่นอน
     Get-ChildItem -Path $targetPath -ErrorAction SilentlyContinue | Sort-Object Name | ForEach-Object {
         if (-not $LoadedFiles.Contains($_.FullName)) {
-            try {
+            # try {
                 . $_.FullName
                 [void]$LoadedFiles.Add($_.FullName)
-            } catch {
-                Write-Warning "Failed to load: $($_.Name). Dependency might be missing."
-            }
+            # } catch {
+            #     Write-Warning "Failed to load: $($_.Name). Dependency might be missing."
+            # }
         }
     }
 }
@@ -139,6 +140,8 @@ function Do-GameOver {
     $Script:showCredits = $false
     $Script:creditY = 600.0
 
+    $Script:chapterTwoWave = 0 # ตัวนับระลอกของ Chapter 2
+    $Script:chapterTwoRandomPool = @() # เก็บรายชื่อ Wave ที่สุ่มมา 6 ชุด
 
     # --- RESET GAME OBJECTS ---
     # สร้าง Player ใหม่ที่จุดเริ่มต้น
@@ -195,10 +198,11 @@ $Script:gameStarted = $false
 $Script:menuState = "MAIN"
 $Script:menuIndex = 0
 $Script:mainMenuItems = @("STORY MODE", "BATTLE MODE", "SIMULATION", "LEADERBOARD", "EXIT")
-$Script:simItems = @("WATCHER", "WRATH", "ENVY", "LUST", "GREED", "SLOTH", "PRIDE", "REAL PRIDE", "GLUTTONY", "NEPHILIM", "LUCIFER", "BACK")
+$Script:simItems = @("MINION", "WATCHER", "WRATH", "ENVY", "LUST", "GREED", "SLOTH", "PRIDE", "REAL PRIDE", "GLUTTONY", "NEPHILIM", "LUCIFER", "AZAZEL", "BACK")
 $Script:selectedSimTarget = "" # เก็บชื่อตัวที่จะเสก
 $Script:storyItems = @("CHAPTER 1: THE 7 SINS", "CHAPTER 2: THE FALLEN ANGEL", "COMING SOON...")
 $Script:chapterTwoWave = 0 # ตัวนับระลอกของ Chapter 2
+$Script:chapterTwoRandomPool = @() # เก็บรายชื่อ Wave ที่สุ่มมา 6 ชุด
 $Script:battleItems = @("LUCIFER", "REAL PRIDE", "GLUTTONY", "GREED", "BACK") # รายชื่อบอส
 
 $Script:bullets = [System.Collections.ArrayList]::new()

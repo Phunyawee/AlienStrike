@@ -1,3 +1,5 @@
+# src/Entities/Projectiles/CataclysmWave.ps1
+
 class CataclysmWave : EnemyBullet {
     CataclysmWave([float]$x, [float]$y) : base(0, $y, 0, 3) { # ความเร็ว 3 ให้ดูค่อยๆ ถล่มลงมา
         $this.Width = 500 # ครอบคลุมพื้นที่เล่นเกมทั้งหมด

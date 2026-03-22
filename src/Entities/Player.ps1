@@ -15,5 +15,5 @@ class Player : GameObject {
 
     [bool] CanShoot() { return ($this.Cooldown -le 0) }
     
-    [void] ResetCooldown() { $this.Cooldown = 8 }
+    [void] ResetCooldown() { $this.Cooldown = 16 }
 }

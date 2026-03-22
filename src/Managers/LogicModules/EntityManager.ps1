@@ -6,6 +6,7 @@
 function New-Sin ([string]$name, [float]$x = 210, [float]$y = -150) {
     # ปรับให้ตัดช่องว่างออกก่อนเทียบ Case
     switch ($name.Replace(" ", "").ToUpper()) { 
+        "AZAZEL"     { return [Azazel]::new($x, $y, $Script:player) }
         "REALPRIDE"  { return [RealPride]::new($x, $y, $Script:player) }
         "WRATH"      { return [Wrath]::new($x, $y, 5) }
         "ENVY"       { return [Envy]::new($x, $y, $Script:player) }

@@ -40,9 +40,20 @@ function Handle-PostCollision ($collisionResult) {
         $Script:defenseHits += (10 * $collisionResult.GreedKills) 
         Write-Host ">>> SHIELD REINFORCED <<<" -ForegroundColor Cyan 
     }
+    # --- [แก้ไข] รางวัลจากการคิล Watcher แดง (Ace) ---
     if ($collisionResult.AceKills -gt 0) {
-        Add-To-Inventory "Homing" (3 * $collisionResult.AceKills)
-        Write-Host ">>> ELITE DOWN! RECEIVED 3x HOMING MISSILES <<<" -ForegroundColor Yellow
+        # เช็คว่าบอส Azazel อยู่ในสนามไหม
+        $isAzazelActive = ($Script:enemies | Where-Object { $_.GetType().Name -eq "Azazel" }).Count -gt 0
+        
+        if ($isAzazelActive) {
+            # ถ้าอยู่ในด่านบอส แจก Laser 10 นัด (สำหรับสู้บอส)
+            Add-To-Inventory "Laser" (10 * $collisionResult.AceKills)
+            Write-Host ">>> BOSS REINFORCEMENTS WIPED: +10 LASER <<<" -ForegroundColor Green
+        } else {
+            # ถ้าอยู่ในเวฟปกติ แจก Homing 3 นัด (ตามของเดิมที่คุณตั้งไว้)
+            Add-To-Inventory "Homing" (3 * $collisionResult.AceKills)
+            Write-Host ">>> ELITE DOWN: +3 HOMING MISSILES <<<" -ForegroundColor Yellow
+        }
     }
     
     if ($collisionResult.PrideKilled) { $Script:prideKills++ }
